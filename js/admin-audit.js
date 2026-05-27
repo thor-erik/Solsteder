@@ -20,7 +20,7 @@
  */
 
 let auditModeActive  = false;
-let auditSubMode     = 'shadows';                   // 'shadows' | 'all'
+let auditSubMode     = 'all';                       // 'all' (default) | 'shadows'
 let _auditCache      = new Map();                   // venueId → { at, via }
 let _archiveCache    = new Map();                   // venueId → { archivedAt, reason, note? }
 let _trainedCache    = new Map();                   // venueId → { exportedAt: ISO }
@@ -408,6 +408,9 @@ function setAuditSubMode(mode) {
   if (mode !== 'shadows' && mode !== 'all') return;
   if (auditSubMode === mode) return;
   auditSubMode = mode;
+  // Shadows mode = time-based sun simulation → show the FTS scrubber + filter
+  // the list to sunny venues. Alle = ignore sun → hide the FTS + show all.
+  document.body.classList.toggle('audit-shadows', auditSubMode === 'shadows');
   _updateAuditIndicator();
   if (typeof draw === 'function') draw();
   if (typeof renderList === 'function') renderList();
@@ -461,7 +464,7 @@ function _updateAuditIndicator() {
   if (exportBtn && exportCount) {
     _invalidateCorrCache();
     const n = auditPendingTrainingCount();
-    exportCount.textContent = n;
+    exportCount.textContent = n > 0 ? n : '';
     exportBtn.classList.toggle('has-active', n > 0);
   }
 
@@ -544,9 +547,13 @@ function _renderAuditFilterPanel() {
       <div class="audit-filter-label">Flags (any matching)</div>
       <div class="audit-chip-row">${flagChips}</div>
     </div>
-    <div class="audit-filter-footer">
-      <button class="audit-chip" onclick="clearTrainingHistory()" title="Forget which venues you've already exported">Clear training log</button>
-      <button class="audit-chip" onclick="clearAuditFilters()">Reset filters</button>
+    <div class="audit-filter-group">
+      <div class="audit-filter-label">Reset</div>
+      <div class="audit-chip-row">
+        <button class="audit-chip" onclick="clearAuditFilters()" title="Restore all filters to default">Reset filters</button>
+        <button class="audit-chip" onclick="resetAuditProgress()" title="Mark every venue as not-yet-reviewed">Reset review progress</button>
+        <button class="audit-chip" onclick="clearTrainingHistory()" title="Forget which venues you've already exported for training">Clear training log</button>
+      </div>
     </div>`;
 }
 
@@ -558,6 +565,9 @@ function toggleAuditMode() {
   // icon action row) without affecting the consumer venue list.
   document.body.classList.toggle('audit-mode', auditModeActive);
   if (auditModeActive) {
+    // Default to Alle (ignore sun) — FTS hidden, full catalog shown.
+    auditSubMode = 'all';
+    document.body.classList.remove('audit-shadows');
     _auditCache   = _loadAudit();
     _archiveCache = _loadArchive();
     _trainedCache = _loadTrained();
@@ -573,6 +583,7 @@ function toggleAuditMode() {
   } else {
     // Leaving audit — restore the styled map if a card-focus had switched it
     // to satellite, and clear the focus highlight.
+    document.body.classList.remove('audit-shadows');
     if (typeof _resetAuditSatellite === 'function') _resetAuditSatellite();
   }
   _updateAuditIndicator();

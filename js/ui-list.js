@@ -1083,7 +1083,12 @@ function renderList() {
   // the user's "vis alle" escape hatch + admin review mode.
   const reviewActive = typeof reviewModeActive !== 'undefined' && reviewModeActive;
   const showAllPass = _showAllOnce; _showAllOnce = false;
-  if (!showAllPass && !reviewActive && !auditActive) {
+  // Audit "Alle" sub-mode shows the full catalog (ignore sun); "Skygger"
+  // applies the normal sun-surfacing filter so the list mirrors the shadow
+  // simulation. Outside audit, the filter always applies.
+  const _auditAll = auditActive
+    && (typeof auditSubMode === 'undefined' || auditSubMode === 'all');
+  if (!showAllPass && !reviewActive && !_auditAll) {
     venues = venues.filter(v => {
       if (v._ownSuggestion) return true;
       if (searchQ) return true; // search results bypass the filter

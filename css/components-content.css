@@ -2117,9 +2117,9 @@
      The transparent frost was illegible over satellite. */
   #edit-banner {
     position: relative;
-    background: rgba(255,242,235,0.95);
-    backdrop-filter: var(--blur-surface);
-    -webkit-backdrop-filter: var(--blur-surface);
+    background: rgba(255,242,235,0.50);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: 1px solid var(--line-l);
     border-radius: var(--radius-lg);
     padding: var(--space-2xs) var(--space-lg) var(--space-lg);
@@ -2156,10 +2156,46 @@
     background: var(--line-l-strong);
   }
 
-  /* Collapsed: hide everything but the grabber + primary action to free the
-     work area. The grabber taps to expand again. */
-  #edit-overlay.edit-collapsed #edit-controls,
-  #edit-overlay.edit-collapsed #edit-tools-row { display: none; }
+  /* Collapsed: hide the controls row, keep grabber + primary action. */
+  #edit-overlay.edit-collapsed #edit-controls { display: none; }
+
+  /* Floating polygon-tool stack — vertical, cream-frost, mirrors the zoom jog
+     on the opposite (left) side, anchored above the edit sheet. */
+  #edit-tools-float { display: none; }
+  body.edit-mode #edit-tools-float {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    position: fixed;
+    left: var(--space-md);
+    bottom: var(--edit-zoom-bottom, 240px);
+    z-index: 921;
+    padding: var(--space-2xs);
+    background: rgba(255,242,235,0.50);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+    border: 1px solid var(--line-l);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-2);
+    transition: bottom 0.22s ease;
+  }
+  .edit-tool-icon {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--content-text);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, transform 0.1s;
+  }
+  .edit-tool-icon:hover { background: var(--line-l-faint); }
+  .edit-tool-icon:active { transform: scale(0.94); }
+  .edit-tool-icon.active { background: var(--surface-content); color: var(--text); }
+  .edit-tool-icon[hidden] { display: none; }
 
   /* Tools row: AI helper chips + vertex tools. Lives IN-FLOW inside the edit
      sheet (no longer floats over the map work area). Hidden until the edit
@@ -2433,12 +2469,16 @@
       right: 0;
       transform: none;
       width: 100%;
-      padding: 0 0 env(safe-area-inset-bottom, 0);
+      /* Lift the sheet clear of the home indicator (iOS PWA reports the gap
+         via --app-bottom-inset; browsers via safe-area-inset). Was clipping
+         the primary CTA at the bottom edge. */
+      padding: 0;
       gap: var(--space-md);
     }
     #edit-banner {
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      padding: var(--space-sm) var(--space-xl) var(--space-lg);
+      padding: var(--space-2xs) var(--space-xl)
+               calc(max(env(safe-area-inset-bottom, 0px), var(--app-bottom-inset, 0px)) + var(--space-lg));
       border-left: none;
       border-right: none;
       border-bottom: none;
@@ -2504,10 +2544,10 @@
     width: min(440px, calc(100vw - 2 * var(--space-lg)));
     z-index: 9000;
     padding: var(--space-md) var(--space-lg);
-    /* Cream surface + ink text — legible over bright satellite. */
-    background: rgba(255,242,235,0.95);
-    backdrop-filter: var(--blur-surface);
-    -webkit-backdrop-filter: var(--blur-surface);
+    /* Cream-frost (50% + 22px blur) + ink text — legible over satellite. */
+    background: rgba(255,242,235,0.50);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: 1px solid var(--line-l);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-2);
@@ -2615,24 +2655,58 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
   }
-  /* Top bar = progress + count only. Single inline row, frost glass. */
+  /* Top bar — cream-frost (50% + 22px blur) so it reads over any base map;
+     title + exit on top, progress + count below. Ink text. */
   .audit-indicator-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    background: rgba(255,242,235,0.50);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+    border: 1px solid var(--line-l);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+    color: var(--content-text);
+  }
+  .audit-title-row {
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-sm) var(--space-lg);
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-frost);
-    -webkit-backdrop-filter: var(--glass-blur-frost);
-    border: var(--glass-border);
-    border-radius: var(--radius-pill);
-    box-shadow: var(--panel-shadow);
+  }
+  .audit-indicator-title {
+    flex: 1 1 auto;
+    font-size: var(--text-label);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--content-text);
+  }
+  #audit-exit-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--content-text);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  #audit-exit-btn:hover { background: var(--line-l-faint); }
+  .audit-progress-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
   }
   #audit-progress {
     flex: 1 1 auto;
-    height: 5px;
+    height: 6px;
     border-radius: var(--radius-pill);
-    background: var(--line-d);
+    background: var(--line-l);
     overflow: hidden;
   }
   #audit-progress-fill {
@@ -2643,17 +2717,10 @@
     background: var(--accent);
     transition: width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
   }
-  .audit-indicator-title {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: var(--text);
-    flex-shrink: 0;
-  }
   #audit-indicator-count {
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 700;
-    color: var(--accent);
+    color: var(--content-text);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
   }
@@ -2708,61 +2775,67 @@
   }
   .audit-pill.is-ghost:hover { color: var(--text); border-color: rgba(155,169,188,0.35); }
 
-  /* Sub-mode segmented control */
+  /* Sub-mode segmented control — light-chrome on the panel: outline track,
+     ink labels, active = Delft fill + cream (controls step to Delft Blue). */
   .audit-submode {
     display: inline-flex;
     gap: var(--space-2xs);
     padding: var(--space-2xs);
     border-radius: var(--radius-pill);
-    background: rgba(15,27,42,0.40);
-    border: var(--glass-border);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
   }
   .audit-submode-btn {
-    height: 24px;
+    height: 26px;
     padding: 0 var(--space-md);
     border: none;
+    border-radius: var(--radius-pill);
     background: transparent;
     box-shadow: none;
-    color: var(--muted);
+    color: var(--panel-text);
+    font: 600 12px 'Inter', sans-serif;
+    cursor: pointer;
   }
-  .audit-submode-btn:hover { color: var(--text); border-color: transparent; }
+  .audit-submode-btn:hover { background: var(--line-l-faint); }
   .audit-submode-btn.active {
-    background: var(--accent-dim);
-    color: var(--accent);
+    background: var(--surface-content);
+    color: var(--text);
   }
 
-  /* Filter toggle — honey-dim when filters deviate from default. */
-  .audit-pill.has-active {
+  /* Filter pill — honey-dim when filters deviate from default. */
+  #audit-controls .panel-filter-pill.has-active {
     background: var(--accent-dim);
     border-color: var(--accent-border);
-    color: var(--accent);
+    color: var(--content-text);
   }
   .audit-filter-toggle-badge {
+    display: inline-block;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 var(--space-xs);
+    border-radius: var(--radius-pill);
     background: var(--accent);
     color: var(--accent-on);
-    border-radius: var(--radius-pill);
-    padding: 0 var(--space-xs);
-    font-size: 10px;
-    font-weight: 700;
-    min-width: 14px;
+    font: 700 10px/16px 'Inter', sans-serif;
     text-align: center;
-    display: none;
     font-variant-numeric: tabular-nums;
   }
-  .audit-pill.has-active .audit-filter-toggle-badge { display: inline-block; }
+  .audit-filter-toggle-badge:empty { display: none; }
 
-  /* Filter popover panel — sits under the indicator like a dropdown. */
+  /* Filter popover — cream-frost light surface (50% + 22px blur), ink text,
+     light-chrome outline chips (Delft-fill active). Matches the dropdown
+     family + the edit chrome. */
   .audit-filter-panel {
-    margin-top: var(--space-md);
+    margin-top: var(--space-sm);
     padding: var(--space-lg);
-    width: min(440px, 92vw);
-    background: var(--glass-panel-bg);
+    width: 100%;
+    background: rgba(255,242,235,0.50);
     backdrop-filter: var(--glass-blur-frost);
     -webkit-backdrop-filter: var(--glass-blur-frost);
-    border: var(--glass-border);
+    border: 1px solid var(--line-l);
     border-radius: var(--radius-md);
-    box-shadow: var(--panel-shadow);
-    color: var(--text);
+    box-shadow: var(--shadow-2);
+    color: var(--content-text);
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
@@ -2771,19 +2844,19 @@
   .audit-filter-label {
     font-size: 10px;
     font-weight: 700;
-    color: var(--text-secondary);
+    color: var(--ink-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
   .audit-chip-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
   .audit-chip {
-    height: 26px;
+    height: 28px;
     padding: 0 var(--space-md);
     border-radius: var(--radius-pill);
     font: 600 11px 'Inter', sans-serif;
-    color: var(--text);
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
+    color: var(--content-text);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
     box-shadow: none;
     cursor: pointer;
     display: inline-flex;
@@ -2792,19 +2865,19 @@
     white-space: nowrap;
     transition: border-color 120ms ease-out, background 120ms ease-out, color 120ms ease-out;
   }
-  .audit-chip:hover { border-color: rgba(156,189,231,0.32); }
+  .audit-chip:hover { background: var(--line-l-faint); }
   .audit-chip.active {
-    background: var(--accent-dim);
-    border-color: var(--accent-border);
-    color: var(--accent);
+    background: var(--surface-content);
+    border-color: transparent;
+    color: var(--text);
   }
   .audit-chip-count {
-    color: var(--muted);
+    color: var(--ink-muted);
     font-variant-numeric: tabular-nums;
     font-size: 10px;
     font-weight: 700;
   }
-  .audit-chip.active .audit-chip-count { color: rgba(245,194,94,0.75); }
+  .audit-chip.active .audit-chip-count { color: rgba(255,244,224,0.75); }
   .audit-filter-footer { display: flex; justify-content: flex-end; }
 
   /* Reviewed/archived state is shown by the action-row state badge, not a

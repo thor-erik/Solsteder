@@ -122,15 +122,15 @@
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260527c"></script>
+<script defer src="js/app.js?v=20260527d"></script>
 <script defer src="js/render-helpers.js?v=20260527a"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260527a"></script>
 <script defer src="js/render-pins.js?v=20260527a"></script>
 <script defer src="js/ui-shared.js?v=20260525b"></script>
-<script defer src="js/ui-list.js?v=20260527c"></script>
+<script defer src="js/ui-list.js?v=20260527d"></script>
 <script defer src="js/admin-review.js?v=20260527b"></script>
-<script defer src="js/admin-audit.js?v=20260527c"></script>
+<script defer src="js/admin-audit.js?v=20260527d"></script>
 <script defer src="js/ui-shelter.js?v=20260522zm"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260525l"></script>
@@ -181,7 +181,7 @@
 <link rel="stylesheet" href="css/tokens.css?v=20260526s">
 <link rel="stylesheet" href="css/base.css?v=20260526q">
 <link rel="stylesheet" href="css/components-chrome.css?v=20260527a">
-<link rel="stylesheet" href="css/components-content.css?v=20260527c">
+<link rel="stylesheet" href="css/components-content.css?v=20260527d">
 <link rel="stylesheet" href="css/components-overlays.css?v=20260527a">
 
 <script type="application/ld+json">
@@ -222,15 +222,22 @@
 </noscript>
 <div id="app">
   <!-- ADMIN: polygon audit mode indicator (shown only when auditModeActive) -->
-  <!-- Top bar: nothing but overall progress + reviewed count. All controls
-       live in the audit toolbar below the FTS (inside #panel). -->
+  <!-- Top bar: title + exit, then overall progress + reviewed count. All other
+       controls live in the audit toolbar below the FTS (inside #panel). -->
   <div id="audit-mode-indicator" style="display:none">
     <div class="audit-indicator-row">
-      <span class="audit-indicator-title">Audit</span>
-      <div id="audit-progress" role="progressbar" aria-label="Audit-fremdrift">
-        <span id="audit-progress-fill"></span>
+      <div class="audit-title-row">
+        <span class="audit-indicator-title">Seating Polygon Audit</span>
+        <button type="button" id="audit-exit-btn" onclick="toggleAuditMode()" aria-label="Avslutt audit" title="Avslutt audit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
       </div>
-      <span id="audit-indicator-count"></span>
+      <div class="audit-progress-row">
+        <div id="audit-progress" role="progressbar" aria-label="Audit-fremdrift">
+          <span id="audit-progress-fill"></span>
+        </div>
+        <span id="audit-indicator-count"></span>
+      </div>
     </div>
   </div>
 
@@ -274,6 +281,23 @@
 
     <!-- EDIT FACING OVERLAY — all controls live inside the bottom sheet so
          nothing floats over the polygon work area. -->
+    <!-- Floating polygon-tool stack — vertical, like the zoom jog (cream-frost).
+         Add angle / remove angle / reset. -->
+    <div id="edit-tools-float">
+      <button id="edit-add-vertex-btn" class="edit-tool-icon" onclick="toggleEditVertexMode('add')" aria-label="Legg til vinkel" title="Legg til vinkel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button id="edit-del-vertex-btn" class="edit-tool-icon" onclick="toggleEditVertexMode('del')" aria-label="Fjern vinkel" title="Fjern vinkel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button id="edit-reset-ai-btn" class="edit-tool-icon" onclick="resetEditPolygonToAI()" aria-label="Tilbakestill polygon" title="Tilbakestill til AI-detektert polygon" hidden>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+      <button id="edit-merge-btn" class="edit-tool-icon" onclick="mergeEditPolygons()" aria-label="Slå sammen polygoner" title="Slå sammen polygoner" hidden>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v6a5 5 0 0 0 5 5 5 5 0 0 0 5-5V3"/><line x1="12" y1="14" x2="12" y2="21"/></svg>
+      </button>
+    </div>
+
     <div id="edit-overlay">
       <div id="edit-banner">
         <!-- Grabber doubles as a collapse toggle to free up the work area. -->
@@ -298,14 +322,8 @@
             <span class="map-toggle-option" data-option="satellite">Satellitt</span>
           </button>
         </div>
-        <!-- Row 2 — polygon editing tools. -->
-        <div id="edit-tools-row">
-          <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til vinkel">＋ Vinkel</button>
-          <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern vinkel">－ Vinkel</button>
-          <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
-          <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
-        </div>
-        <!-- Row 3 — flow: back · primary (commit+advance) · skip. -->
+        <!-- Flow: back · primary (commit+advance) · skip. (Polygon tools live
+             in the floating vertical stack #edit-tools-float, like the zoom jog.) -->
         <div id="edit-action-row">
           <button type="button" class="edit-nav-btn" onclick="editGoBack()" title="Forrige sted" aria-label="Forrige sted">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
@@ -589,19 +607,20 @@
     <!-- Action row — Stage 2c: filter pills (horizontal scroll) + sort.
          Pills are visual-only for now; clicks toggle the active class.
          Wiring to actual list/pin filtering happens in a follow-up. -->
-    <!-- Filters consolidated into one dropdown (over the list) to free vertical
-         space; sort stays its own icon button beside it. -->
+    <!-- Action row — filter pills (horizontal scroll) + sort. -->
     <div id="panel-actions">
-      <button id="panel-actions-filter" onclick="toggleFilterPanel()"
-              aria-label="Filtre" title="Filtre">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round"
-             stroke-linejoin="round" aria-hidden="true">
-          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-        </svg>
-        <span>Filtre</span>
-        <span id="filter-count-badge" class="filter-count-badge" hidden></span>
-      </button>
+      <div class="panel-actions-pills">
+        <button class="panel-filter-pill" data-filter="cafe"
+                onclick="toggleListFilter('cafe', this)">Kafé</button>
+        <button class="panel-filter-pill" data-filter="restaurant"
+                onclick="toggleListFilter('restaurant', this)">Restaurant</button>
+        <button class="panel-filter-pill" data-filter="bar"
+                onclick="toggleListFilter('bar', this)">Bar</button>
+        <button class="panel-filter-pill" data-filter="sun2h"
+                onclick="toggleListFilter('sun2h', this)">2t+ sol</button>
+        <button class="panel-filter-pill" data-filter="friends"
+                onclick="toggleListFilter('friends', this)">Venner</button>
+      </div>
       <button id="panel-actions-sort" onclick="toggleSortPanel()"
               aria-label="Sortér" title="Sortér">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -621,13 +640,17 @@
          the top bar is just progress. -->
     <div id="audit-controls">
       <div class="audit-submode" role="tablist" aria-label="Audit sub-mode">
+        <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Vis alle steder, ignorer sol">Alle</button>
         <button id="audit-mode-shadows" type="button" class="audit-submode-btn" onclick="setAuditSubMode('shadows')" title="Vis sol + skyggesimulering">Skygger</button>
-        <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Vis alle steder, ignorer tid">Alle</button>
       </div>
-      <button id="audit-filter-toggle" type="button" class="audit-pill" onclick="toggleAuditFilterPanel()" title="Filtrer steder">Filter<span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span></button>
-      <button id="audit-export-btn" type="button" class="audit-pill" onclick="auditExport()" title="Last ned alle rettelser som JSON for AI-trening.">Eksport<span id="audit-export-count" class="audit-filter-toggle-badge"></span></button>
-      <button type="button" class="audit-pill is-ghost" onclick="resetAuditProgress()" title="Nullstill alle gjennomgåtte">Nullstill</button>
-      <button type="button" class="audit-pill is-ghost" onclick="toggleAuditMode()" title="Avslutt audit">Lukk</button>
+      <button id="audit-filter-toggle" type="button" class="panel-filter-pill" onclick="toggleAuditFilterPanel()" title="Filtrer steder">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <span>Filter</span><span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span>
+      </button>
+      <button id="audit-export-btn" type="button" class="panel-filter-pill" onclick="auditExport()" title="Last ned alle rettelser som JSON for AI-trening.">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Eksport</span><span id="audit-export-count" class="audit-filter-toggle-badge"></span>
+      </button>
     </div>
     <div id="audit-filter-panel" class="audit-filter-panel" style="display:none"></div>
 
@@ -650,22 +673,6 @@
     <button class="sort-btn"        data-sort="favorites" onclick="setSortBy('favorites')">Favoritter</button>
   </div>
 
-  <!-- Filter panel: fixed overlay, positioned by JS from the Filtre button.
-       Toggles reuse toggleListFilter / window._activeFilters. -->
-  <div id="filter-panel" class="glass-panel">
-    <div class="filter-panel-label">Type</div>
-    <div class="filter-panel-row">
-      <button class="filter-opt" data-filter="cafe"       onclick="toggleListFilter('cafe', this)">Kafé</button>
-      <button class="filter-opt" data-filter="restaurant" onclick="toggleListFilter('restaurant', this)">Restaurant</button>
-      <button class="filter-opt" data-filter="bar"        onclick="toggleListFilter('bar', this)">Bar</button>
-    </div>
-    <div class="filter-panel-label">Sol &amp; venner</div>
-    <div class="filter-panel-row">
-      <button class="filter-opt" data-filter="sun2h"   onclick="toggleListFilter('sun2h', this)">2t+ sol</button>
-      <button class="filter-opt" data-filter="friends" onclick="toggleListFilter('friends', this)">Venner</button>
-    </div>
-    <button class="filter-reset-btn" onclick="clearListFilters()">Nullstill</button>
-  </div>
 
   <!-- (FTS markup moved inside #panel; see Stage 2b.) -->
 </div>

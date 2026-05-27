@@ -4644,6 +4644,11 @@ let _auditSatActive = false;
 function auditFocusVenue(venueId) {
   const v = VENUES.find(x => x.id === venueId);
   if (!v || typeof map === 'undefined') return;
+  // Clicking the already-focused card toggles back to the default 3D map.
+  if (window._auditFocusId === venueId) {
+    _resetAuditSatellite();
+    return;
+  }
   window._auditFocusId = venueId;
   document.querySelectorAll('.venue-card.audit-focus').forEach(c => c.classList.remove('audit-focus'));
   document.querySelector(`.venue-card[data-vid="${venueId}"]`)?.classList.add('audit-focus');
@@ -4665,6 +4670,7 @@ function auditFocusVenue(venueId) {
  *  toggleAuditMode's off-branch. */
 function _resetAuditSatellite() {
   window._auditFocusId = null;
+  document.querySelectorAll('.venue-card.audit-focus').forEach(c => c.classList.remove('audit-focus'));
   if (_auditSatActive && typeof map !== 'undefined' && map.setStyle && typeof buildShadeStyle === 'function') {
     _auditSatActive = false;
     try { map.setStyle(buildShadeStyle()); } catch (_) {}
