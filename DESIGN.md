@@ -147,15 +147,18 @@ their own pass.
   + `--card-cream-shadow`. Text is ink. A translucent cream tile reads as a
   raised object on the frost without going mud (it is mostly opaque, not a
   second transparent blur).
-- **Honey on cream** (the "honey dies on cream" objection). Resolution: **no
-  yellow fonts on light surfaces.** Honey is never a *text* colour on cream —
-  honey text goes **ink**. The sun signal stays in **fills** instead: the honey
-  timeline bar, the honey-dim sun-pill (bg + border), and the solid honey CTA.
-  This sidesteps the lightness collision entirely (a colour-shifted amber was
-  tried and read mustardy; a drop-shadow casing read blurry). `--accent-casing`
-  remains only for a honey *fill/icon* that must sit on light and can't recolour.
-  (`--accent-on-light` exists but is unused after this; honey text on the *dark*
-  list cards is unaffected — it sings there.)
+- **Honey on cream** (the "honey dies on cream" objection). Resolution: **mostly
+  ink, honey only for the sun-signal numbers.** Most honey text on a cream card
+  goes **ink** (headline, pill labels) — the warmth is carried by **fills** (the
+  honey timeline bar, the honey-dim sun-pill bg+border, the honey CTA). The
+  **exception** is the two texts that literally *are* the sun reading — the
+  **sun-hours** ("☀ 5h 50m") and the **"+Xh" opportunity** — which stay honey so
+  the eye reads them as sun. They're made legible on cream with **`--accent-bloom`**:
+  a soft dark Delft-toned glow behind the honey glyphs (a gentler cousin of the
+  map venue-label halo `--label-halo`). A flat colour-shift to amber read
+  mustardy and a tight casing read blurry; the soft bloom keeps the honey honey.
+  `--accent-casing` remains for a honey *fill/icon* that can't recolour; honey
+  text on the *dark* list/detail surfaces is unaffected (it sings there).
 
 **Why a light content world can work now:** the objection was lightness
 collision (honey ≈ cream). The casing restores separation, and the accept panel

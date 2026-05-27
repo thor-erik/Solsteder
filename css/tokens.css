@@ -266,6 +266,11 @@
          where the colour can't change (a solid honey CTA on light, a glyph). */
     --accent-on-light:   #B8830C;
     --accent-casing:     drop-shadow(0 1px 1.5px rgba(17,30,56,0.32));
+    /* Soft dark bloom for the few honey TEXTS that must stay honey on a light
+       card (sun-hours, the "+Xh" opportunity) — a gentler, Delft-toned cousin of
+       --label-halo (the map venue-label glow). Dark halo behind light honey =
+       legible on cream without a hard outline. */
+    --accent-bloom:      0 0 2px rgba(17,30,56,0.45), 0 0 5px rgba(17,30,56,0.26);
 
     /* Borders — Jordy on DARK surfaces, Delft Blue on LIGHT; compose `1px solid var(--line-*)`. */
     --line-d-faint:  rgba(156,189,231,0.08);   /* divider on dark */

@@ -953,17 +953,23 @@
     border: 1px solid rgba(245,194,94,0.35);
     color: var(--accent);
   }
-  /* No yellow fonts on the cream cards (2026-05-27): honey TEXT goes ink; the
-     honey FILLS (pill bg/border, fillbar, selection ring) stay honey. Scoped to
-     .venue-card so non-card honey text (score, edit-tool, popups) is untouched. */
+  /* On the cream cards most honey TEXT goes ink (the honey FILLS — pill bg/
+     border, fillbar, selection ring — carry the warmth). Scoped to .venue-card
+     so non-card honey text (score, edit-tool, popups) is untouched. */
   .venue-card .card-pill.pill-sol,
   .venue-card .card-pill.pill-overflow,
+  .venue-card .tl-label-sol {
+    color: var(--text);
+  }
+  /* EXCEPT the two sun-signal texts that must read as the sun: the sun-hours
+     ("☀ 5h 50m") and the "+Xh" opportunity. They stay honey, made legible on
+     cream by a soft dark bloom (gentler cousin of the map venue-label halo). */
   .venue-card .card-new-hero-main,
   .venue-card .card-duration,
   .venue-card .card-sun-dur,
-  .venue-card .card-disrupt-sun,
-  .venue-card .tl-label-sol {
-    color: var(--text);
+  .venue-card .card-disrupt-sun {
+    color: var(--accent);
+    text-shadow: var(--accent-bloom);
   }
   /* Hours pills were cream-text on a Delft card (invisible on cream) → a faint
      ink wash + ink text. */
