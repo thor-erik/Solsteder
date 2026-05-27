@@ -2097,33 +2097,39 @@
   /* Floating polygon-tool PILL — one vertical pill above the zoom jog, same
      34px width + radius, cream-frost. Glyphs sit inside like the zoom-jog
      labels (no per-icon squircles). Active vertex tool = honey glyph. */
+  /* Exact clone of .zj-track (same width, radius, background, border, blur,
+     shadow) so it stacks flush above the zoom jog. Glyphs sit inside like
+     .zj-label — no per-button box/outline. */
   #edit-tools-float { display: none; }
   body.edit-mode #edit-tools-float {
     display: flex;
     flex-direction: column;
     align-items: center;
     position: fixed;
-    right: 12px;                                       /* align with the zoom jog */
+    right: 12px;                                       /* same as #zoom-jog */
     bottom: calc(var(--edit-zoom-bottom, 240px) + 92px + var(--space-sm));
     z-index: 921;
     width: 34px;
-    padding: var(--space-xs) 0;
-    background: rgba(255,242,235,0.50);
+    padding: var(--space-sm) 0;
+    background: rgba(255,242,235,0.50);                /* same as edit-mode .zj-track */
     backdrop-filter: var(--glass-blur-frost);
     -webkit-backdrop-filter: var(--glass-blur-frost);
-    border: 1px solid var(--line-l);
+    border: var(--glassctl-border);                    /* same border as the zoom jog */
     border-radius: var(--radius-lg);
     box-shadow: var(--panel-shadow);
     transition: bottom 0.22s ease;
   }
   .edit-tool-icon {
     width: 34px;
-    height: 32px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
+    border-radius: 0;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
     color: var(--ink-muted);
     cursor: pointer;
     transition: color 0.12s, transform 0.1s;

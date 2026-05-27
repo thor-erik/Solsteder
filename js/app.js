@@ -4672,12 +4672,26 @@ function auditFocusVenue(venueId) {
     _auditSatActive = true;
     try { map.setStyle('mapbox://styles/mapbox/satellite-streets-v12'); } catch (_) {}
   }
+  // Panel-aware padding so the venue lands in the VISIBLE map strip, not under
+  // the venue-list panel (bottom sheet on mobile, left panel on desktop).
+  let padding;
+  if (isMobile()) {
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    const panel = document.getElementById('panel');
+    const ph = (panel && panel.offsetHeight) ? panel.offsetHeight : Math.round(vh * 0.52);
+    padding = { top: 80, bottom: ph + 16, left: 0, right: 0 };
+  } else {
+    const panel = document.getElementById('panel');
+    const padLeft = (panel && panel.offsetWidth) ? (panel.offsetLeft + panel.offsetWidth) : 0;
+    padding = { top: 60, bottom: 60, left: padLeft + 24, right: 40 };
+  }
+
   if (v.buildingGeometry && v.buildingGeometry.length) {
     const lats = v.buildingGeometry.map(n => n.lat), lons = v.buildingGeometry.map(n => n.lon);
     map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
-      { padding: 90, maxZoom: 19, pitch: 0, duration: 700 });
+      { padding, maxZoom: 19, pitch: 0, duration: 700 });
   } else {
-    map.flyTo({ center: [v.lng, v.lat], zoom: 18.5, pitch: 0, duration: 700 });
+    map.flyTo({ center: [v.lng, v.lat], zoom: 18.5, pitch: 0, padding, duration: 700 });
   }
 }
 
