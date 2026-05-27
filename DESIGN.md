@@ -147,14 +147,15 @@ their own pass.
   + `--card-cream-shadow`. Text is ink. A translucent cream tile reads as a
   raised object on the frost without going mud (it is mostly opaque, not a
   second transparent blur).
-- **Honey on cream** (the "honey dies on cream" objection). Two tools, by case:
-  - Honey **text / glyphs** (sun headline, sun-hours, pill labels) use
-    `--accent-on-light` — a **deeper amber gold**, same hue, deeper value. A
-    colour shift reads crisp on cream; a drop-shadow on light text just blurs
-    (tested: the casing-as-glow looked soft, the deeper amber reads clean).
-  - Honey **fills / icons** that can't change colour (a solid honey CTA on a
-    light surface, an icon) use `--accent-casing` — a tight dark drop-shadow.
-  - Honey CTAs keep their solid fill + drop shadow (proven on the accept panel).
+- **Honey on cream** (the "honey dies on cream" objection). Resolution: **no
+  yellow fonts on light surfaces.** Honey is never a *text* colour on cream —
+  honey text goes **ink**. The sun signal stays in **fills** instead: the honey
+  timeline bar, the honey-dim sun-pill (bg + border), and the solid honey CTA.
+  This sidesteps the lightness collision entirely (a colour-shifted amber was
+  tried and read mustardy; a drop-shadow casing read blurry). `--accent-casing`
+  remains only for a honey *fill/icon* that must sit on light and can't recolour.
+  (`--accent-on-light` exists but is unused after this; honey text on the *dark*
+  list cards is unaffected — it sings there.)
 
 **Why a light content world can work now:** the objection was lightness
 collision (honey ≈ cream). The casing restores separation, and the accept panel

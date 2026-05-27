@@ -5150,9 +5150,9 @@
 
   /* ── Sun summary headline (the new dp-card content) ─────────────────────── */
   .dp-card .dp-sun-headline {
-    /* Deeper amber gold — legible honey on the cream card (bright #F5C25E
-       washes out at cream's lightness; a colour shift reads crisp, not a glow). */
-    color: var(--accent-on-light);
+    /* Ink, not honey — no yellow fonts on the cream card (per user). The sun
+       signal lives in the fills (timeline bar, sun pill), not in coloured text. */
+    color: var(--text);
     font-size: var(--text-title);
     font-weight: 700;
     line-height: 1.18;
@@ -5207,12 +5207,12 @@
     padding-top: var(--space-md);
     border-top: 1px solid var(--line-l-faint);  /* ink divider on the cream plans tile */
   }
-  /* Honey TEXT on the cream tiles uses the deeper amber gold so the sun signal
-     stays legible on a light base (DESIGN.md "Cream-frost content world"). */
+  /* No yellow fonts on the cream tiles — honey TEXT goes ink; the sun signal
+     stays in the fills (honey-dim pill bg/border, the timeline bar). */
   #detail-panel .dp-plans-block .plan-when,
   #detail-panel .dp-card .card-pill.pill-sol,
   #detail-panel .dp-card .card-pill.pill-overflow {
-    color: var(--accent-on-light);
+    color: var(--text);
   }
 
   /* ── Wind shelter section ─────────────────────────────────────────────── */
