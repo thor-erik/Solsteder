@@ -1488,7 +1488,7 @@ function _openInviteSheet(venueId) {
               ${_invMetaHtml ? `<div class="dpinvite-meta">${_invMetaHtml}</div>` : ''}
             </div>
             <div class="dpinvite-moment-col">
-              <div class="dpinvite-moment-label">${t('invite_hero_meets')}</div>
+              <div class="dpinvite-moment-label" id="dpinvite-moment-label">${t('invite_hero_meets')}</div>
               <div class="dpinvite-moment-time" id="dpinvite-moment-time"></div>
               <button type="button" class="dpinvite-moment-sub" id="dpinvite-moment-sub"
                       aria-label="${t('invite_eyebrow_select_time')}">
@@ -1932,6 +1932,7 @@ if (typeof window !== 'undefined') window._wireInlineFtsCanvas = _wireInlineFtsC
 function _updateInviteHeader(venue, dateStr, hour) {
   const timeEl    = document.getElementById('dpinvite-moment-time');
   const subTextEl = document.getElementById('dpinvite-moment-sub-text');
+  const labelEl   = document.getElementById('dpinvite-moment-label');
   if (!timeEl && !subTextEl) return;
 
   const fmt = (h) => (typeof formatHour === 'function')
@@ -1942,6 +1943,8 @@ function _updateInviteHeader(venue, dateStr, hour) {
   // (per _isNowSend's threshold), swap to a short "Now" label.
   const isNow = (typeof _isNowSend === 'function') ? _isNowSend(dateStr, hour) : false;
   if (timeEl) timeEl.textContent = isNow ? t('invite_when_at_now') : fmt(hour);
+  // "Klokken" label is meaningless above a "Now" reading — hide it when now.
+  if (labelEl) labelEl.style.display = isNow ? 'none' : '';
 
   // Sub — day label. _dayLabel returns "i dag" / "i morgen" / "tirsdag" /
   // "12. mai" depending on how far the picked date is from today. Always

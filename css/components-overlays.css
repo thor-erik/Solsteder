@@ -885,18 +885,16 @@
     max-height: 92svh;
     height: auto;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    /* Dark Delft sheet, mirroring #detail-panel for continuity (DEFERRED
-       sheet-treatment decision). Was a transparent legacy --glass-panel-bg
-       (rgba(...,0)) + blur — content floated washed-out over the map. Opaque
-       ⇒ no blur. Dark surface ⇒ flip the shell's ink text/icons to cream via
-       --panel-text / --ink-muted so the eyebrow, venue name, meta + the
-       dark-variant .s-circ / .g-rnd controls all read correctly. */
-    background: var(--blue-950);
-    border: 1px solid var(--line-d);
+    /* Cream-frost content world (2026-05-27) — same material as the detail +
+       accept sheets: pure-frost (transparent + heavy blur over the map) with
+       ink text. No --panel-text/--ink-muted override: the eyebrow, venue name,
+       meta, Meeting tile all fall back to the global ink values. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+    border: 1px solid var(--line-l);
     box-shadow: var(--sheet-shadow);
-    color: var(--text);
-    --panel-text: var(--text);
-    --ink-muted: var(--muted);
+    color: var(--panel-text);
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
@@ -1220,8 +1218,9 @@
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-img > img,
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-init {
     /* Tighter ring proportions for the smaller avatars — 2 px gap +
-       2 px ring reads cleanly at 40 px. */
-    box-shadow: 0 0 0 2px #111E38, 0 0 0 4px var(--accent);
+       2 px ring reads cleanly at 40 px. Gap = cream surface (was #111E38 dark,
+       now the sheet is light/frost). */
+    box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--accent);
   }
   .dpinvite-avatar-check {
     position: absolute; bottom: -2px; right: -2px;
@@ -1230,7 +1229,7 @@
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
     display: flex; align-items: center; justify-content: center;
-    border: 2px solid #111E38;
+    border: 2px solid var(--surface-raised);
     opacity: 0;
     transform: scale(0.6);
     transition: opacity 0.15s ease, transform 0.15s ease;
@@ -1246,7 +1245,7 @@
     width: 10px; height: 10px;
     border-radius: 50%;
     background: #5DCABA;
-    border: 2px solid #111E38;
+    border: 2px solid var(--surface-raised);
     pointer-events: none;
   }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-online-dot { display: none; }
