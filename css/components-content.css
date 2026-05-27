@@ -980,6 +980,16 @@
        right-aligned bare text below it (the chip bg just extends to the edge). */
     margin-right: calc(var(--space-sm) * -1);
   }
+  /* Shade gap = the cool counterpart: a Jordy-blue chip (jordy-tint bg + jordy
+     border + deep-blue text) mirroring the sun chip, so warm=sun / cool=shade
+     read as opposite signals. (Layout/justify come from .card-disrupt above.) */
+  .venue-card .card-disrupt-shade {
+    background: var(--surface-chrome);
+    border: 1px solid var(--line-d-strong);
+    padding: var(--space-2xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    margin-right: calc(var(--space-sm) * -1);
+  }
   /* Hours pills were cream-text on a Delft card (invisible on cream) → a faint
      ink wash + ink text. */
   .venue-card .card-pill.pill-stenger,
@@ -1140,6 +1150,9 @@
      read as opposite signals at a glance. (More specific than the chip rule
      above, so the colour must be set here too.) */
   .venue-card.card-3row .card-disrupt-sun { color: var(--accent-on-light); }
+  /* Shade chip text — deep cool blue (more specific than the .card-disrupt
+     muted default above, so the colour is set here). */
+  .venue-card.card-3row .card-disrupt-shade { color: var(--rain-ink); }
   /* Binding closing-time distinction on the row-2 anchor (subtle, no pill) */
   .venue-card.card-3row .card-anchor-closes { font-style: italic; }
 
