@@ -1127,6 +1127,74 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Locked day picker — once the user advances to the share page, the date is
+     fixed. Disable the button: drop the chevron affordance + pointer so it
+     reads as a static moment readout, not a tappable picker. The header keeps
+     showing the chosen day/time (driven by .dpinvite-moment-time / -sub-text). */
+  button.dpinvite-moment-sub.is-locked,
+  button.dpinvite-moment-sub:disabled {
+    cursor: default;
+    pointer-events: none;
+    background: transparent;
+    padding-left: 0;
+  }
+  button.dpinvite-moment-sub.is-locked svg,
+  button.dpinvite-moment-sub:disabled svg {
+    display: none;
+  }
+
+  /* ── Invite pager — one sheet, two pages, in-place horizontal slide ─────────
+     The moment header stays put above; below it a clip (.dpinvite-pager) wraps
+     a sliding track (.dpinvite-track) holding two equal-width pages. "Neste"
+     adds .show-share → the track slides one page-width left (translateX(-50%))
+     revealing the share page. The pager's height is JS-driven to follow the
+     ACTIVE page so the off-screen page never inflates the sheet. */
+  .dpinvite-pager {
+    /* Clips the off-screen page horizontally; height set inline by
+       _dpinviteSyncPagerHeight and transitioned so the sheet grows/shrinks
+       smoothly between the two differently-sized pages. The FTS popup lives
+       inside the when-page's reserved slot padding, so vertical clipping here
+       doesn't cut it off. */
+    overflow: hidden;
+    /* Negative inline margin + matching padding so avatar selection rings
+       (which bleed ~4 px past the tile) aren't shaved by the horizontal clip,
+       while the track still slides on the content box. */
+    margin: 0 calc(var(--space-sm) * -1);
+    padding: 0 var(--space-sm);
+    transition: height var(--dur-slow) var(--ease-emphasized);
+  }
+  .dpinvite-track {
+    display: flex;
+    width: 200%;
+    /* Pages anchor to the top so a shorter page doesn't stretch and push its
+       content to the middle of the (taller) track box. */
+    align-items: flex-start;
+    transform: translateX(0);
+    transition: transform var(--dur-slow) var(--ease-emphasized);
+  }
+  .dpinvite-track.show-share { transform: translateX(-50%); }
+  .dpinvite-page {
+    box-sizing: border-box;
+    flex: 0 0 50%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    /* The clip is on .dpinvite-pager; the gutter padding above keeps ring
+       overflow visible inside it. */
+  }
+
+  /* Centred "Tilbake" link under the share-page actions — reuses the
+     receive-panel link cadence (.dprcv-cta-link). */
+  .dpinvite-back-row {
+    display: flex;
+    justify-content: center;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dpinvite-pager,
+    .dpinvite-track { transition: none; }
+  }
+
   /* Was the "Who are you inviting?" section title — kept as no-op for
      legacy markup. The avatar row is self-evident; an explicit title
      above it just added chrome without adding information. */
@@ -1144,24 +1212,6 @@
      no-op visually. We'll bring back filtering / pagination once the
      friend graph is bigger and a search affordance is added. */
   .dpinvite-group-chips { display: none; }
-
-  /* Share panel (step 2) compact recap — venue · day · "kl HH:MM" on one
-     muted ink line. Sits at the top of the share-panel body, below the handle,
-     so the user keeps context (what / when) while picking WHO. Inherits the
-     sheet's ink colour; the recap itself reads as secondary meta. */
-  .dpshare-recap {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--space-2xs);
-    font-size: var(--text-label);
-    font-weight: 500;
-    color: var(--ink-muted);
-    line-height: 1.3;
-    padding-top: var(--space-2xs);
-  }
-  .dpshare-recap > span:first-child { color: var(--panel-text); font-weight: 700; }
-  .dpshare-recap-dot { opacity: 0.5; }
 
   /* Compact "Send til" label above the avatar row — replaces the
      section title. Reads as a small eyebrow, not a question. */
