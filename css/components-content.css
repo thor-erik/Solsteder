@@ -2411,6 +2411,64 @@
     background: var(--line-l-faint);
   }
 
+  /* Context (Feil bygning · Street View) + verdict (Usikker · Arkivér) rows —
+     secondary light-chrome buttons; never the honey CTA. Active = Delft + cream
+     (DESIGN.md selected-state rule). */
+  #edit-context-row,
+  #edit-verdict-row {
+    display: flex;
+    gap: var(--space-sm);
+  }
+  .edit-secondary-btn {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    height: 40px;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-pill);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--content-text);
+    font-family: 'Inter', sans-serif;
+    font-size: var(--text-label);
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.1s;
+  }
+  .edit-secondary-btn svg { flex: 0 0 auto; }
+  .edit-secondary-btn:hover  { background: var(--line-l-faint); }
+  .edit-secondary-btn:active { transform: scale(0.97); }
+  .edit-secondary-btn.active {
+    background: var(--surface-content);
+    border-color: var(--surface-content);
+    color: var(--text);
+  }
+
+  /* Archive-reason chips — revealed under the verdict row when "Arkivér" is tapped. */
+  #edit-archive-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  #edit-archive-reasons[hidden] { display: none; }
+  .edit-reason-chip {
+    height: 32px;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-pill);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--content-text);
+    font-family: 'Inter', sans-serif;
+    font-size: var(--text-label);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .edit-reason-chip:hover { background: var(--line-l-faint); }
+
   /* Avbryt: tertiary ghost — never competes with the primary CTA. */
   .ghost-link {
     background: transparent;

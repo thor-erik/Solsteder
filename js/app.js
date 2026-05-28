@@ -4521,6 +4521,7 @@ function enterEditMode(venueId) {
 function _loadVenueIntoEditor(venueId) {
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
+  if (_bldgPickActive) _editPickBuildingStop();   // don't carry a pick session across venues
   editingVenueId     = venueId;
   editHoveredWallIdx = null;
   if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
@@ -5112,6 +5113,7 @@ function _onEditKeydown(e) {
 }
 
 function toggleEditSatellite() {
+  if (_bldgPickActive) _editPickBuildingStop();   // its layers would be wiped by setStyle
   editSatelliteActive = !editSatelliteActive;
   document.body.classList.toggle('edit-satellite', editSatelliteActive);
   _syncMapToggleSwitch();
@@ -5239,6 +5241,28 @@ function mergeEditPolygons() {
   draw();
 }
 
+/** "Vis AI-forslag": adopt the AI-detected polygon(s) as the working override so
+ *  the admin can review/keep them. The reliable wall-derived shape is the default
+ *  (getActivePolygons); this is the opt-in path to the AI proposal. "Fra vegg" is
+ *  the inverse (clear override → re-derive from wall). */
+function adoptAiProposal() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  const ai = (typeof asRings === 'function') ? asRings(v.seatingPolygonAi) : [];
+  if (!ai.length) return;
+  setActivePolygons(v, ai);
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _setEditChanged();
+  _syncDrawFromVenue(v);
+  _updateEditToolButtons();
+  draw();
+}
+
 /** Cancel button: discard changes, exit edit mode without submitting. */
 function cancelEditMode() {
   if (editingVenueId && _editBeforeSnapshot) {
@@ -5254,6 +5278,7 @@ function cancelEditMode() {
 }
 
 function exitEditMode() {
+  if (_bldgPickActive) _editPickBuildingStop();
   if (!_navHandlingPop) _navDropLayer('edit');
   // Release the soft edit-lock so other admins can take this venue.
   if (typeof auditStorePresenceClear === 'function') auditStorePresenceClear();
@@ -5386,18 +5411,183 @@ function onEditActionBtn() {
   }
   // Commit current venue, then jump straight to the next one to review.
   _commitEditForAudit();
-  // Null the snapshot so exitEditMode (below / via back button) won't re-commit.
+  _auditAdvanceFromEditor();
+}
+
+/** Advance the audit walk to the next unreviewed venue without tearing down the
+ *  editor; exit (with a toast) when the queue is empty. Shared by the primary
+ *  action, "Usikker", and "Arkivér". Clears the snapshot so exit won't re-commit. */
+function _auditAdvanceFromEditor() {
   const currentId = editingVenueId;
   _editBeforeSnapshot = null;
   _editHasChanges = false;
-  const nextId = _nextUnreviewedVenueId(currentId);
-  if (nextId != null) {
-    _loadVenueIntoEditor(nextId);
-    return;
-  }
+  const nextId = (typeof _nextUnreviewedVenueId === 'function') ? _nextUnreviewedVenueId(currentId) : null;
+  if (nextId != null) { _loadVenueIntoEditor(nextId); return; }
   _updateAuditProgress();
   if (typeof showMapToast === 'function') showMapToast('Alle steder gjennomgått 🎉', 2800);
   exitEditMode();
+}
+
+/** "Usikker": mark the venue reviewed-but-uncertain (counts as done, filterable,
+ *  no polygon bake) and advance. */
+function editMarkUnsure() {
+  if (!editingVenueId) return;
+  if (typeof markVenueAudited === 'function') markVenueAudited(editingVenueId, 'unsure');
+  _auditAdvanceFromEditor();
+}
+
+/** "Arkivér": reveal the archive-reason chips in the edit sheet (toggle). */
+function editArchiveVenue() {
+  const box = document.getElementById('edit-archive-reasons');
+  if (!box) return;
+  if (!box.hidden) { box.hidden = true; box.innerHTML = ''; return; }
+  box.innerHTML = '';
+  const reasons = (typeof AUDIT_ARCHIVE_REASONS !== 'undefined') ? AUDIT_ARCHIVE_REASONS : { other: 'Annet' };
+  Object.entries(reasons).forEach(([k, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'edit-reason-chip';
+    b.textContent = label;
+    b.addEventListener('click', () => _editArchiveWithReason(k));
+    box.appendChild(b);
+  });
+  box.hidden = false;
+}
+
+function _editArchiveWithReason(reason) {
+  if (!editingVenueId) return;
+  const box = document.getElementById('edit-archive-reasons');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+  if (typeof archiveVenue === 'function') archiveVenue(editingVenueId, reason);
+  _auditAdvanceFromEditor();
+}
+
+/** "Street View": open the Google Street View panorama at the venue's point. */
+function openStreetView() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  const url = 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + v.lat + ',' + v.lng;
+  try {
+    if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.Plugins?.Browser?.open) {
+      window.Capacitor.Plugins.Browser.open({ url });
+    } else {
+      window.open(url, '_blank', 'noopener');
+    }
+  } catch (_) { try { window.open(url, '_blank', 'noopener'); } catch (__) {} }
+}
+
+// ── "Feil bygning": re-associate the venue with the correct building ──────────
+// nearbyBuildings (footprints within ~150 m) are already on every venue. Render
+// them as a tappable Mapbox fill layer; tapping one re-points the venue's
+// buildingGeometry/wallNormals (rooftop centroid + street walls re-derive).
+let _bldgPickActive = false;
+const _BLDG_PICK_SRC  = 'edit-bldg-pick-src';
+const _BLDG_PICK_FILL = 'edit-bldg-pick-fill';
+const _BLDG_PICK_LINE = 'edit-bldg-pick-line';
+
+function editPickBuildingToggle() {
+  if (_bldgPickActive) { _editPickBuildingStop(); return; }
+  _editPickBuildingStart();
+}
+
+function _editPickBuildingStart() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  const nb = v && Array.isArray(v.nearbyBuildings) ? v.nearbyBuildings : [];
+  const features = nb.map((b, i) => {
+    const ring = (b.geometry || []).map(n => [n.lon, n.lat]);
+    if (ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) ring.push(ring[0]);
+    return { type: 'Feature', properties: { _idx: i }, geometry: { type: 'Polygon', coordinates: [ring] } };
+  }).filter(f => f.geometry.coordinates[0].length >= 4);
+  if (!features.length) {
+    if (typeof showMapToast === 'function') showMapToast('Ingen nærliggende bygninger funnet', 2200);
+    return;
+  }
+  try {
+    _editPickBuildingRemoveLayers();
+    map.addSource(_BLDG_PICK_SRC, { type: 'geojson', data: { type: 'FeatureCollection', features } });
+    map.addLayer({ id: _BLDG_PICK_FILL, type: 'fill', source: _BLDG_PICK_SRC,
+      paint: { 'fill-color': '#F5C25E', 'fill-opacity': 0.28 } });
+    map.addLayer({ id: _BLDG_PICK_LINE, type: 'line', source: _BLDG_PICK_SRC,
+      paint: { 'line-color': '#F5C25E', 'line-width': 2 } });
+    map.on('click', _BLDG_PICK_FILL, _onPickBuildingClick);
+    map.on('mouseenter', _BLDG_PICK_FILL, _bldgPickCursorOn);
+    map.on('mouseleave', _BLDG_PICK_FILL, _bldgPickCursorOff);
+  } catch (e) { console.warn('[edit] building-pick layer failed', e); return; }
+  _bldgPickActive = true;
+  document.getElementById('edit-pick-bldg-btn')?.classList.add('active');
+  if (typeof showMapToast === 'function') showMapToast('Trykk på riktig bygning («Feil bygning» igjen for å avbryte)', 3000);
+}
+
+function _editPickBuildingRemoveLayers() {
+  try { if (map.getLayer(_BLDG_PICK_LINE)) map.removeLayer(_BLDG_PICK_LINE); } catch (_) {}
+  try { if (map.getLayer(_BLDG_PICK_FILL)) map.removeLayer(_BLDG_PICK_FILL); } catch (_) {}
+  try { if (map.getSource(_BLDG_PICK_SRC)) map.removeSource(_BLDG_PICK_SRC); } catch (_) {}
+}
+
+function _editPickBuildingStop() {
+  try {
+    map.off('click', _BLDG_PICK_FILL, _onPickBuildingClick);
+    map.off('mouseenter', _BLDG_PICK_FILL, _bldgPickCursorOn);
+    map.off('mouseleave', _BLDG_PICK_FILL, _bldgPickCursorOff);
+  } catch (_) {}
+  _editPickBuildingRemoveLayers();
+  _bldgPickCursorOff();
+  _bldgPickActive = false;
+  document.getElementById('edit-pick-bldg-btn')?.classList.remove('active');
+}
+
+function _bldgPickCursorOn()  { try { map.getCanvas().style.cursor = 'pointer'; } catch (_) {} }
+function _bldgPickCursorOff() { try { map.getCanvas().style.cursor = ''; } catch (_) {} }
+
+function _onPickBuildingClick(e) {
+  const f = e.features && e.features[0];
+  const idx = f && f.properties ? f.properties._idx : null;
+  if (idx != null) _editPickBuildingApply(idx);
+}
+
+function _editPickBuildingApply(idx) {
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v || !Array.isArray(v.nearbyBuildings)) { _editPickBuildingStop(); return; }
+  const b = v.nearbyBuildings[idx];
+  if (!b || !Array.isArray(b.geometry) || b.geometry.length < 3) { _editPickBuildingStop(); return; }
+  // Re-point the venue at the chosen building footprint + recompute walls.
+  v.buildingGeometry = b.geometry.map(n => ({ lat: n.lat, lon: n.lon }));
+  if (typeof getWallNormals === 'function') v.wallNormals = getWallNormals(v.buildingGeometry);
+  // The previous terrace/override belonged to the wrong building — clear so the
+  // terrace re-derives from the new walls (rooftop centroid re-derives too).
+  v.terraceWallIndices = [];
+  v.autoTerraceWallIndices = null;
+  v.seatingPolygonOverride = null;
+  // Facing = bearing of the wall nearest the venue point (old default heuristic).
+  if (Array.isArray(v.wallNormals) && v.wallNormals.length) {
+    let best = null, bestD = Infinity;
+    for (const w of v.wallNormals) {
+      const d = (w.my - v.lat) * (w.my - v.lat) + (w.mx - v.lng) * (w.mx - v.lng);
+      if (d < bestD) { bestD = d; best = w; }
+    }
+    if (best) { v.facing = Math.round(best.bearing); v.facingSource = 'manual'; v.wallSegment = best; }
+  }
+  if (typeof computeTerraceTestPoints === 'function') v.terraceTestPoints = computeTerraceTestPoints(v, null);
+  saveFacingCache(v.id, v.facing, v.facingSource ?? 'manual', v.terraceWallIndices, v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd, null);
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _setEditChanged();
+  _editPickBuildingStop();
+  _syncDrawFromVenue(v);
+  // Re-frame on the new building.
+  if (v.buildingGeometry.length) {
+    const lats = v.buildingGeometry.map(n => n.lat), lons = v.buildingGeometry.map(n => n.lon);
+    try {
+      map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
+        { padding: 110, maxZoom: 19, duration: 600 });
+    } catch (_) {}
+  }
+  _updateEditToolButtons();
+  draw();
+  if (typeof showMapToast === 'function') showMapToast('Bygning oppdatert', 1800);
 }
 
 function _setEditChanged() {
@@ -5446,6 +5636,14 @@ function _updateEditToolButtons() {
   // "+ område": rooftop has no editable polygon model — hide there.
   const addBtn = document.getElementById('edit-add-area-btn');
   if (addBtn) addBtn.hidden = (type === 'rooftop');
+
+  // "Vis AI-forslag": street venues that carry an AI proposal (the editor now
+  // defaults to the wall-derived shape; AI is opt-in).
+  const aiBtn = document.getElementById('edit-show-ai-btn');
+  if (aiBtn) {
+    const hasAi = (typeof asRings === 'function') ? asRings(v.seatingPolygonAi).length : 0;
+    aiBtn.hidden = !(type === 'street' && hasAi);
+  }
 
   _updateUndoRedoButtons();
 }

@@ -190,37 +190,41 @@ function auditMatchesFilter(v) {
 
 // ── Mutations ────────────────────────────────────────────────────────────────
 function markVenueAudited(venueId, via = 'good') {
-  // Approve = promote: if the admin marks an AI-proposed venue "good" and there's
-  // no human override yet, bake the AI polygon into a shipped manual override so
-  // it reaches users + becomes a training positive (then it's locked from
-  // re-detection). Edits already bake their own override via exitEditMode.
-  if (via === 'good' && typeof VENUES !== 'undefined') {
+  // Approve = lock the SHOWN polygon. When the admin marks a venue "good" with no
+  // human override yet, bake whatever polygon the editor is currently showing —
+  // the reliable wall-derived default, OR an AI proposal the admin adopted via
+  // "Vis AI-forslag" — into a shipped override (training positive, locked from
+  // re-detection). It NEVER auto-substitutes the raw AI proposal, so a wrong AI
+  // shape can't be baked by a plain approve. Edits bake their own override via
+  // exitEditMode. (In practice this fires for street venues, where the default is
+  // wall-derived; courtyard/detached already hold their own polygon if any.)
+  if (via === 'good' && typeof VENUES !== 'undefined' && typeof getActivePolygons === 'function') {
     const _v = VENUES.find(x => x.id === venueId);
-    if (_v && typeof venueAiReviewStatus === 'function' && venueAiReviewStatus(_v) === 'ai-unreviewed') {
-      const poly = (typeof asRings === 'function') ? asRings(_v.seatingPolygonAi) : [];
-      _v.seatingPolygonOverride = poly.length ? poly : null;
-      if (typeof seatingPolygonsTestPoints === 'function') {
-        const pts = seatingPolygonsTestPoints(poly);
-        if (pts.length) _v.terraceTestPoints = pts;
+    const hasOverride = !!(_v && typeof asRings === 'function' &&
+      (asRings(_v.seatingPolygonOverride).length || asRings(_v.courtyardPolygon).length || asRings(_v.detachedPolygon).length));
+    if (_v && !hasOverride) {
+      const shown = getActivePolygons(_v).rings;
+      if (shown.length && typeof setActivePolygons === 'function') {
+        setActivePolygons(_v, shown);   // writes the type's polygon field + test points
+        if (typeof saveFacingCache === 'function') {
+          saveFacingCache(_v.id, _v.facing, _v.facingSource, _v.terraceWallIndices ?? [], _v.terraceDepth,
+            null, _v.terraceType, _v.terraceDetachedLocation, _v.terraceWallTrimStart, _v.terraceWallTrimEnd, _v.seatingPolygonOverride);
+        }
+        if (typeof saveCorrection === 'function') {
+          saveCorrection('correction', {
+            id: venueId, name: _v.name, category: _v.category,
+            before: { seatingPolygonOverride: null },
+            after:  { seatingPolygonOverride: _v.seatingPolygonOverride },
+            origin: 'approved', autoState: 'approved',
+            buildingNodeCount: _v.buildingGeometry?.length ?? null,
+          });
+        }
+        if (typeof sunWindowCache !== 'undefined' && sunWindowCache.clear) sunWindowCache.clear();
+        if (typeof dispatchToWorker === 'function' && typeof datePicker !== 'undefined') dispatchToWorker(datePicker.value);
+        // Baked a polygon → it's now a human edit, not a bare "looks good";
+        // reclassify so the 'confirmed' branch below doesn't double-save.
+        via = 'edited';
       }
-      if (typeof saveFacingCache === 'function') {
-        saveFacingCache(_v.id, _v.facing, _v.facingSource, _v.terraceWallIndices ?? [], _v.terraceDepth,
-          null, _v.terraceType, _v.terraceDetachedLocation, _v.terraceWallTrimStart, _v.terraceWallTrimEnd, poly);
-      }
-      if (typeof saveCorrection === 'function') {
-        saveCorrection('correction', {
-          id: venueId, name: _v.name, category: _v.category,
-          before: { seatingPolygonOverride: null },
-          after:  { seatingPolygonOverride: poly },
-          origin: 'ai-approved', autoState: 'ai-approved',
-          buildingNodeCount: _v.buildingGeometry?.length ?? null,
-        });
-      }
-      if (typeof sunWindowCache !== 'undefined' && sunWindowCache.clear) sunWindowCache.clear();
-      if (typeof dispatchToWorker === 'function' && typeof datePicker !== 'undefined') dispatchToWorker(datePicker.value);
-      // Approval baked a polygon → it's now a human edit, not a bare "looks
-      // good"; reclassify so the 'confirmed' branch below doesn't double-save.
-      via = 'edited';
     }
   }
   _auditCache.set(venueId, { at: new Date().toISOString(), via });

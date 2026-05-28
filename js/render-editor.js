@@ -72,13 +72,13 @@ function getActivePolygons(v) {
   if (type === 'rooftop')   return { rings: [], key: 'rooftop' };
   if (type === 'courtyard') return { rings: asRings(v.courtyardPolygon), key: 'courtyard' };
   if (type === 'detached')  return { rings: asRings(v.detachedPolygon),  key: 'detached' };
-  // Street: prefer manual override; fall back to AI proposal; finally derive
-  // from selected walls + depth so the editor seeds something in wall-mode too.
+  // Street: prefer the manual override, else fall straight to the wall-derived
+  // polygon (entrance/facing wall + depth — the reliable default). The AI
+  // proposal is NO LONGER the default: it's opt-in via "Vis AI-forslag"
+  // (adoptAiProposal), so a wrong AI shape never silently replaces the good
+  // wall-derived one or gets baked by an "approve".
   const override = asRings(v.seatingPolygonOverride);
   if (override.length) return { rings: override, key: 'override' };
-  // Editor opts in to seeing the AI polygon(s); public renderers do not.
-  const ai = (typeof getSeatingPolygons === 'function') ? getSeatingPolygons(v, { includeAi: true }) : [];
-  if (ai.length) return { rings: ai, key: 'ai' };
   // Wall-derived preview (single ring) — seeds the editor before any override.
   if (typeof getTerraceWalls === 'function' && typeof terracePolygons === 'function') {
     const walls = getTerraceWalls(v);

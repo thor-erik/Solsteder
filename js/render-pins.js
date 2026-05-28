@@ -1742,6 +1742,7 @@ function draw() {
     const editDateStr = datePicker.value;
     ctx.globalAlpha = 0.18;
     VENUES.forEach(v => {
+      if (v.id === editingVenueId) return;   // the edited venue gets a full-opacity beacon below
       const cls = classifyPin(v, editDateStr, editHour);
       const pt  = map.project([v.lng, v.lat]);
       const friends = _getCheckins(v);
@@ -1764,6 +1765,21 @@ function draw() {
       });
     });
     ctx.globalAlpha = 1;
+    // Beacon at the edited venue's point (its Google location = where the
+    // outdoor seating is supposed to be). Full opacity + honey so it stands out
+    // against the dimmed context pins, and anchors the venue even before any
+    // polygon exists.
+    const _ev = (typeof venueById === 'function') ? venueById(editingVenueId) : null;
+    if (_ev) {
+      const ep = map.project([_ev.lng, _ev.lat]);
+      ctx.beginPath(); ctx.arc(ep.x, ep.y, 16, 0, Math.PI * 2);
+      ctx.strokeStyle = _rgba(TOKENS.accent, 0.9); ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(ep.x, ep.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = _rgba(TOKENS.accent, 0.95); ctx.fill();
+      ctx.strokeStyle = _rgba(TOKENS.text, 0.95); ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(ep.x, ep.y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = _rgba(TOKENS.bg, 0.9); ctx.fill();
+    }
     drawBuildingEditor();
     ctx.restore();
     return;

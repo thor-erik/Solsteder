@@ -533,7 +533,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const archived  = !!v.auditArchived;
     const audited   = !archived && (typeof isVenueAudited === 'function') && isVenueAudited(v);
     const entry     = audited && typeof venueAuditEntry === 'function' ? venueAuditEntry(v) : null;
-    const viaLabel  = entry?.via === 'edited' ? 'Edited ✓' : 'Looks good ✓';
+    const viaLabel  = entry?.via === 'edited' ? 'Edited ✓'
+      : entry?.via === 'unsure' ? 'Usikker ⚠'
+      : 'Looks good ✓';
     if (audited)  auditCardCls = ' audit-reviewed';
     if (archived) auditCardCls = ' audit-archived';
     // Compact icon-button action row. Each control carries title + aria-label
