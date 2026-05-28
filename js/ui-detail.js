@@ -119,12 +119,9 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   if (v.kitchenCloseHour != null) {
     hoursSubtext = `Kjøkken til ${formatHour(v.kitchenCloseHour)}`;
   }
-  infoItems.push({
-    icon: clockIcon,
-    strong: `Åpent til ${closingStr}`,
-    sub: hoursSubtext || '',
-    chipText: `Åpent til ${closingStr}`,
-  });
+  // NOTE: "Åpent til X" is no longer pushed into the generic info list — it now
+  // renders as a dedicated line right under the sun panel (dp-hours-line), so
+  // "is it sunny" and "is it open" are answered together. See the return below.
 
   // Adaptive shape: ≤3 → compact chip row (each chip is icon + chipText);
   // ≥4 → full vertical list (icon + strong + optional sub).
@@ -190,11 +187,19 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     ? `<div class="photo-overlay-count">1 / ${_photoCount}</div>`
     : '';
 
-  // Photo block — shared header overlay (title + meta + friend chip + count
+  // Sun verdict chip on the photo — the #1 answer ("will it be sunny when I
+  // want") made glanceable the instant the panel opens, before any scroll.
+  // Kept in sync on time-scrub by _populateDpCardSlot (app.js), which updates
+  // #dp-sun-chip-text so it never disagrees with the card below.
+  const _sunChipIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+  const sunChipHtml = `<div class="dp-sun-chip ${state.className || ''}" id="dp-sun-chip">${_sunChipIcon}<span id="dp-sun-chip-text">${state.mainText || ''}</span></div>`;
+
+  // Photo block — shared header overlay (title + meta + sun chip + count
   // + dark gradient) sits on top of every state.
   const photoOverlayHtml = `
     <div class="photo-overlay-grad"></div>
     ${photoCountHtml}
+    ${sunChipHtml}
     ${photoChipHtml}
     <div class="photo-overlay-header">
       <div class="photo-overlay-title">${v.name}</div>
@@ -256,16 +261,16 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         ${photosHtml}
       </div>
 
-      <!-- Placeholder slot replaced by openDetailPanel/updateDetailPanel
-           with a freshly-rendered .dp-card. Reserves layout space so photos
-           / social / info sit in their final positions before the card
-           lands. -->
+      <!-- Sun panel — placeholder slot replaced by updateDetailPanel with a
+           freshly-rendered .dp-card (verdict + timeline + facts). -->
       <div id="dp-card-slot" class="dp-card-slot"></div>
 
-      ${_renderSocialSection(v)}
+      <!-- Hours paired with the sun answer: "is it sunny" + "is it open" read
+           together, right under the sun panel (was buried in the info list). -->
+      <div class="dp-hours-line">${clockIcon}<span>Åpent til ${closingStr}${hoursSubtext ? ' · ' + hoursSubtext : ''}</span></div>
 
-      ${_renderPlansBlock(v)}
-
+      <!-- Primary actions, lifted ABOVE social: once the sun answer convinces
+           you, the universal "take me there" + save/share/alert are right here. -->
       <div class="dp-actions">
         <a class="s-rnd dp-directions" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}${walkTime ? ' · ' + walkTime : ''}">
           ${dirIcon}
@@ -281,9 +286,14 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         </div>
       </div>
 
-      ${infoListHtml}
+      <!-- Social, unified into one zone: invite friends + plans here, told as
+           one story instead of scattered across the panel. -->
+      <div class="dp-social-zone">
+        ${_renderSocialSection(v)}
+        ${_renderPlansBlock(v)}
+      </div>
 
-      ${shelterHtml}
+      ${infoListHtml}
 
       ${footerHtml}
     </div>`;
@@ -403,19 +413,40 @@ function _renderPlansBlock(v) {
   const userIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
   const eyeIcon  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z"/></svg>`;
 
+  const sunGlyph = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+  const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const myUid = (typeof authCurrentUser === 'function' && authCurrentUser()) ? authCurrentUser().id : null;
   const plansHtml = plans.map(p => {
       const d = new Date(p.planned_at);
-      const dateStr = d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+      const planDateStr = (p.planned_at || '').slice(0, 10);
+      const planHour = d.getHours() + d.getMinutes() / 60;
+      const dayLabel = (typeof _dayLabel === 'function' && planDateStr)
+        ? ((s) => s.charAt(0).toUpperCase() + s.slice(1))(_dayLabel(planDateStr))
+        : d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
       const timeStr = (typeof formatHour === 'function')
-        ? formatHour(d.getHours() + d.getMinutes() / 60)
+        ? formatHour(planHour)
         : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Sun context AT the planned moment (computed for the plan's own date),
+      // so the plan ties back to why you opened a sun app: "Sol til 15:30".
+      let sunCtx = '', sunCls = 'no-sun';
+      try {
+        const { windows: pw } = computeSunWindows(v, planDateStr);
+        const cur = pw.find(w => planHour >= w.start && planHour < w.end);
+        if (cur) { sunCtx = `Sol til ${formatHour(cur.end)}`; sunCls = 'in-sun'; }
+        else {
+          const next = pw.find(w => w.start > planHour);
+          sunCtx = next ? `Sol fra ${formatHour(next.start)}` : 'I skyggen';
+        }
+      } catch (e) { /* no sun data — chip omitted */ }
+
       const creator = p.creator?.name || p.creator?.email || '';
       const invite = p._invite;
+      const pending = invite && invite.status === 'pending';
 
       // Actions: pending → honey Accept + red Decline; answered → status chip.
       let actions = '';
-      if (invite && invite.status === 'pending') {
+      if (pending) {
         actions = `<div class="plan-actions">
           <button class="p-pill" onclick="respondToPlanInvite('${invite.id}','accepted')">${t('plan_accept')}</button>
           <button class="d-pill" onclick="respondToPlanInvite('${invite.id}','declined')">${t('plan_decline')}</button>
@@ -442,14 +473,14 @@ function _renderPlansBlock(v) {
           const initial = ((u.name || u.email || '?')[0] || '?').toUpperCase();
           const av = u.avatar_url
             ? `<img src="${u.avatar_url}" alt="">`
-            : `<div class="pi-init">${initial}</div>`;
+            : `<div class="pi-init">${esc(initial)}</div>`;
           const pipCls = inv.status === 'accepted' ? 'pi-pip-accepted'
                        : inv.status === 'declined' ? 'pi-pip-declined'
                        : 'pi-pip-pending';
           const arr = fmtArrival(inv);
           const arrLabel = arr ? ` — ${arr}` : '';
           const arrChip = arr ? `<span class="pi-time">${arr}</span>` : '';
-          return `<div class="plan-invitee" title="${(u.name || u.email || '')} — ${t('plan_invite_' + inv.status)}${arrLabel}">${av}<span class="pi-pip ${pipCls}"></span>${arrChip}</div>`;
+          return `<div class="plan-invitee" title="${esc((u.name || u.email || '') + ' — ' + t('plan_invite_' + inv.status) + arrLabel)}">${av}<span class="pi-pip ${pipCls}"></span>${arrChip}</div>`;
         }).join('')}</div>`;
       }
 
@@ -457,14 +488,16 @@ function _renderPlansBlock(v) {
         ${eyeIcon}<span>${t('preview_plan')}</span>
       </button>`;
 
-      return `<div class="detail-plan-item">
-        <div class="plan-when-row">
-          <span class="plan-when-ico">${calIcon}</span>
-          <span class="plan-when-date">${dateStr}</span>
-          <span class="plan-when-chip">${timeStr}</span>
+      return `<div class="dp-plan-card${pending ? ' is-pending' : ''}">
+        <div class="dp-plan-top">
+          <div class="dp-plan-when">
+            <span class="dp-plan-day">${esc(dayLabel)}</span>
+            <span class="dp-plan-time">${timeStr}</span>
+          </div>
+          ${sunCtx ? `<span class="dp-plan-sun ${sunCls}">${sunGlyph}<span>${sunCtx}</span></span>` : ''}
         </div>
-        ${creator ? `<div class="plan-creator">${userIcon}<span>${creator}</span></div>` : ''}
-        ${p.message ? `<div class="plan-msg">${p.message}</div>` : ''}
+        ${creator ? `<div class="plan-creator">${userIcon}<span>${esc(creator)}</span></div>` : ''}
+        ${p.message ? `<div class="plan-msg">${esc(p.message)}</div>` : ''}
         ${pipsHtml}
         <div class="plan-foot">
           ${previewBtn}

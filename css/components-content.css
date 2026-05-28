@@ -5487,6 +5487,70 @@
   }
   .dp-plans-block .plan-status-accepted { color: var(--color-success); border-color: var(--color-success); }
   .dp-plans-block .plan-status-declined { color: var(--color-error);   border-color: var(--color-error); }
+
+  /* ── Detail re-architecture (2026-05-28) ───────────────────────────────────
+     Sun verdict chip on the photo (top-right) — the #1 answer made glanceable
+     before any scroll. On the dark photo overlay, so honey text is legible
+     (the cream-tile honey-on-light rule doesn't apply here). Synced on scrub by
+     _populateDpCardSlot. */
+  .dp-sun-chip {
+    position: absolute; top: 12px; right: 12px;
+    display: inline-flex; align-items: center; gap: var(--space-2xs);
+    max-width: 62%;
+    padding: var(--space-2xs) var(--space-md);
+    border-radius: var(--radius-pill);
+    background: rgba(15,27,42,0.55);
+    -webkit-backdrop-filter: var(--blur-control);
+    backdrop-filter: var(--blur-control);
+    color: rgba(255,244,224,0.95);
+    font-size: var(--text-caption); font-weight: 700; line-height: 1.2;
+    pointer-events: none;
+  }
+  .dp-sun-chip svg { flex-shrink: 0; }
+  .dp-sun-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dp-sun-chip.state-sun { color: var(--accent); }
+  .dp-sun-chip.state-shadow,
+  .dp-sun-chip.state-rain { color: rgba(180,205,235,0.95); }
+  .dp-sun-chip.state-done { color: rgba(255,244,224,0.70); }
+
+  /* Hours paired with the sun panel — a quiet ink line right under the card so
+     "is it sunny" + "is it open" are answered together. */
+  .dp-hours-line {
+    display: flex; align-items: center; gap: var(--space-sm);
+    margin-top: var(--space-md);
+    color: var(--ink-muted); font-size: var(--text-label); font-weight: 600;
+  }
+  .dp-hours-line svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--ink-muted); }
+
+  /* Unified social zone — invite CTA + plans told as one story. The zone owns
+     the spacing so children's own margins don't double up. */
+  .dp-social-zone { display: flex; flex-direction: column; gap: var(--space-md); margin-bottom: var(--space-lg); }
+  .dp-social-zone > * { margin: 0; }
+
+  /* Plan card — prominent WHEN (day + big time), sun context for that moment,
+     then who + one action. Replaces the old flat when-row stack. */
+  .dp-plans-block .dp-plan-card:not(:first-of-type) {
+    margin-top: var(--space-lg); padding-top: var(--space-lg);
+    border-top: 1px solid var(--line-l-faint);
+  }
+  .dp-plan-top {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: var(--space-md);
+  }
+  .dp-plan-when { display: flex; align-items: baseline; gap: var(--space-sm); min-width: 0; }
+  .dp-plan-day { font-size: var(--text-body); font-weight: 600; color: var(--text-secondary); }
+  .dp-plan-time {
+    font-size: var(--text-subtitle); font-weight: 700; color: var(--text);
+    letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+  }
+  .dp-plan-sun {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: var(--space-2xs);
+    padding: var(--space-2xs) var(--space-sm); border-radius: var(--radius-pill);
+    font-size: var(--text-label); font-weight: 700; line-height: 1.2;
+  }
+  .dp-plan-sun svg { flex-shrink: 0; }
+  .dp-plan-sun.in-sun { background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-on-light); }
+  .dp-plan-sun.no-sun { background: var(--line-l-faint); border: 1px solid var(--line-l); color: var(--ink-muted); }
   /* No yellow fonts on the cream tiles — honey TEXT goes ink; the sun signal
      stays in the fills (honey-dim pill bg/border, the timeline bar). */
   #detail-panel .dp-card .card-pill.pill-sol,

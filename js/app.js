@@ -4122,6 +4122,17 @@ function _populateDpCardSlot(v) {
   // Repaint the (possibly transplanted) canvas at the fixed detail domain.
   if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(newCard);
 
+  // Keep the photo's sun-verdict chip in sync with the scrubbed time so it
+  // never disagrees with the card below (it lives outside the card slot, in the
+  // photo overlay, which PARTIAL updates don't rebuild).
+  const _sunChip = content && content.querySelector('#dp-sun-chip');
+  if (_sunChip && typeof venueState === 'function') {
+    const st = venueState(v, fromHour);
+    const _txt = _sunChip.querySelector('#dp-sun-chip-text');
+    if (_txt) _txt.textContent = st.mainText || '';
+    _sunChip.className = 'dp-sun-chip ' + (st.className || '');
+  }
+
   // First render for this venue: wire the canvas drag + hidden scrubber ONCE.
   // (On every later render the timeline is transplanted instead — already wired.)
   const tl = newCard.querySelector('.card-timeline');

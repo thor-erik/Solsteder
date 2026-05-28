@@ -636,7 +636,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}${auditCardCls}"
            data-vid="${v.id}">
         <div class="dp-sun-headline">${headlineMain}</div>
-        <div class="dp-sun-sub">${headlineSub || '&nbsp;'}</div>
+        ${headlineSub ? `<div class="dp-sun-sub">${headlineSub}</div>` : ''}
         <div class="card-pills dp-card-pills">${pillsHtml}</div>
         ${timelineBlock}
         ${reviewChips}
