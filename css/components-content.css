@@ -2138,6 +2138,7 @@
   .edit-tool-icon:active { transform: scale(0.9); }
   .edit-tool-icon.active { color: var(--accent); }
   .edit-tool-icon[hidden] { display: none; }
+  .edit-tool-icon:disabled { opacity: 0.3; pointer-events: none; cursor: default; }
   /* Hide the whole float stack when neither tool is visible (e.g. courtyard
      with no override) so no empty frosted box floats over the work area. */
   body.edit-mode #edit-tools-float:not(:has(.edit-tool-icon:not([hidden]))) {

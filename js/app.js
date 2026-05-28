@@ -4734,6 +4734,9 @@ let editDraw           = null;   // MapboxDraw singleton (created lazily)
 let _editDrawAdded     = false;  // is the control currently added to the map?
 let _editDrawFeatureId = null;   // id of the polygon feature being edited
 let _editPriorCanvasPE = '';     // #canvas-overlay pointer-events to restore on exit
+let _editUndoStack     = [];     // [lat,lng][] snapshots taken BEFORE each edit
+let _editRedoStack     = [];     // undone snapshots, for redo
+let _editKeysBound     = false;  // document keydown listener bound once
 
 // Geometry conversion. Our polygons are [lat,lng][]; GL Draw uses GeoJSON rings
 // [[ [lng,lat] … closingPoint ]].
@@ -4769,14 +4772,21 @@ const EDIT_DRAW_STYLES = [
     filter: ['all', ['==', 'meta', 'midpoint'], ['==', '$type', 'Point']],
     paint: { 'circle-radius': 4, 'circle-color': '#FFF4E0',
              'circle-stroke-color': '#0A0E1C', 'circle-stroke-width': 1.25 } },
-  // Vertex halo (dark) under the vertex (honey with cream ring).
+  // Dark halo under every vertex for contrast over bright imagery.
   { id: 'gl-draw-vertex-halo', type: 'circle',
     filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
     paint: { 'circle-radius': 8, 'circle-color': '#0A0E1C', 'circle-opacity': 0.45 } },
-  { id: 'gl-draw-vertex', type: 'circle',
-    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
+  // Unselected vertex: honey fill, cream ring.
+  { id: 'gl-draw-vertex-inactive', type: 'circle',
+    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'active', 'true']],
     paint: { 'circle-radius': 5.5, 'circle-color': '#F5C25E',
              'circle-stroke-color': '#FFF4E0', 'circle-stroke-width': 1.25 } },
+  // Selected vertex (tapped): inverted + larger so the select state is obvious —
+  // cream fill, thick honey ring.
+  { id: 'gl-draw-vertex-active', type: 'circle',
+    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['==', 'active', 'true']],
+    paint: { 'circle-radius': 7.5, 'circle-color': '#FFF4E0',
+             'circle-stroke-color': '#F5C25E', 'circle-stroke-width': 3 } },
 ];
 
 function _initEditDraw() {
@@ -4787,6 +4797,8 @@ function _initEditDraw() {
       controls: {},
       touchEnabled: true,
       touchBuffer: 25,
+      keybindings: false,        // we own Delete/Backspace + undo keys (focus-independent)
+      suppressAPIEvents: true,   // programmatic add/deleteAll (seed/undo/snap) must NOT fire draw.*
       styles: EDIT_DRAW_STYLES,
     });
   }
@@ -4794,28 +4806,29 @@ function _initEditDraw() {
   // Re-bind defensively (style swaps re-run _initEditDraw).
   map.off('draw.update', _onDrawUpdate); map.on('draw.update', _onDrawUpdate);
   map.off('draw.create', _onDrawUpdate); map.on('draw.create', _onDrawUpdate);
+  map.off('draw.selectionchange', _onDrawSelectionChange); map.on('draw.selectionchange', _onDrawSelectionChange);
+  if (!_editKeysBound) { document.addEventListener('keydown', _onEditKeydown); _editKeysBound = true; }
 }
 
 function _teardownEditDraw() {
   if (editDraw) {
     map.off('draw.update', _onDrawUpdate);
     map.off('draw.create', _onDrawUpdate);
+    map.off('draw.selectionchange', _onDrawSelectionChange);
     if (_editDrawAdded) { try { map.removeControl(editDraw); } catch (_) {} _editDrawAdded = false; }
   }
   _editDrawFeatureId = null;
 }
 
-/** Seed GL Draw with the venue's current editable polygon and enter
- *  direct_select. No editable polygon (rooftop, or street with no walls) → clear
- *  so only the canvas building reference shows. */
-function _syncDrawFromVenue(v) {
-  if (!editDraw || !_editDrawAdded || !v) return;
-  let ap = null;
-  try { ap = getActivePolygon(v); } catch (_) {}
+/** Put `latlng` ([lat,lng][] or null) into GL Draw as the editable feature and
+ *  enter direct_select. Programmatic (suppressAPIEvents) so it fires no draw.*.
+ *  Stack-neutral — undo/redo history is managed by the callers. */
+function _reseedDrawGeometry(latlng) {
+  if (!editDraw || !_editDrawAdded) return;
   editDraw.deleteAll();
   _editDrawFeatureId = null;
-  if (!ap || !Array.isArray(ap.latlng) || ap.latlng.length < 3) return;
-  const ring = _drawRingFromLatLng(ap.latlng);
+  if (!Array.isArray(latlng) || latlng.length < 3) return;
+  const ring = _drawRingFromLatLng(latlng);
   if (ring.length < 4) return;
   try {
     const ids = editDraw.add({ type: 'Feature', properties: {},
@@ -4825,25 +4838,178 @@ function _syncDrawFromVenue(v) {
   } catch (e) { console.warn('[edit] GL Draw seed failed', e); }
 }
 
-/** GL Draw committed an edit (vertex move, midpoint→add, vertex delete). Write
- *  the geometry back to the venue's per-type polygon field + recompute shadows. */
+/** Seed GL Draw from the venue's current editable polygon (new baseline: resets
+ *  undo/redo). No editable polygon (rooftop, or street with no walls) → clear. */
+function _syncDrawFromVenue(v) {
+  if (!editDraw || !_editDrawAdded || !v) return;
+  let ap = null;
+  try { ap = getActivePolygon(v); } catch (_) {}
+  _reseedDrawGeometry(ap && Array.isArray(ap.latlng) ? ap.latlng : null);
+  _editUndoStack = [];
+  _editRedoStack = [];
+  _updateEditToolButtons();
+}
+
+function _cloneGeom(latlng) {
+  return Array.isArray(latlng) ? latlng.map(([a, b]) => [a, b]) : null;
+}
+
+/** GL Draw committed a USER edit (vertex move, midpoint→add). Capture an undo
+ *  snapshot, snap street vertices to walls, write geometry back, recompute. */
 function _onDrawUpdate(e) {
   if (!editingVenueId) return;
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v) return;
   const feat = (e && e.features && e.features[0]) || (editDraw && editDraw.get(_editDrawFeatureId));
   if (!feat || !feat.geometry || feat.geometry.type !== 'Polygon') return;
-  const latlng = _latLngFromDrawFeature(feat);
+  let latlng = _latLngFromDrawFeature(feat);
   if (latlng.length < 3) return;
+
+  // Undo: push the pre-edit geometry; a fresh edit invalidates the redo stack.
+  const prev = (() => { try { return getActivePolygon(v)?.latlng; } catch (_) { return null; } })();
+  if (prev) { _editUndoStack.push(_cloneGeom(prev)); if (_editUndoStack.length > 50) _editUndoStack.shift(); }
+  _editRedoStack = [];
+
+  // Street: snap any vertex dropped onto a building wall to that wall (on release).
+  let snapped = false;
+  if ((v.terraceType ?? 'street') === 'street') {
+    const r = _snapStreetVerticesToWalls(v, latlng);
+    if (r.changed) { latlng = r.latlng; snapped = true; }
+  }
+
   setActivePolygon(v, latlng);   // routes to override/courtyard/detached + recomputes test points
   saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
     null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
     v.seatingPolygonOverride);
+  if (snapped) _reseedDrawGeometry(latlng);   // reflect the snap in GL Draw (no event — suppressed)
   _setEditChanged();
   sunWindowCache.clear();
   dispatchToWorker(datePicker.value);
   _updateEditToolButtons();
   draw();
+}
+
+/** Apply a geometry snapshot to the venue + GL Draw (used by undo/redo/delete).
+ *  Does NOT touch the undo/redo stacks. */
+function _applyGeomToEditor(v, latlng) {
+  setActivePolygon(v, latlng);
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  _reseedDrawGeometry(latlng);
+  _setEditChanged();
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _updateEditToolButtons();
+  draw();
+}
+
+function editUndo() {
+  if (!_editUndoStack.length || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  const current = (() => { try { return getActivePolygon(v)?.latlng; } catch (_) { return null; } })();
+  if (current) _editRedoStack.push(_cloneGeom(current));
+  const target = _editUndoStack.pop();
+  _applyGeomToEditor(v, target);
+}
+
+function editRedo() {
+  if (!_editRedoStack.length || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  const current = (() => { try { return getActivePolygon(v)?.latlng; } catch (_) { return null; } })();
+  if (current) _editUndoStack.push(_cloneGeom(current));
+  const target = _editRedoStack.pop();
+  _applyGeomToEditor(v, target);
+}
+
+/** Delete the currently-selected vertex (or vertices). Guards ≥ 3 vertices so a
+ *  polygon can't be destroyed. Wired to the delete button + Delete/Backspace. */
+function editDeleteSelectedVertex() {
+  if (!editDraw || !_editDrawAdded || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  let sel = null;
+  try { sel = editDraw.getSelectedPoints(); } catch (_) {}
+  const idxs = (sel?.features || []).map(f => {
+    const cp = f.properties?.coord_path || '';
+    const i = parseInt(String(cp).split('.').pop(), 10);
+    return Number.isFinite(i) ? i : -1;
+  }).filter(i => i >= 0);
+  if (!idxs.length) return;                       // nothing selected
+  let ap = null; try { ap = getActivePolygon(v); } catch (_) {}
+  const base = ap?.latlng;
+  if (!Array.isArray(base) || base.length - idxs.length < 3) return;   // keep ≥ 3
+  const drop = new Set(idxs);
+  const next = base.filter((_, i) => !drop.has(i));
+  _editUndoStack.push(_cloneGeom(base));
+  if (_editUndoStack.length > 50) _editUndoStack.shift();
+  _editRedoStack = [];
+  _applyGeomToEditor(v, next);
+}
+
+/** Closest point on segment AB to P (pixel space). */
+function _closestPointOnSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1;
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return { x: ax + t * dx, y: ay + t * dy };
+}
+
+/** Snap any polygon vertex within SNAP_PX of a building wall onto that wall.
+ *  Returns { changed, latlng }. Vertices already on the wall (sub-pixel) are
+ *  left untouched so the wall-side edge doesn't churn re-seeds every drag. */
+function _snapStreetVerticesToWalls(v, latlng) {
+  const walls = v?.wallNormals;
+  if (!Array.isArray(walls) || !walls.length) return { changed: false, latlng };
+  const SNAP_PX = 12;
+  let changed = false;
+  const out = latlng.map(([lat, lng]) => {
+    const p = map.project([lng, lat]);
+    let best = null, bestD = SNAP_PX;
+    for (const w of walls) {
+      const a = map.project([w.aLng, w.aLat]);
+      const b = map.project([w.bLng, w.bLat]);
+      const c = _closestPointOnSeg(p.x, p.y, a.x, a.y, b.x, b.y);
+      const d = Math.hypot(p.x - c.x, p.y - c.y);
+      if (d < bestD) { bestD = d; best = c; }
+    }
+    if (best && Math.hypot(p.x - best.x, p.y - best.y) > 0.75) {
+      changed = true;
+      const ll = map.unproject([best.x, best.y]);
+      return [ll.lat, ll.lng];
+    }
+    return [lat, lng];
+  });
+  return { changed, latlng: changed ? out : latlng };
+}
+
+/** Selection changed → refresh the delete-vertex button enabled state. */
+function _onDrawSelectionChange() { _updateEditToolButtons(); }
+
+/** Undo / redo / delete-vertex button enabled states. */
+function _updateUndoRedoButtons() {
+  const u = document.getElementById('edit-undo-btn');
+  const r = document.getElementById('edit-redo-btn');
+  if (u) u.disabled = _editUndoStack.length === 0;
+  if (r) r.disabled = _editRedoStack.length === 0;
+  const d = document.getElementById('edit-del-vertex-btn');
+  if (d) {
+    let has = false;
+    try { has = !!(editDraw && _editDrawAdded && editDraw.getSelectedPoints()?.features?.length); } catch (_) {}
+    d.disabled = !has;
+  }
+}
+
+/** Keyboard: Delete/Backspace removes the selected vertex; Cmd/Ctrl+Z undo,
+ *  Cmd/Ctrl+Shift+Z (or Ctrl+Y) redo. Active only while editing, never in inputs. */
+function _onEditKeydown(e) {
+  if (!editingVenueId) return;
+  const tag = (e.target?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
+  const meta = e.metaKey || e.ctrlKey;
+  if (meta && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); e.shiftKey ? editRedo() : editUndo(); return; }
+  if (meta && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); editRedo(); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); editDeleteSelectedVertex(); }
 }
 
 function toggleEditSatellite() {
@@ -5175,6 +5341,8 @@ function _updateEditToolButtons() {
   // Street only — courtyard/detached/rooftop have no wall model.
   const wallBtn = document.getElementById('edit-from-wall-btn');
   if (wallBtn) wallBtn.hidden = (type !== 'street');
+
+  _updateUndoRedoButtons();
 }
 
 /** "Fra vegg" button: re-derive a street terrace from its building wall(s) +
