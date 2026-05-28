@@ -1098,6 +1098,9 @@
   }
   button.dpinvite-moment-sub:hover svg { opacity: 1; }
   button.dpinvite-moment-sub:active { transform: scale(0.97); }
+  /* Share step: the day-picker slot becomes the "‹ Endre" back button. Same
+     pill, but the down chevron rotates to point left (back direction). */
+  button.dpinvite-moment-sub.is-back svg { transform: rotate(-90deg); }
   /* FTS slot — host for the floating time slider when the invite sheet
      is open. Reparented from <body> on open, restored on close.
      padding-top reserves room the compact FTS popup needs to float
