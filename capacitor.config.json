@@ -17,6 +17,11 @@
       "showSpinner": false,
       "splashFullScreen": true,
       "splashImmersive": true
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": true,
+      "appReadyTimeout": 10000,
+      "directUpdate": false
     }
   }
 }

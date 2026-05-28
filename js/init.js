@@ -1,3 +1,21 @@
+// ── OTA (Capgo) ─────────────────────────────────────────────────────────────
+// Tell Capgo this web bundle booted OK so it COMMITS the downloaded update
+// instead of rolling back to the previous one after appReadyTimeout. Native
+// only: on web window.Capacitor is undefined (CDN-loaded app, no bundler), so
+// this no-ops. The plugin is reached through the Capacitor bridge registry
+// (Capacitor.Plugins.CapacitorUpdater) — there's nothing to import. Auto-update
+// itself is driven natively (capacitor.config.json -> CapacitorUpdater); this
+// call is just the "bundle is healthy" handshake.
+try {
+  if (window.Capacitor
+      && typeof window.Capacitor.isNativePlatform === 'function'
+      && window.Capacitor.isNativePlatform()
+      && window.Capacitor.Plugins
+      && window.Capacitor.Plugins.CapacitorUpdater) {
+    window.Capacitor.Plugins.CapacitorUpdater.notifyAppReady();
+  }
+} catch (e) { /* non-fatal — worst case Capgo restores the prior good bundle */ }
+
 if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
 
 loadVenues().then(async () => {
