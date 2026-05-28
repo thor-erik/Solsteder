@@ -1938,6 +1938,23 @@
     pointer-events: auto !important;
   }
 
+  /* Detail-panel timeline scrubber — the SAME hidden scrubber as the accept
+     panel, hosted inside the detail card's .card-timeline (48px,
+     position:relative; see components-content.css). The bare .dprcv-timeline-
+     scrubber* rules above already position absolutely within that positioned
+     ancestor; these rules only (a) make the detail card's own canvas draggable
+     (the accept-specific .dprcv-timeline-canvas selector doesn't match here) and
+     (b) let the floating bubble overflow above the bar without being clipped by
+     the labels row. Cream-frost world: the slate-glass bubble (.fts-popup) +
+     cream pill read as a raised object on the card, matching the accept panel. */
+  #detail-panel .card-timeline { overflow: visible; }
+  #detail-panel .card-timeline-block { overflow: visible; }
+  #detail-panel .card-timeline .card-timeline-canvas {
+    cursor: grab;
+    touch-action: none;
+  }
+  #detail-panel .card-timeline .card-timeline-canvas:active { cursor: grabbing; }
+
   /* Attendees row — uses .card surface; layout-only here. */
   .dprcv-attendees {
     display: flex;

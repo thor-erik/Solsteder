@@ -1969,6 +1969,177 @@ function _wireInlineFtsCanvas(canvas, opts) {
 }
 if (typeof window !== 'undefined') window._wireInlineFtsCanvas = _wireInlineFtsCanvas;
 
+/** Wire a hidden timeline scrubber (the `.dprcv-timeline-scrubber` pill + an
+ *  FTS-style bubble) to the global time (timeFromEl). Shared by the detail-panel
+ *  card timeline and the accept-panel timeline so both behave identically:
+ *
+ *    - The bubble + pill are hidden until the user taps the bar (onCanvasDown
+ *      is the ONLY place .is-active is added, so synthetic 'input' events
+ *      from elsewhere can't surface it).
+ *    - While scrubbing, the pill tracks the current hour and the bubble shows
+ *      time + weather glyph + temp + wind for that hour.
+ *    - The bubble auto-hides ~2.5 s after the last input.
+ *    - An outside-the-timeline pointerdown dismisses it immediately.
+ *    - On release the arrival snaps to a 15-min grid (the FTS spring-to-grid).
+ *
+ *  The canvas itself is made draggable separately (via _wireInlineFtsCanvas),
+ *  whose dispatched timeFromEl 'input' events drive `update` here.
+ *
+ *  opts: { scrubberEl, timelineEl, canvas, venue, dateStr, minH, maxH,
+ *          chainCleanupOn }
+ *  chainCleanupOn (optional) — an element whose `_cleanup` chain the listener
+ *  teardown should be appended to (the accept panel passes its overlay el so
+ *  closePlanPreview drops everything). When omitted (the detail panel, whose
+ *  timeline DOM persists for the life of the open panel), teardown is stashed
+ *  on scrubberEl._scrubberCleanup and the listeners simply live with the node. */
+function _wireTimelineScrubber(opts) {
+  const { scrubberEl, timelineEl, canvas, venue, dateStr } = opts || {};
+  const minH = (opts && Number.isFinite(opts.minH)) ? opts.minH
+             : (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
+  const maxH = (opts && Number.isFinite(opts.maxH)) ? opts.maxH
+             : (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
+  if (!scrubberEl || typeof timeFromEl === 'undefined' || !timeFromEl) return;
+  if (scrubberEl._scrubberWired) return; // idempotent
+  scrubberEl._scrubberWired = true;
+
+  const labelEl = scrubberEl.querySelector('.dprcv-timeline-scrubber-label');
+  const _fmtHour = (h) => (typeof formatHour === 'function') ? formatHour(h)
+                                                            : `${Math.floor(h)}:00`;
+  const wxKeyAt = (h) => {
+    if (typeof getWeatherAt !== 'function') return 'sun';
+    const wx = getWeatherAt(dateStr, h + 0.5);
+    if (!wx) return 'sun';
+    const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+    if (rain) return 'rain';
+    const cf = wx.sunBlock ?? wx.cloud ?? 0;
+    if (cf < 0.25) return 'sun';
+    if (cf < 0.75) return 'partly';
+    return 'cloud';
+  };
+  // State at hour h — shade trumps weather (no sun on seating means weather
+  // doesn't matter). Test-token override checks the most recent _testTimelineEvents
+  // entry at/before h; real data uses computeSunWindows + getWeatherAt.
+  const stateAt = (h) => {
+    if (typeof window !== 'undefined' && Array.isArray(window._testTimelineEvents) && window._testTimelineEvents.length) {
+      const sorted = window._testTimelineEvents.slice().sort((a, b) => a.h - b.h);
+      for (let i = sorted.length - 1; i >= 0; i--) {
+        if (sorted[i].h <= h) return sorted[i].t;
+      }
+    }
+    if (typeof computeSunWindows === 'function') {
+      const sw = computeSunWindows(venue, dateStr);
+      const wins = (sw && sw.windows) || [];
+      const inSunWindow = wins.some(w => h >= w.start && h <= w.end);
+      if (!inSunWindow) return 'shade';
+    }
+    return wxKeyAt(h);
+  };
+
+  let _scrubAutoHideTimer = null;
+  const SCRUB_AUTO_HIDE_MS = 2500;
+  const GLYPHS = (typeof window !== 'undefined' && window.TIMELINE_EVENT_GLYPHS) || {};
+  const timeSlot = labelEl && labelEl.querySelector('.fts-popup-time');
+  const wxSlot   = labelEl && labelEl.querySelector('.fts-popup-wx-icon');
+  const tempSlot = labelEl && labelEl.querySelector('.fts-popup-temp');
+  const windSlot = labelEl && labelEl.querySelector('.fts-popup-wind');
+
+  // Position updates ALWAYS happen (so the marker is correct the instant the
+  // user first interacts); .is-active is only ever added by onCanvasDown.
+  const update = () => {
+    const h = parseFloat(timeFromEl.value);
+    if (!Number.isFinite(h)) return;
+    const xPct = Math.max(0, Math.min(100, ((h - minH) / (maxH - minH)) * 100));
+    scrubberEl.style.left = xPct + '%';
+    if (labelEl) {
+      if (timeSlot) timeSlot.textContent = _fmtHour(h);
+      if (wxSlot)   wxSlot.innerHTML = GLYPHS[stateAt(h)] || '';
+      try {
+        if (typeof getWeatherAt === 'function') {
+          const _wx = getWeatherAt(dateStr, h + 0.001);
+          if (tempSlot) tempSlot.textContent = (_wx && Number.isFinite(_wx.temp)) ? `${Math.round(_wx.temp)}°` : '';
+          if (windSlot) windSlot.textContent = (_wx && Number.isFinite(_wx.wspd)) ? `${Math.round(_wx.wspd)} m/s` : '';
+        }
+      } catch (e) { /* ignore */ }
+    }
+    // Only refresh the auto-hide timer if the bubble is already visible.
+    if (scrubberEl.classList.contains('is-active')) {
+      if (_scrubAutoHideTimer) clearTimeout(_scrubAutoHideTimer);
+      _scrubAutoHideTimer = setTimeout(() => {
+        scrubberEl.classList.remove('is-active');
+        scrubberEl.classList.remove('is-dragging');
+        if (labelEl) labelEl.classList.remove('fts-popup-expanded');
+        _scrubAutoHideTimer = null;
+      }, SCRUB_AUTO_HIDE_MS);
+    }
+  };
+  const onDocPointer = (ev) => {
+    if (!scrubberEl.classList.contains('is-active')) return;
+    if (timelineEl && timelineEl.contains(ev.target)) return;
+    scrubberEl.classList.remove('is-active');
+    if (_scrubAutoHideTimer) { clearTimeout(_scrubAutoHideTimer); _scrubAutoHideTimer = null; }
+  };
+  const onCanvasDown = () => {
+    scrubberEl.classList.remove('is-dragging');
+    scrubberEl.classList.add('is-active');
+    if (labelEl) labelEl.classList.add('fts-popup-expanded');
+    if (_scrubAutoHideTimer) clearTimeout(_scrubAutoHideTimer);
+    _scrubAutoHideTimer = setTimeout(() => {
+      scrubberEl.classList.remove('is-active');
+      scrubberEl.classList.remove('is-dragging');
+      if (labelEl) labelEl.classList.remove('fts-popup-expanded');
+      _scrubAutoHideTimer = null;
+    }, SCRUB_AUTO_HIDE_MS);
+    // Ensure the marker is at the tapped hour on the first frame.
+    update();
+  };
+  const onCanvasMove = (ev) => {
+    if (ev.buttons === 0 && ev.pressure === 0 && ev.pointerType !== 'touch') return;
+    scrubberEl.classList.add('is-dragging');
+  };
+  const onCanvasUp = () => {
+    if (labelEl) labelEl.classList.remove('fts-popup-expanded');
+    // Smooth snap-to (FTS parity): drop is-dragging so the CSS `left` transition
+    // re-engages, then snap to a 15-min grid.
+    scrubberEl.classList.remove('is-dragging');
+    const h = parseFloat(timeFromEl.value);
+    if (Number.isFinite(h)) {
+      const snapped = Math.max(minH, Math.min(maxH, Math.round(h * 4) / 4));
+      if (Math.abs(snapped - h) > 1e-4) {
+        timeFromEl.value = snapped;
+        timeFromEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  };
+  if (canvas) {
+    canvas.addEventListener('pointerdown', onCanvasDown);
+    canvas.addEventListener('pointermove', onCanvasMove);
+    canvas.addEventListener('pointerup', onCanvasUp);
+    canvas.addEventListener('pointercancel', onCanvasUp);
+  }
+  timeFromEl.addEventListener('input', update);
+  document.addEventListener('pointerdown', onDocPointer);
+
+  const teardown = () => {
+    if (_scrubAutoHideTimer) { clearTimeout(_scrubAutoHideTimer); _scrubAutoHideTimer = null; }
+    timeFromEl.removeEventListener('input', update);
+    document.removeEventListener('pointerdown', onDocPointer);
+    if (canvas) {
+      canvas.removeEventListener('pointerdown', onCanvasDown);
+      canvas.removeEventListener('pointermove', onCanvasMove);
+      canvas.removeEventListener('pointerup', onCanvasUp);
+      canvas.removeEventListener('pointercancel', onCanvasUp);
+    }
+  };
+  scrubberEl._scrubberCleanup = teardown;
+  // Chain teardown onto a host's _cleanup chain when asked (accept panel).
+  const host = opts && opts.chainCleanupOn;
+  if (host) {
+    const prev = host._cleanup;
+    host._cleanup = () => { try { prev?.(); } catch (e) { /* ignore */ } teardown(); };
+  }
+}
+if (typeof window !== 'undefined') window._wireTimelineScrubber = _wireTimelineScrubber;
+
 /** Update the persistent invite header — refreshes the live Meeting tile
  *  (time + day) in the right column as the FTS scrubs. The eyebrow +
  *  venue + meta on the left stay static; the right column is the only

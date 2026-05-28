@@ -99,7 +99,26 @@ function _haversineKm(a, b) {
  * all set per-card in drawAllCardTimelines.
  */
 function buildMiniSunTimeline(v, dateStr, fromHour) {
+  // Hidden scrubber — mirrors the accept-panel markup (.dprcv-timeline-scrubber
+  // with an FTS-popup bubble + a pill). Hidden (aria-hidden, opacity 0) until
+  // the user taps the bar; _wireTimelineScrubber then tracks it to the scrubbed
+  // hour. Only the detail panel actually wires it (see _populateDpCardSlot); on
+  // list/hover cards the markup is inert (no canvas drag handler attached).
   return `<div class="card-timeline">
+    <div class="dprcv-timeline-scrubber" aria-hidden="true">
+      <div class="dprcv-timeline-scrubber-label fts-popup">
+        <div class="fts-popup-row fts-popup-primary">
+          <span class="fts-popup-time"></span>
+          <span class="fts-popup-wx-icon" aria-hidden="true"></span>
+        </div>
+        <div class="fts-popup-row fts-popup-secondary">
+          <span class="fts-popup-temp"></span>
+          <span class="fts-dot">·</span>
+          <span class="fts-popup-wind"></span>
+        </div>
+      </div>
+      <div class="dprcv-timeline-scrubber-pill"></div>
+    </div>
     <canvas class="card-timeline-canvas timeline-track" data-vid="${v.id}"></canvas>
   </div>`;
 }
@@ -199,10 +218,11 @@ function drawAllCardTimelines(root) {
   // a card, sundown should sit at the bar's right cap apex so the
   // "Sol til solnedgang" label aligns with the cap (not 6% short of it).
   const fromHour = parseFloat(timeFromEl.value);
-  const tlMin = fromHour;
   const sundownHCard = (typeof findSunCrossingFromTable === 'function')
     ? findSunCrossingFromTable(currentSunTable, false) : null;
-  const tlMax = sundownHCard ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 22);
+  // Browse-mode + accept-panel default domain: now → sundown.
+  const tlMinDefault = fromHour;
+  const tlMaxDefault = sundownHCard ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 22);
   for (const cv of nodes) {
     if (!cv.clientWidth || !cv.clientHeight) continue; // not laid out yet
     const vid = parseInt(cv.dataset.vid, 10);
@@ -225,6 +245,21 @@ function drawAllCardTimelines(root) {
     // than useful "browse to find what's open" context. Browse-mode
     // cards still get the dim via the same drawTimeline call.
     const isPlanPreviewCanvas = cv.classList.contains('dprcv-timeline-canvas');
+    // Detail-panel card timeline (NOT the accept-panel canvas): use a FIXED
+    // domain (MIN_H_ARC → MAX_H_ARC) instead of now→sundown. The detail panel
+    // repaints this canvas on every scrub frame; a from-hour domain would
+    // re-anchor the bar each frame and the hidden-scrubber marker could never
+    // travel across it. A fixed domain keeps the bar still so only the marker
+    // moves (matching how the accept bar behaves under a suspended update
+    // cycle). The accept canvas keeps its narrow now→sundown slice.
+    const isDetailCanvas = !isPlanPreviewCanvas
+      && typeof cv.closest === 'function' && cv.closest('#detail-panel');
+    const tlMin = isDetailCanvas
+      ? ((typeof MIN_H_ARC === 'number') ? MIN_H_ARC : tlMinDefault)
+      : tlMinDefault;
+    const tlMax = isDetailCanvas
+      ? ((typeof MAX_H_ARC === 'number') ? MAX_H_ARC : tlMaxDefault)
+      : tlMaxDefault;
     drawTimeline(ctx, {
       cssW, cssH,
       bleed: 0,
@@ -457,8 +492,17 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   let timelineBlock = '';
   if (rich || dpVariant) {
     const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
-    const tlMin = fromHour;
-    const tlMax = sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null);
+    // dpVariant (detail panel) uses a FIXED domain (MIN_H_ARC → MAX_H_ARC) so
+    // the bar doesn't re-anchor on scrub and the hidden marker can travel; the
+    // labels MUST use the same domain to stay aligned with the canvas (see
+    // drawAllCardTimelines's isDetailCanvas branch). Rich (browse/hover) cards
+    // keep the now→sundown domain.
+    const tlMin = dpVariant
+      ? ((typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : fromHour)
+      : fromHour;
+    const tlMax = dpVariant
+      ? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : (sundownH ?? null))
+      : (sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null));
     const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax, qual);
     // Labels first, then timeline — labels-row sits above the bar visually.
     timelineBlock = `<div class="card-timeline-block">${tlLabels}${miniTimeline}</div>`;

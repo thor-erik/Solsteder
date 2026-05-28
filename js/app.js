@@ -3987,6 +3987,13 @@ function updatePopup() {
 
 let _deferredRenderListTimer = null;  // pending renderList() from selectVenue
 let _panelStateBeforeOpen = null; // 'fullscreen' | 'expanded' | 'peek' — restored on close
+// Tracks which venue the #dp-content innerHTML was last built for. A full
+// renderDetailPanelContent() rebuild (fresh open / venue change) destroys the
+// detail timeline's persistent DOM (canvas + hidden scrubber + its wired
+// listeners). On a same-venue time/data refresh we therefore SKIP the innerHTML
+// wipe and update only the dynamic card slot (which transplants the timeline).
+// See updateDetailPanel below + the hidden-scrubber spec.
+let _dpRenderedVid = null;
 
 
 function openDetailPanel(v) {
@@ -4007,7 +4014,9 @@ function openDetailPanel(v) {
     else _panelStateBeforeOpen = 'peek';
   }
 
+  _teardownDpScrubber(); // drop any prior venue's scrubber listeners before wipe
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  _dpRenderedVid = v.id; // fresh full build for this venue
   dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');
   // Seed the locate-button cycle to 'venue' — selectVenue runs _flyToVenue
@@ -4047,13 +4056,42 @@ function openDetailPanel(v) {
   }
 }
 
-/** Replace #dp-card-slot with the same venue-card the list renders. Calls
- *  renderCard() with the venue enriched the way renderList() enriches it
- *  (score, isOpen, isOpeningSoon, sunInWin) so the panel's card and the
- *  list's card are byte-identical for the same time/date. */
+/** Tear down the detail timeline scrubber's document/timeFromEl listeners.
+ *  The scrubber DOM persists for the life of the open panel; its listeners must
+ *  be dropped before the panel content is wiped (full rebuild / venue change) or
+ *  the panel closes, or they leak (and a stale closure keeps firing on input). */
+function _teardownDpScrubber() {
+  const content = document.getElementById('dp-content');
+  const scrubberEl = content && content.querySelector('.dp-card .dprcv-timeline-scrubber');
+  if (scrubberEl && typeof scrubberEl._scrubberCleanup === 'function') {
+    try { scrubberEl._scrubberCleanup(); } catch (e) { /* ignore */ }
+    scrubberEl._scrubberCleanup = null;
+  }
+}
+
+/** Replace #dp-card-slot (or the existing .dp-card) with the same venue-card
+ *  the list renders. Calls renderCard() with the venue enriched the way
+ *  renderList() enriches it (score, isOpen, isOpeningSoon, sunInWin) so the
+ *  panel's card and the list's card are byte-identical for the same time/date.
+ *
+ *  Timeline transplant: the detail timeline (canvas + the hidden scrubber DOM +
+ *  its wired pointer/input listeners) must PERSIST across this re-render — it's
+ *  rebuilt fresh every scrub frame otherwise and can't hold drag/visible state.
+ *  So before swapping in newCard we grab the live `.card-timeline` from the
+ *  current card and graft it onto newCard in place of newCard's fresh (unwired)
+ *  one. The headline/pills/labels around it rebuild fresh — that's fine; only
+ *  the canvas + scrubber subtree is preserved. The canvas is then repainted via
+ *  drawAllCardTimelines(newCard) (fixed MIN_H_ARC→MAX_H_ARC domain, so it
+ *  doesn't re-anchor on scrub — see drawAllCardTimelines). The drag + scrubber
+ *  are wired exactly ONCE, on the first render for this venue (when there's no
+ *  existing timeline to transplant). */
 function _populateDpCardSlot(v) {
-  const slot = document.getElementById('dp-card-slot');
-  if (!slot || typeof renderCard !== 'function') return;
+  // Anchor: the placeholder slot on a fresh full rebuild, else the .dp-card
+  // already swapped in by a previous call (PARTIAL updates have no slot).
+  const content = document.getElementById('dp-content');
+  const anchor = document.getElementById('dp-card-slot')
+              || (content && content.querySelector('.dp-card'));
+  if (!anchor || typeof renderCard !== 'function') return;
   const dateStr  = datePicker.value;
   const fromHour = parseFloat(timeFromEl.value);
   const enriched = _enrichVenueForCard(v, dateStr, fromHour);
@@ -4069,8 +4107,44 @@ function _populateDpCardSlot(v) {
   newCard.removeAttribute('onclick');
   newCard.removeAttribute('onmouseenter');
   newCard.removeAttribute('onmouseleave');
-  slot.parentNode.replaceChild(newCard, slot);
+
+  // Transplant the persistent timeline subtree, if one already exists.
+  const existingTimeline = anchor.querySelector
+    ? anchor.querySelector('.card-timeline')
+    : null;
+  const freshTimeline = newCard.querySelector('.card-timeline');
+  if (existingTimeline && freshTimeline && existingTimeline.dataset.scrubberWired === '1') {
+    // Graft the live (wired) timeline into newCard, discarding the fresh one.
+    freshTimeline.parentNode.replaceChild(existingTimeline, freshTimeline);
+  }
+
+  anchor.parentNode.replaceChild(newCard, anchor);
+  // Repaint the (possibly transplanted) canvas at the fixed detail domain.
   if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(newCard);
+
+  // First render for this venue: wire the canvas drag + hidden scrubber ONCE.
+  // (On every later render the timeline is transplanted instead — already wired.)
+  const tl = newCard.querySelector('.card-timeline');
+  if (tl && tl.dataset.scrubberWired !== '1') {
+    const canvas    = tl.querySelector('.card-timeline-canvas');
+    const scrubberEl = tl.querySelector('.dprcv-timeline-scrubber');
+    const minH = (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
+    const maxH = (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
+    if (canvas && typeof window._wireInlineFtsCanvas === 'function') {
+      window._wireInlineFtsCanvas(canvas, { minH, maxH });
+    }
+    if (canvas && scrubberEl && typeof window._wireTimelineScrubber === 'function') {
+      window._wireTimelineScrubber({
+        scrubberEl,
+        timelineEl: tl,
+        canvas,
+        venue: v,
+        dateStr,
+        minH, maxH,
+      });
+    }
+    tl.dataset.scrubberWired = '1';
+  }
 }
 
 /** Mirror renderList's per-venue enrichment so renderCard receives the same
@@ -4112,8 +4186,12 @@ function closeDetailPanel(expandList = true) {
   if (!_navHandlingPop) _navDropLayer('venue');
   if (typeof stopWindOverlay === 'function') stopWindOverlay();
 
+  _teardownDpScrubber(); // drop scrubber listeners before the panel is dismissed
   const dp = document.getElementById('detail-panel');
   if (dp) dp.classList.remove('open', 'dp-fullscreen');
+  // Force a full rebuild on the next open — the panel content (and its
+  // persistent detail-timeline DOM) is gone once closed.
+  _dpRenderedVid = null;
   // Drop the locate-button cycle state when leaving the venue context —
   // back to single-action 'fly to me' (default user icon).
   _setLocateBtnState(null);
@@ -4197,14 +4275,36 @@ function updateDetailPanel() {
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
 
-  // Preserve scroll position across the re-render. Notification toasts +
-  // worker callbacks + 30s nowMode ticks all call updateDetailPanel; without
-  // this save/restore each tick reset the user's scroll to the top of the
-  // panel.
-  const scroll = document.getElementById('dp-scroll');
-  const savedScroll = scroll ? scroll.scrollTop : 0;
-  content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
-  if (scroll && savedScroll) scroll.scrollTop = savedScroll;
+  // Two refresh modes:
+  //   FULL    — fresh open or the VENUE changed: rebuild the whole #dp-content
+  //             innerHTML (photos, headers, social, plans, info, footer).
+  //   PARTIAL — same venue, only the time/data changed (the common scrub path:
+  //             timeFromEl input → _scheduleSliderUpdate → update() →
+  //             updatePopup() → here): do NOT wipe innerHTML. Wiping it on every
+  //             scrub frame destroys the detail timeline's persistent DOM (the
+  //             canvas + hidden scrubber + its wired listeners), so the hidden
+  //             scrubber could never hold drag/visible state. Instead refresh
+  //             only the dynamic card slot — which transplants the existing
+  //             timeline subtree across the card re-render (see
+  //             _populateDpCardSlot) — plus the cheap shelter/wind bits.
+  const fullRebuild = (_dpRenderedVid !== v.id) || !content.querySelector('#dp-scroll');
+
+  if (fullRebuild) {
+    // Preserve scroll position across the re-render. Notification toasts +
+    // worker callbacks + 30s nowMode ticks all call updateDetailPanel; without
+    // this save/restore each tick reset the user's scroll to the top of the
+    // panel.
+    const scroll = document.getElementById('dp-scroll');
+    const savedScroll = scroll ? scroll.scrollTop : 0;
+    _teardownDpScrubber(); // drop old scrubber listeners before the wipe
+    content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+    _dpRenderedVid = v.id;
+    const scroll2 = document.getElementById('dp-scroll');
+    if (scroll2 && savedScroll) scroll2.scrollTop = savedScroll;
+  }
+  // Both modes refresh the dynamic card (it carries the time-varying sun-hours,
+  // pills, anchor + the timeline). On PARTIAL this is the ONLY DOM that changes,
+  // and _populateDpCardSlot preserves the timeline + scrubber across it.
   _populateDpCardSlot(v);
   if (typeof _populateDpShelter === 'function') _populateDpShelter(v);
   _startWindForVenue(v);
