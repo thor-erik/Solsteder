@@ -192,42 +192,71 @@
     "5": {
       "polygon": [
         [
-          59.922386,
-          10.725755
-        ],
-        [
-          59.922399,
-          10.72605
-        ],
-        [
-          59.922352,
-          10.726104
-        ],
-        [
-          59.922238,
-          10.726104
-        ],
-        [
-          59.922204,
-          10.725862
-        ],
-        [
-          59.922265,
-          10.725755
+          [
+            59.922201711944126,
+            10.725983416472417
+          ],
+          [
+            59.922382639468026,
+            10.726309756016718
+          ],
+          [
+            59.922315428460706,
+            10.726472282468933
+          ],
+          [
+            59.92210994568882,
+            10.7262081193619
+          ]
         ]
       ],
-      "confidence": 0.55,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T18:44:46.961Z",
+      "detectedAt": "2026-05-28T10:25:10.791161+00:00",
       "model": "claude-sonnet-4-6",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "White parasol/umbrella shapes are visible on the flat paved terrace area adjacent to the lower building section, outside the building footprint, consistent with outdoor restaurant seating."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.922386,
+            10.725755
+          ],
+          [
+            59.922399,
+            10.72605
+          ],
+          [
+            59.922352,
+            10.726104
+          ],
+          [
+            59.922238,
+            10.726104
+          ],
+          [
+            59.922204,
+            10.725862
+          ],
+          [
+            59.922265,
+            10.725755
+          ]
+        ],
+        "confidence": 0.55,
+        "notVisible": false,
+        "reasoning": "White parasol/umbrella shapes are visible on the flat paved terrace area adjacent to the lower building section, outside the building footprint, consistent with outdoor restaurant seating.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": null,
+        "detectedAt": "2026-05-05T18:44:46.961Z"
+      }
     },
     "6": {
       "polygon": [
@@ -496,50 +525,131 @@
     "11": {
       "polygon": [
         [
-          59.909991,
-          10.727647
-        ],
-        [
-          59.910226,
-          10.728116
-        ],
-        [
-          59.910173,
-          10.728224
-        ],
-        [
-          59.910139,
-          10.72817
-        ],
-        [
-          59.910092,
-          10.728063
-        ],
-        [
-          59.910045,
-          10.727955
-        ],
-        [
-          59.909984,
-          10.727821
-        ],
-        [
-          59.909944,
-          10.727727
+          [
+            59.90998481575764,
+            10.72761790343003
+          ],
+          [
+            59.910101634362235,
+            10.727886217320105
+          ],
+          [
+            59.91016053154564,
+            10.728031836321264
+          ],
+          [
+            59.91019424019385,
+            10.728111156170321
+          ],
+          [
+            59.910208343788206,
+            10.728149446682673
+          ],
+          [
+            59.910232062784075,
+            10.728116530099868
+          ],
+          [
+            59.91024012222038,
+            10.728155718975326
+          ],
+          [
+            59.9102248456241,
+            10.728189433341308
+          ],
+          [
+            59.91021093660162,
+            10.728219045902184
+          ],
+          [
+            59.91019565789033,
+            10.728226738975327
+          ],
+          [
+            59.910153418674625,
+            10.728135762804948
+          ],
+          [
+            59.91010641868838,
+            10.728028762805915
+          ],
+          [
+            59.910062165120905,
+            10.727930349219454
+          ],
+          [
+            59.910003224962075,
+            10.727790871268917
+          ],
+          [
+            59.90996253837202,
+            10.727699610244128
+          ],
+          [
+            59.909951681075874,
+            10.727663231024703
+          ],
+          [
+            59.90996553423273,
+            10.727632333155238
+          ]
         ]
       ],
-      "confidence": 0.72,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T18:45:10.349Z",
+      "detectedAt": "2026-05-28T09:33:00.913011+00:00",
       "model": "claude-sonnet-4-6",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A strip of outdoor seating with parasols/umbrellas and tables is visible along the promenade adjacent to the building's southeast facade, running from approximately the center of the image toward the lower-left, outside the building footpri"
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.909991,
+            10.727647
+          ],
+          [
+            59.910226,
+            10.728116
+          ],
+          [
+            59.910173,
+            10.728224
+          ],
+          [
+            59.910139,
+            10.72817
+          ],
+          [
+            59.910092,
+            10.728063
+          ],
+          [
+            59.910045,
+            10.727955
+          ],
+          [
+            59.909984,
+            10.727821
+          ],
+          [
+            59.909944,
+            10.727727
+          ]
+        ],
+        "confidence": 0.72,
+        "notVisible": false,
+        "reasoning": "A strip of outdoor seating with parasols/umbrellas and tables is visible along the promenade adjacent to the building's southeast facade, running from approximately the center of the image toward the lower-left, outside the building footpri",
+        "model": "claude-sonnet-4-6",
+        "promptHash": null,
+        "detectedAt": "2026-05-05T18:45:10.349Z"
+      }
     },
     "12": {
       "polygon": [
@@ -668,42 +778,79 @@
     "15": {
       "polygon": [
         [
-          59.907798,
-          10.732541
-        ],
-        [
-          59.907765,
-          10.732822
-        ],
-        [
-          59.907576,
-          10.732943
-        ],
-        [
-          59.907543,
-          10.732876
-        ],
-        [
-          59.90765,
-          10.732554
-        ],
-        [
-          59.907724,
-          10.732501
+          [
+            59.907728740617685,
+            10.732996975533242
+          ],
+          [
+            59.907751551579125,
+            10.733163981649712
+          ],
+          [
+            59.90765000000016,
+            10.733230000000134
+          ],
+          [
+            59.90759141470044,
+            10.733034250331793
+          ],
+          [
+            59.90766143124137,
+            10.73298717675602
+          ],
+          [
+            59.90770517220082,
+            10.732951611114842
+          ]
         ]
       ],
-      "confidence": 0.82,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T18:45:28.438Z",
+      "detectedAt": "2026-05-28T09:50:03.274389+00:00",
       "model": "claude-sonnet-4-6",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Two outdoor seating zones are visible outside the building: a large terrace on the left/upper-left with parasols and tables, and a lower terrace with yellow parasols along the waterfront edge, both adjacent to the building footprint and out"
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.907798,
+            10.732541
+          ],
+          [
+            59.907765,
+            10.732822
+          ],
+          [
+            59.907576,
+            10.732943
+          ],
+          [
+            59.907543,
+            10.732876
+          ],
+          [
+            59.90765,
+            10.732554
+          ],
+          [
+            59.907724,
+            10.732501
+          ]
+        ],
+        "confidence": 0.82,
+        "notVisible": false,
+        "reasoning": "Two outdoor seating zones are visible outside the building: a large terrace on the left/upper-left with parasols and tables, and a lower terrace with yellow parasols along the waterfront edge, both adjacent to the building footprint and out",
+        "model": "claude-sonnet-4-6",
+        "promptHash": null,
+        "detectedAt": "2026-05-05T18:45:28.438Z"
+      }
     },
     "16": {
       "polygon": [
@@ -1220,38 +1367,91 @@
     "27": {
       "polygon": [
         [
-          59.91032,
-          10.7342
-        ],
-        [
-          59.910378,
-          10.734275
-        ],
-        [
-          59.910358,
-          10.734356
-        ],
-        [
-          59.910297,
-          10.734285
-        ],
-        [
-          59.91032,
-          10.7342
+          [
+            59.91027043403378,
+            10.734520234547887
+          ],
+          [
+            59.910192154321294,
+            10.734454201687612
+          ],
+          [
+            59.91013812733425,
+            10.734408069112163
+          ],
+          [
+            59.91016255566234,
+            10.734321559797309
+          ],
+          [
+            59.9101438968898,
+            10.734306209884357
+          ],
+          [
+            59.91017930255168,
+            10.734142308663934
+          ],
+          [
+            59.910198490384985,
+            10.734158654108072
+          ],
+          [
+            59.91020732423333,
+            10.734126102294894
+          ],
+          [
+            59.91024146591161,
+            10.734150916193556
+          ],
+          [
+            59.91033166136887,
+            10.734210702494693
+          ]
         ]
       ],
-      "confidence": 0.3,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T18:46:20.398Z",
+      "detectedAt": "2026-05-28T09:38:43.658338+00:00",
       "model": "claude-sonnet-4-6",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Limited clear seating visible; a small cluster of chairs/tables appears on the dock/pier area to the upper-right of the building, adjacent to the venue marker location."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91032,
+            10.7342
+          ],
+          [
+            59.910378,
+            10.734275
+          ],
+          [
+            59.910358,
+            10.734356
+          ],
+          [
+            59.910297,
+            10.734285
+          ],
+          [
+            59.91032,
+            10.7342
+          ]
+        ],
+        "confidence": 0.3,
+        "notVisible": false,
+        "reasoning": "Limited clear seating visible; a small cluster of chairs/tables appears on the dock/pier area to the upper-right of the building, adjacent to the venue marker location.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": null,
+        "detectedAt": "2026-05-05T18:46:20.398Z"
+      }
     },
     "28": {
       "polygon": [
@@ -1576,42 +1776,79 @@
     "36": {
       "polygon": [
         [
-          59.909371,
-          10.725402
-        ],
-        [
-          59.909337,
-          10.725509
-        ],
-        [
-          59.909142,
-          10.72563
-        ],
-        [
-          59.909129,
-          10.725562
-        ],
-        [
-          59.909169,
-          10.725402
-        ],
-        [
-          59.909317,
-          10.725321
+          [
+            59.909220362059024,
+            10.726002904824865
+          ],
+          [
+            59.909278954908444,
+            10.725891245341273
+          ],
+          [
+            59.90915514147483,
+            10.7256106784275
+          ],
+          [
+            59.90913282860216,
+            10.725620431381206
+          ],
+          [
+            59.90908547424619,
+            10.725722902752805
+          ],
+          [
+            59.909143890847574,
+            10.725848866669358
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T18:46:54.512Z",
+      "detectedAt": "2026-05-28T09:46:33.757665+00:00",
       "model": "claude-sonnet-4-6",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the western/southwestern facade of the building there appears to be a paved pedestrian area with scattered chairs, tables and parasols visible as small clustered shapes adjacent to the building edge outside the footprint."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.909371,
+            10.725402
+          ],
+          [
+            59.909337,
+            10.725509
+          ],
+          [
+            59.909142,
+            10.72563
+          ],
+          [
+            59.909129,
+            10.725562
+          ],
+          [
+            59.909169,
+            10.725402
+          ],
+          [
+            59.909317,
+            10.725321
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "Along the western/southwestern facade of the building there appears to be a paved pedestrian area with scattered chairs, tables and parasols visible as small clustered shapes adjacent to the building edge outside the footprint.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": null,
+        "detectedAt": "2026-05-05T18:46:54.512Z"
+      }
     },
     "37": {
       "polygon": [
@@ -2406,47 +2643,76 @@
     "57": {
       "polygon": [
         [
-          59.92078,
-          10.72879
-        ],
-        [
-          59.920695,
-          10.72879
-        ],
-        [
-          59.920661,
-          10.728892
-        ],
-        [
-          59.92069,
-          10.729059
-        ],
-        [
-          59.92079,
-          10.72914
-        ],
-        [
-          59.92082,
-          10.72901
-        ],
-        [
-          59.92078,
-          10.72879
+          [
+            59.92074000000002,
+            10.728800000000234
+          ],
+          [
+            59.92069033646854,
+            10.72906026917559
+          ],
+          [
+            59.920634091729994,
+            10.729034931745417
+          ],
+          [
+            59.9206867998019,
+            10.72876721313719
+          ]
         ]
       ],
-      "confidence": 0.55,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T19:51:15.248Z",
+      "detectedAt": "2026-05-28T10:24:39.720103+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the south-facing facade of the building (below and to the left of the building footprint) there appears to be a pavement/terrace area adjacent to the restaurant entrance where outdoor seating is typically placed, consistent with the v"
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92078,
+            10.72879
+          ],
+          [
+            59.920695,
+            10.72879
+          ],
+          [
+            59.920661,
+            10.728892
+          ],
+          [
+            59.92069,
+            10.729059
+          ],
+          [
+            59.92079,
+            10.72914
+          ],
+          [
+            59.92082,
+            10.72901
+          ],
+          [
+            59.92078,
+            10.72879
+          ]
+        ],
+        "confidence": 0.55,
+        "notVisible": false,
+        "reasoning": "Along the south-facing facade of the building (below and to the left of the building footprint) there appears to be a pavement/terrace area adjacent to the restaurant entrance where outdoor seating is typically placed, consistent with the v",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T19:51:15.248Z"
+      }
     },
     "58": {
       "polygon": [
@@ -2590,96 +2856,174 @@
     "61": {
       "polygon": [
         [
-          59.925041,
-          10.730787
-        ],
-        [
-          59.925068,
-          10.731029
-        ],
-        [
-          59.925001,
-          10.731123
-        ],
-        [
-          59.92501,
-          10.731111
-        ],
-        [
-          59.92499,
-          10.73112
-        ],
-        [
-          59.92498,
-          10.73103
-        ],
-        [
-          59.924961,
-          10.730948
-        ],
-        [
-          59.924934,
-          10.730787
+          [
+            59.92503311779603,
+            10.731314295749058
+          ],
+          [
+            59.925029999999765,
+            10.731280000000595
+          ],
+          [
+            59.92499594720775,
+            10.731040322100085
+          ],
+          [
+            59.925049375228866,
+            10.731011390729625
+          ],
+          [
+            59.92509355561648,
+            10.731000922190123
+          ],
+          [
+            59.92513750467245,
+            10.731016902560924
+          ],
+          [
+            59.92515822518996,
+            10.731156808043925
+          ],
+          [
+            59.925137329474325,
+            10.731256112340418
+          ],
+          [
+            59.92509513511362,
+            10.73129537219018
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T19:51:25.854Z",
+      "detectedAt": "2026-05-28T10:26:56.656627+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "On the left/northwest side of the building there appears to be an outdoor area adjacent to the building with some small structures and possible seating furniture visible near the building entrance area."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.925041,
+            10.730787
+          ],
+          [
+            59.925068,
+            10.731029
+          ],
+          [
+            59.925001,
+            10.731123
+          ],
+          [
+            59.92501,
+            10.731111
+          ],
+          [
+            59.92499,
+            10.73112
+          ],
+          [
+            59.92498,
+            10.73103
+          ],
+          [
+            59.924961,
+            10.730948
+          ],
+          [
+            59.924934,
+            10.730787
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "On the left/northwest side of the building there appears to be an outdoor area adjacent to the building with some small structures and possible seating furniture visible near the building entrance area.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T19:51:25.854Z"
+      }
     },
     "62": {
       "polygon": [
         [
-          59.92575,
-          10.730679
-        ],
-        [
-          59.92575,
-          10.730751
-        ],
-        [
-          59.92575,
-          10.730854
-        ],
-        [
-          59.92571,
-          10.730881
-        ],
-        [
-          59.925676,
-          10.7308
-        ],
-        [
-          59.925676,
-          10.730706
-        ],
-        [
-          59.92571,
-          10.730626
+          [
+            59.92599999999996,
+            10.730340000001291
+          ],
+          [
+            59.92574999999988,
+            10.730680000000689
+          ],
+          [
+            59.92574241145175,
+            10.730657780481266
+          ],
+          [
+            59.925992411508986,
+            10.730317780480988
+          ]
         ]
       ],
-      "confidence": 0.55,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T19:51:29.195Z",
+      "detectedAt": "2026-05-28T10:34:24.016763+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Directly south of the building footprint bottom edge, adjacent to the crosswalk area near the marker, there appears to be a paved outdoor area with clustered small shapes consistent with outdoor seating furniture."
+      "reasoning": "supabase-sync",
+      "origin": "approved",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92575,
+            10.730679
+          ],
+          [
+            59.92575,
+            10.730751
+          ],
+          [
+            59.92575,
+            10.730854
+          ],
+          [
+            59.92571,
+            10.730881
+          ],
+          [
+            59.925676,
+            10.7308
+          ],
+          [
+            59.925676,
+            10.730706
+          ],
+          [
+            59.92571,
+            10.730626
+          ]
+        ],
+        "confidence": 0.55,
+        "notVisible": false,
+        "reasoning": "Directly south of the building footprint bottom edge, adjacent to the crosswalk area near the marker, there appears to be a paved outdoor area with clustered small shapes consistent with outdoor seating furniture.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T19:51:29.195Z"
+      }
     },
     "63": {
       "polygon": [
@@ -4050,39 +4394,100 @@
     "90": {
       "polygon": [
         [
-          59.925313,
-          10.703258
-        ],
-        [
-          59.925313,
-          10.703661
-        ],
-        [
-          59.925098,
-          10.703661
-        ],
-        [
-          59.925071,
-          10.703473
-        ],
-        [
-          59.925098,
-          10.703258
+          [
+            59.924992533561436,
+            10.704066855276324
+          ],
+          [
+            59.924895610978666,
+            10.703947855357029
+          ],
+          [
+            59.92491826314652,
+            10.703922457374471
+          ],
+          [
+            59.92495057083217,
+            10.703838179832191
+          ],
+          [
+            59.92499290720141,
+            10.703647380696351
+          ],
+          [
+            59.92493772069693,
+            10.703603508649175
+          ],
+          [
+            59.92497024770827,
+            10.703394425434965
+          ],
+          [
+            59.92506598662487,
+            10.703495137791242
+          ],
+          [
+            59.925099124213055,
+            10.703539079807245
+          ],
+          [
+            59.92511198819116,
+            10.703601220177987
+          ],
+          [
+            59.925113634870115,
+            10.703692550237646
+          ],
+          [
+            59.925060166405245,
+            10.703880430397646
+          ]
         ]
       ],
-      "confidence": 0.82,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:26:16.599Z",
+      "detectedAt": "2026-05-28T10:55:44.29312+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The upper-left area shows a clear outdoor seating area with tables, chairs, parasols, and a white-railed terrace/deck structure adjacent to the venue building, well outside the building footprint."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.925313,
+            10.703258
+          ],
+          [
+            59.925313,
+            10.703661
+          ],
+          [
+            59.925098,
+            10.703661
+          ],
+          [
+            59.925071,
+            10.703473
+          ],
+          [
+            59.925098,
+            10.703258
+          ]
+        ],
+        "confidence": 0.82,
+        "notVisible": false,
+        "reasoning": "The upper-left area shows a clear outdoor seating area with tables, chairs, parasols, and a white-railed terrace/deck structure adjacent to the venue building, well outside the building footprint.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:26:16.599Z"
+      }
     },
     "91": {
       "polygon": [
@@ -4189,59 +4594,92 @@
     "93": {
       "polygon": [
         [
-          59.92326,
-          10.72583
-        ],
-        [
-          59.923295,
-          10.7259
-        ],
-        [
-          59.923295,
-          10.725989
-        ],
-        [
-          59.923309,
-          10.726016
-        ],
-        [
-          59.923342,
-          10.725949
-        ],
-        [
-          59.923309,
-          10.725869
-        ],
-        [
-          59.923282,
-          10.725802
-        ],
-        [
-          59.923262,
-          10.725788
-        ],
-        [
-          59.923248,
-          10.725808
-        ],
-        [
-          59.92326,
-          10.72583
+          [
+            59.92317603004338,
+            10.726130000001405
+          ],
+          [
+            59.92321336054127,
+            10.726123294478356
+          ],
+          [
+            59.9232106301916,
+            10.726148377850873
+          ],
+          [
+            59.923167570764065,
+            10.726152000311288
+          ],
+          [
+            59.923159486529585,
+            10.726133545121598
+          ]
         ]
       ],
-      "confidence": 0.35,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:26:39.351Z",
+      "detectedAt": "2026-05-28T10:34:00.757147+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "There appears to be a small outdoor area adjacent to the building entrance on the north side near the parking/street side where seating could be placed, though visibility is limited from this aerial perspective."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92326,
+            10.72583
+          ],
+          [
+            59.923295,
+            10.7259
+          ],
+          [
+            59.923295,
+            10.725989
+          ],
+          [
+            59.923309,
+            10.726016
+          ],
+          [
+            59.923342,
+            10.725949
+          ],
+          [
+            59.923309,
+            10.725869
+          ],
+          [
+            59.923282,
+            10.725802
+          ],
+          [
+            59.923262,
+            10.725788
+          ],
+          [
+            59.923248,
+            10.725808
+          ],
+          [
+            59.92326,
+            10.72583
+          ]
+        ],
+        "confidence": 0.35,
+        "notVisible": false,
+        "reasoning": "There appears to be a small outdoor area adjacent to the building entrance on the north side near the parking/street side where seating could be placed, though visibility is limited from this aerial perspective.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:26:39.351Z"
+      }
     },
     "94": {
       "polygon": [],
@@ -6358,43 +6796,78 @@
     "141": {
       "polygon": [
         [
-          59.90952,
-          10.724346
+          59.90929863188373,
+          10.724110366983751
         ],
         [
-          59.90952,
-          10.724816
+          59.90927599135276,
+          10.724065311744482
         ],
         [
-          59.909352,
-          10.724816
+          59.909305964035894,
+          10.724003316102056
         ],
         [
-          59.909352,
-          10.724574
+          59.90933678213892,
+          10.723971093567314
         ],
         [
-          59.909305,
-          10.724574
+          59.90943529617874,
+          10.724182196321294
         ],
         [
-          59.909305,
-          10.724346
+          59.909371176610904,
+          10.724267358954421
         ]
       ],
-      "confidence": 0.65,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:35:46.700Z",
+      "detectedAt": "2026-05-27T21:12:25.816892+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The terrace area in the upper-right of the image shows clearly visible outdoor furniture clusters (tables, chairs, umbrellas) on a sandy surface adjacent to the building structure, consistent with Eataly's outdoor dining area."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.90952,
+            10.724346
+          ],
+          [
+            59.90952,
+            10.724816
+          ],
+          [
+            59.909352,
+            10.724816
+          ],
+          [
+            59.909352,
+            10.724574
+          ],
+          [
+            59.909305,
+            10.724574
+          ],
+          [
+            59.909305,
+            10.724346
+          ]
+        ],
+        "confidence": 0.65,
+        "notVisible": false,
+        "reasoning": "The terrace area in the upper-right of the image shows clearly visible outdoor furniture clusters (tables, chairs, umbrellas) on a sandy surface adjacent to the building structure, consistent with Eataly's outdoor dining area.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:35:46.700Z"
+      }
     },
     "142": {
       "polygon": [
@@ -8052,47 +8525,76 @@
     "181": {
       "polygon": [
         [
-          59.90757,
-          10.818151
-        ],
-        [
-          59.90766,
-          10.818189
-        ],
-        [
-          59.907665,
-          10.818147
-        ],
-        [
-          59.907654,
-          10.818105
-        ],
-        [
-          59.907614,
-          10.818092
-        ],
-        [
-          59.90756,
-          10.818098
-        ],
-        [
-          59.90757,
-          10.818151
+          [
+            59.9075672241938,
+            10.818205148021093
+          ],
+          [
+            59.90755264079377,
+            10.818349577682852
+          ],
+          [
+            59.90753852492497,
+            10.81834836470017
+          ],
+          [
+            59.907553355981236,
+            10.818198705112167
+          ]
         ]
       ],
-      "confidence": 0.35,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:37:07.866Z",
+      "detectedAt": "2026-05-28T10:48:43.896855+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the south/southwest facade of the building there appears to be a narrow sidewalk strip adjacent to the yellow-painted base of the building where outdoor seating may be placed, outside the building footprint and close to the venue mark"
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.90757,
+            10.818151
+          ],
+          [
+            59.90766,
+            10.818189
+          ],
+          [
+            59.907665,
+            10.818147
+          ],
+          [
+            59.907654,
+            10.818105
+          ],
+          [
+            59.907614,
+            10.818092
+          ],
+          [
+            59.90756,
+            10.818098
+          ],
+          [
+            59.90757,
+            10.818151
+          ]
+        ],
+        "confidence": 0.35,
+        "notVisible": false,
+        "reasoning": "Along the south/southwest facade of the building there appears to be a narrow sidewalk strip adjacent to the yellow-painted base of the building where outdoor seating may be placed, outside the building footprint and close to the venue mark",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:37:07.866Z"
+      }
     },
     "182": {
       "polygon": [],
@@ -8158,92 +8660,150 @@
     "184": {
       "polygon": [
         [
-          59.893022,
-          10.841641
-        ],
-        [
-          59.893008,
-          10.841802
-        ],
-        [
-          59.892914,
-          10.841895
-        ],
-        [
-          59.892813,
-          10.841882
-        ],
-        [
-          59.89282,
-          10.841641
-        ],
-        [
-          59.892901,
-          10.84147
-        ],
-        [
-          59.892982,
-          10.84148
+          [
+            59.89308963829083,
+            10.841619879358888
+          ],
+          [
+            59.893029999999754,
+            10.8415999999998
+          ],
+          [
+            59.893032763836146,
+            10.84156407013296
+          ],
+          [
+            59.893093294872756,
+            10.84158315445103
+          ]
         ]
       ],
-      "confidence": 0.65,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:37:12.554Z",
+      "detectedAt": "2026-05-28T10:51:24.249075+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The lower section of the building shows visible outdoor terrace areas with furniture clusters (tables, chairs, parasols) on what appears to be rooftop/terrace decking adjacent to and outside the main building footprint."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.893022,
+            10.841641
+          ],
+          [
+            59.893008,
+            10.841802
+          ],
+          [
+            59.892914,
+            10.841895
+          ],
+          [
+            59.892813,
+            10.841882
+          ],
+          [
+            59.89282,
+            10.841641
+          ],
+          [
+            59.892901,
+            10.84147
+          ],
+          [
+            59.892982,
+            10.84148
+          ]
+        ],
+        "confidence": 0.65,
+        "notVisible": false,
+        "reasoning": "The lower section of the building shows visible outdoor terrace areas with furniture clusters (tables, chairs, parasols) on what appears to be rooftop/terrace decking adjacent to and outside the main building footprint.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:37:12.554Z"
+      }
     },
     "185": {
       "polygon": [
         [
-          59.89304,
-          10.84147
-        ],
-        [
-          59.89296,
-          10.841331
-        ],
-        [
-          59.89282,
-          10.84164
-        ],
-        [
-          59.892861,
-          10.841726
-        ],
-        [
-          59.892955,
-          10.841606
-        ],
-        [
-          59.892996,
-          10.841659
-        ],
-        [
-          59.89303,
-          10.8416
+          [
+            59.893039999999814,
+            10.841469999998594
+          ],
+          [
+            59.8929600000001,
+            10.841329999998834
+          ],
+          [
+            59.89299059185316,
+            10.841300116008199
+          ],
+          [
+            59.8930463739016,
+            10.841397200664005
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:37:17.165Z",
+      "detectedAt": "2026-05-28T10:54:22.027424+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A rooftop/terrace area adjacent to and outside the building footprint shows clusters of small shapes consistent with outdoor furniture (tables and chairs) visible on the flat roof section southwest of the main building mass."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.89304,
+            10.84147
+          ],
+          [
+            59.89296,
+            10.841331
+          ],
+          [
+            59.89282,
+            10.84164
+          ],
+          [
+            59.892861,
+            10.841726
+          ],
+          [
+            59.892955,
+            10.841606
+          ],
+          [
+            59.892996,
+            10.841659
+          ],
+          [
+            59.89303,
+            10.8416
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "A rooftop/terrace area adjacent to and outside the building footprint shows clusters of small shapes consistent with outdoor furniture (tables and chairs) visible on the flat roof section southwest of the main building mass.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:37:17.165Z"
+      }
     },
     "186": {
       "polygon": [
@@ -8688,59 +9248,88 @@
     "195": {
       "polygon": [
         [
-          59.92663,
-          10.73097
-        ],
-        [
-          59.92664,
-          10.73103
-        ],
-        [
-          59.92668,
-          10.731046
-        ],
-        [
-          59.92669,
-          10.731126
-        ],
-        [
-          59.92668,
-          10.731153
-        ],
-        [
-          59.926646,
-          10.731153
-        ],
-        [
-          59.926626,
-          10.731153
-        ],
-        [
-          59.926612,
-          10.731073
-        ],
-        [
-          59.9266,
-          10.73101
-        ],
-        [
-          59.92661,
-          10.73097
+          [
+            59.92648000000031,
+            10.731149999997825
+          ],
+          [
+            59.92662000000027,
+            10.73122999999785
+          ],
+          [
+            59.9266133231489,
+            10.73127653126491
+          ],
+          [
+            59.92647332312052,
+            10.731196531264914
+          ]
         ]
       ],
-      "confidence": 0.35,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:37:59.292Z",
+      "detectedAt": "2026-05-28T10:31:44.69727+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "There appears to be a small outdoor seating area adjacent to the building entrance on the upper/street-facing side, but visibility is limited due to tree cover and image resolution; the area near the flat roof section shows some furniture-l"
+      "reasoning": "supabase-sync",
+      "origin": "approved",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92663,
+            10.73097
+          ],
+          [
+            59.92664,
+            10.73103
+          ],
+          [
+            59.92668,
+            10.731046
+          ],
+          [
+            59.92669,
+            10.731126
+          ],
+          [
+            59.92668,
+            10.731153
+          ],
+          [
+            59.926646,
+            10.731153
+          ],
+          [
+            59.926626,
+            10.731153
+          ],
+          [
+            59.926612,
+            10.731073
+          ],
+          [
+            59.9266,
+            10.73101
+          ],
+          [
+            59.92661,
+            10.73097
+          ]
+        ],
+        "confidence": 0.35,
+        "notVisible": false,
+        "reasoning": "There appears to be a small outdoor seating area adjacent to the building entrance on the upper/street-facing side, but visibility is limited due to tree cover and image resolution; the area near the flat roof section shows some furniture-l",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:37:59.292Z"
+      }
     },
     "196": {
       "polygon": [
@@ -8806,67 +9395,96 @@
     "197": {
       "polygon": [
         [
-          59.92811,
-          10.73238
-        ],
-        [
-          59.928075,
-          10.73238
-        ],
-        [
-          59.928061,
-          10.732469
-        ],
-        [
-          59.928034,
-          10.732523
-        ],
-        [
-          59.928001,
-          10.732576
-        ],
-        [
-          59.927967,
-          10.732549
-        ],
-        [
-          59.927967,
-          10.732482
-        ],
-        [
-          59.927994,
-          10.732415
-        ],
-        [
-          59.928014,
-          10.732335
-        ],
-        [
-          59.928061,
-          10.732295
-        ],
-        [
-          59.928102,
-          10.732295
-        ],
-        [
-          59.928115,
-          10.732335
+          [
+            59.92810882424422,
+            10.73238921009488
+          ],
+          [
+            59.928200218320825,
+            10.732425109085767
+          ],
+          [
+            59.92819623647031,
+            10.73248229720113
+          ],
+          [
+            59.92810350168645,
+            10.732430903497658
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:38:04.298Z",
+      "detectedAt": "2026-05-28T10:36:59.782533+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Adjacent to the building's southwest facade along the street-facing side, a small sidewalk zone outside the building footprint is the most likely location for outdoor seating for this pizzeria."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92811,
+            10.73238
+          ],
+          [
+            59.928075,
+            10.73238
+          ],
+          [
+            59.928061,
+            10.732469
+          ],
+          [
+            59.928034,
+            10.732523
+          ],
+          [
+            59.928001,
+            10.732576
+          ],
+          [
+            59.927967,
+            10.732549
+          ],
+          [
+            59.927967,
+            10.732482
+          ],
+          [
+            59.927994,
+            10.732415
+          ],
+          [
+            59.928014,
+            10.732335
+          ],
+          [
+            59.928061,
+            10.732295
+          ],
+          [
+            59.928102,
+            10.732295
+          ],
+          [
+            59.928115,
+            10.732335
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "Adjacent to the building's southwest facade along the street-facing side, a small sidewalk zone outside the building footprint is the most likely location for outdoor seating for this pizzeria.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:38:04.298Z"
+      }
     },
     "198": {
       "polygon": [
@@ -8916,67 +9534,96 @@
     "199": {
       "polygon": [
         [
-          59.92551,
-          10.73053
-        ],
-        [
-          59.92551,
-          10.730631
-        ],
-        [
-          59.92546,
-          10.730655
-        ],
-        [
-          59.925379,
-          10.730628
-        ],
-        [
-          59.92528,
-          10.73055
-        ],
-        [
-          59.92533,
-          10.73042
-        ],
-        [
-          59.92534,
-          10.7304
-        ],
-        [
-          59.92538,
-          10.730449
-        ],
-        [
-          59.925359,
-          10.730521
-        ],
-        [
-          59.925406,
-          10.730601
-        ],
-        [
-          59.92546,
-          10.730628
-        ],
-        [
-          59.925507,
-          10.730574
+          [
+            59.92530999999997,
+            10.73063000000107
+          ],
+          [
+            59.92550999999989,
+            10.73053000000175
+          ],
+          [
+            59.9255132750086,
+            10.730556082437715
+          ],
+          [
+            59.9253132750284,
+            10.730656082437974
+          ]
         ]
       ],
-      "confidence": 0.3,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T19:56:02.005Z",
+      "detectedAt": "2026-05-28T09:58:32.558477+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The area immediately adjacent to the building on the right/upper side shows some small clustered objects that could be outdoor seating furniture near the entrance of Café Laundromat, though image resolution makes confirmation difficult."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92551,
+            10.73053
+          ],
+          [
+            59.92551,
+            10.730631
+          ],
+          [
+            59.92546,
+            10.730655
+          ],
+          [
+            59.925379,
+            10.730628
+          ],
+          [
+            59.92528,
+            10.73055
+          ],
+          [
+            59.92533,
+            10.73042
+          ],
+          [
+            59.92534,
+            10.7304
+          ],
+          [
+            59.92538,
+            10.730449
+          ],
+          [
+            59.925359,
+            10.730521
+          ],
+          [
+            59.925406,
+            10.730601
+          ],
+          [
+            59.92546,
+            10.730628
+          ],
+          [
+            59.925507,
+            10.730574
+          ]
+        ],
+        "confidence": 0.3,
+        "notVisible": false,
+        "reasoning": "The area immediately adjacent to the building on the right/upper side shows some small clustered objects that could be outdoor seating furniture near the entrance of Café Laundromat, though image resolution makes confirmation difficult.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T19:56:02.005Z"
+      }
     },
     "200": {
       "polygon": [
@@ -9283,47 +9930,104 @@
     "207": {
       "polygon": [
         [
-          59.91587,
-          10.713665
-        ],
-        [
-          59.915884,
-          10.713718
-        ],
-        [
-          59.915843,
-          10.713893
-        ],
-        [
-          59.91584,
-          10.713899
-        ],
-        [
-          59.915803,
-          10.713881
-        ],
-        [
-          59.915803,
-          10.713678
-        ],
-        [
-          59.91583,
-          10.713638
+          [
+            59.91590387618055,
+            10.713916134528233
+          ],
+          [
+            59.91585492035824,
+            10.713881554888758
+          ],
+          [
+            59.91581491489559,
+            10.713994034084918
+          ],
+          [
+            59.91579398958643,
+            10.713986958822119
+          ],
+          [
+            59.915829377019186,
+            10.713885356511598
+          ],
+          [
+            59.915849421107424,
+            10.713864151381074
+          ],
+          [
+            59.915857834514604,
+            10.71386432226842
+          ],
+          [
+            59.91586925,
+            10.71386618
+          ],
+          [
+            59.915880139659976,
+            10.713837403214285
+          ],
+          [
+            59.9159150570172,
+            10.713877344204104
+          ],
+          [
+            59.91590601426847,
+            10.713918415153046
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:38:39.587Z",
+      "detectedAt": "2026-05-28T11:04:13.222255+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Cluster of small shapes and apparent outdoor furniture/parasols visible on the sidewalk area southwest of the building footprint, adjacent to the venue entrance along the curved path."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91587,
+            10.713665
+          ],
+          [
+            59.915884,
+            10.713718
+          ],
+          [
+            59.915843,
+            10.713893
+          ],
+          [
+            59.91584,
+            10.713899
+          ],
+          [
+            59.915803,
+            10.713881
+          ],
+          [
+            59.915803,
+            10.713678
+          ],
+          [
+            59.91583,
+            10.713638
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "Cluster of small shapes and apparent outdoor furniture/parasols visible on the sidewalk area southwest of the building footprint, adjacent to the venue entrance along the curved path.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:38:39.587Z"
+      }
     },
     "208": {
       "polygon": [
@@ -9687,473 +10391,794 @@
     "215": {
       "polygon": [
         [
-          59.910077,
-          10.727412
-        ],
-        [
-          59.910204,
-          10.727707
-        ],
-        [
-          59.910151,
-          10.727814
-        ],
-        [
-          59.910077,
-          10.727693
-        ],
-        [
-          59.910016,
-          10.727801
-        ],
-        [
-          59.909902,
-          10.727506
-        ],
-        [
-          59.909983,
-          10.727358
-        ],
-        [
-          59.910077,
-          10.727412
+          [
+            59.91009440439478,
+            10.727898926929186
+          ],
+          [
+            59.91007608505482,
+            10.727927262245741
+          ],
+          [
+            59.91006671689097,
+            10.72792772354023
+          ],
+          [
+            59.910041752714896,
+            10.72787603308967
+          ],
+          [
+            59.91001652353171,
+            10.72782486961253
+          ],
+          [
+            59.90995185788346,
+            10.727663015196642
+          ],
+          [
+            59.909980230039025,
+            10.727607203417449
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:39:04.733Z",
+      "detectedAt": "2026-05-28T09:42:20.072164+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the diagonal promenade/walkway adjacent to the building there are rows of parasols/umbrellas and outdoor furniture visible, forming a linear outdoor seating strip outside the building footprint near the venue marker."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.910077,
+            10.727412
+          ],
+          [
+            59.910204,
+            10.727707
+          ],
+          [
+            59.910151,
+            10.727814
+          ],
+          [
+            59.910077,
+            10.727693
+          ],
+          [
+            59.910016,
+            10.727801
+          ],
+          [
+            59.909902,
+            10.727506
+          ],
+          [
+            59.909983,
+            10.727358
+          ],
+          [
+            59.910077,
+            10.727412
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "Along the diagonal promenade/walkway adjacent to the building there are rows of parasols/umbrellas and outdoor furniture visible, forming a linear outdoor seating strip outside the building footprint near the venue marker.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:39:04.733Z"
+      }
     },
     "216": {
       "polygon": [
         [
-          59.910145,
-          10.727607
-        ],
-        [
-          59.910145,
-          10.72805
-        ],
-        [
-          59.910098,
-          10.728117
-        ],
-        [
-          59.910011,
-          10.728117
-        ],
-        [
-          59.909977,
-          10.728009
-        ],
-        [
-          59.909977,
-          10.727607
+          [
+            59.910359591927175,
+            10.728039976900641
+          ],
+          [
+            59.91038492441199,
+            10.728084129514889
+          ],
+          [
+            59.91036157887399,
+            10.728129263505256
+          ],
+          [
+            59.91030563749276,
+            10.728232922876687
+          ],
+          [
+            59.91028126216224,
+            10.728278993495445
+          ],
+          [
+            59.9103060636011,
+            10.728353799724205
+          ],
+          [
+            59.910269938899,
+            10.72841077208376
+          ],
+          [
+            59.91024641475022,
+            10.728350080639744
+          ],
+          [
+            59.91025998850785,
+            10.728300915556826
+          ],
+          [
+            59.91024871683331,
+            10.728237873372976
+          ],
+          [
+            59.91033962020171,
+            10.728076636272158
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:19:34.769Z",
+      "detectedAt": "2026-05-28T09:35:53.568476+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the waterfront promenade adjacent to the building footprint, there is a visible cluster of outdoor tables, chairs, and parasols forming a seating area to the lower-left of the venue marker, consistent with a gastropub terrace along Ak"
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.910145,
+            10.727607
+          ],
+          [
+            59.910145,
+            10.72805
+          ],
+          [
+            59.910098,
+            10.728117
+          ],
+          [
+            59.910011,
+            10.728117
+          ],
+          [
+            59.909977,
+            10.728009
+          ],
+          [
+            59.909977,
+            10.727607
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "Along the waterfront promenade adjacent to the building footprint, there is a visible cluster of outdoor tables, chairs, and parasols forming a seating area to the lower-left of the venue marker, consistent with a gastropub terrace along Ak",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:19:34.769Z"
+      }
     },
     "217": {
       "polygon": [
         [
-          59.90859,
-          10.72578
-        ],
-        [
-          59.90857,
-          10.72578
-        ],
-        [
-          59.90855,
-          10.72579
-        ],
-        [
-          59.90853,
-          10.7258
-        ],
-        [
-          59.90852,
-          10.72582
-        ],
-        [
-          59.9085,
-          10.72584
-        ],
-        [
-          59.90848,
-          10.725849
-        ],
-        [
-          59.90847,
-          10.72587
-        ],
-        [
-          59.90846,
-          10.72589
-        ],
-        [
-          59.90844,
-          10.7259
-        ],
-        [
-          59.908404,
-          10.725612
-        ],
-        [
-          59.908458,
-          10.725558
-        ],
-        [
-          59.908512,
-          10.725532
-        ],
-        [
-          59.908559,
-          10.725545
-        ],
-        [
-          59.908606,
-          10.725572
-        ],
-        [
-          59.908639,
-          10.725612
-        ],
-        [
-          59.908659,
-          10.725666
-        ],
-        [
-          59.908666,
-          10.725733
-        ],
-        [
-          59.908646,
-          10.725773
-        ],
-        [
-          59.90859,
-          10.72578
+          [
+            59.90870751106102,
+            10.725747751186265
+          ],
+          [
+            59.90872998488121,
+            10.725888271114126
+          ],
+          [
+            59.908703248244365,
+            10.725886496488442
+          ],
+          [
+            59.90867056389985,
+            10.725840563896924
+          ],
+          [
+            59.9086248538197,
+            10.725797426908827
+          ],
+          [
+            59.908624301698886,
+            10.72575865432832
+          ],
+          [
+            59.90867198135369,
+            10.725747749778774
+          ],
+          [
+            59.90868732017122,
+            10.725741694822359
+          ]
         ]
       ],
-      "confidence": 0.55,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T19:56:12.268Z",
+      "detectedAt": "2026-05-28T09:55:41.859249+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The wooden boardwalk/decking area wrapping around the left/southwest side of the building shows clusters of people and furniture consistent with outdoor restaurant seating adjacent to the venue building."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.90859,
+            10.72578
+          ],
+          [
+            59.90857,
+            10.72578
+          ],
+          [
+            59.90855,
+            10.72579
+          ],
+          [
+            59.90853,
+            10.7258
+          ],
+          [
+            59.90852,
+            10.72582
+          ],
+          [
+            59.9085,
+            10.72584
+          ],
+          [
+            59.90848,
+            10.725849
+          ],
+          [
+            59.90847,
+            10.72587
+          ],
+          [
+            59.90846,
+            10.72589
+          ],
+          [
+            59.90844,
+            10.7259
+          ],
+          [
+            59.908404,
+            10.725612
+          ],
+          [
+            59.908458,
+            10.725558
+          ],
+          [
+            59.908512,
+            10.725532
+          ],
+          [
+            59.908559,
+            10.725545
+          ],
+          [
+            59.908606,
+            10.725572
+          ],
+          [
+            59.908639,
+            10.725612
+          ],
+          [
+            59.908659,
+            10.725666
+          ],
+          [
+            59.908666,
+            10.725733
+          ],
+          [
+            59.908646,
+            10.725773
+          ],
+          [
+            59.90859,
+            10.72578
+          ]
+        ],
+        "confidence": 0.55,
+        "notVisible": false,
+        "reasoning": "The wooden boardwalk/decking area wrapping around the left/southwest side of the building shows clusters of people and furniture consistent with outdoor restaurant seating adjacent to the venue building.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T19:56:12.268Z"
+      }
     },
     "218": {
       "polygon": [
         [
-          59.910482,
-          10.726421
-        ],
-        [
-          59.910516,
-          10.726488
-        ],
-        [
-          59.910449,
-          10.726622
-        ],
-        [
-          59.910415,
-          10.726689
-        ],
-        [
-          59.910375,
-          10.726595
-        ],
-        [
-          59.910429,
-          10.726461
+          [
+            59.91070765765759,
+            10.726867116390704
+          ],
+          [
+            59.910825233179956,
+            10.727159770783654
+          ],
+          [
+            59.910784181975856,
+            10.727260814429991
+          ],
+          [
+            59.91070877473371,
+            10.727411649306166
+          ],
+          [
+            59.91068681936275,
+            10.727378154002645
+          ],
+          [
+            59.91077546208365,
+            10.727202065248576
+          ],
+          [
+            59.910798475433126,
+            10.727162613557425
+          ],
+          [
+            59.91077116105075,
+            10.727095913300587
+          ],
+          [
+            59.91068612031728,
+            10.72690693378695
+          ]
         ]
       ],
-      "confidence": 0.35,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:19:45.719Z",
+      "detectedAt": "2026-05-28T10:01:15.621752+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A small open area adjacent to the building's southwest edge may contain outdoor terrace seating, though furniture is not clearly distinguishable at this resolution near the Aker Brygge waterfront venue."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.910482,
+            10.726421
+          ],
+          [
+            59.910516,
+            10.726488
+          ],
+          [
+            59.910449,
+            10.726622
+          ],
+          [
+            59.910415,
+            10.726689
+          ],
+          [
+            59.910375,
+            10.726595
+          ],
+          [
+            59.910429,
+            10.726461
+          ]
+        ],
+        "confidence": 0.35,
+        "notVisible": false,
+        "reasoning": "A small open area adjacent to the building's southwest edge may contain outdoor terrace seating, though furniture is not clearly distinguishable at this resolution near the Aker Brygge waterfront venue.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:19:45.719Z"
+      }
     },
     "219": {
       "polygon": [
         [
-          59.908506,
-          10.725658
-        ],
-        [
-          59.908593,
-          10.725765
-        ],
-        [
-          59.90857,
-          10.725779
-        ],
-        [
-          59.908546,
-          10.725785
-        ],
-        [
-          59.908526,
-          10.725792
-        ],
-        [
-          59.908499,
-          10.725805
-        ],
-        [
-          59.908472,
-          10.725819
-        ],
-        [
-          59.908452,
-          10.725832
-        ],
-        [
-          59.908432,
-          10.725846
-        ],
-        [
-          59.908412,
-          10.725859
-        ],
-        [
-          59.908392,
-          10.725872
-        ],
-        [
-          59.908372,
-          10.725879
-        ],
-        [
-          59.908351,
-          10.725886
-        ],
-        [
-          59.908331,
-          10.725893
-        ],
-        [
-          59.908304,
-          10.725897
-        ],
-        [
-          59.908277,
-          10.725899
-        ],
-        [
-          59.908257,
-          10.725899
-        ],
-        [
-          59.90825,
-          10.725859
-        ],
-        [
-          59.908257,
-          10.725805
-        ],
-        [
-          59.908271,
-          10.725738
-        ],
-        [
-          59.908298,
-          10.725671
-        ],
-        [
-          59.908324,
-          10.725631
-        ],
-        [
-          59.908351,
-          10.725604
-        ],
-        [
-          59.908385,
-          10.725591
-        ],
-        [
-          59.908419,
-          10.725591
-        ],
-        [
-          59.908452,
-          10.725604
-        ],
-        [
-          59.908479,
-          10.725624
-        ],
-        [
-          59.908493,
-          10.725644
+          [
+            59.908439294473176,
+            10.725956859996264
+          ],
+          [
+            59.90845274261853,
+            10.726087468601273
+          ],
+          [
+            59.90845382598001,
+            10.726145136094326
+          ],
+          [
+            59.908395235395055,
+            10.726163043194799
+          ],
+          [
+            59.90835144663661,
+            10.726184968598327
+          ],
+          [
+            59.90832849590436,
+            10.726190802149098
+          ],
+          [
+            59.90831496747438,
+            10.72617651848003
+          ],
+          [
+            59.90830000348872,
+            10.726157348776313
+          ],
+          [
+            59.9082958058957,
+            10.72610195970275
+          ],
+          [
+            59.90830858572178,
+            10.725998434235796
+          ],
+          [
+            59.90833588072424,
+            10.725954511164026
+          ],
+          [
+            59.90837394,
+            10.725932052447288
+          ],
+          [
+            59.90840662,
+            10.72593775447715
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:39:11.091Z",
+      "detectedAt": "2026-05-28T09:51:17.567458+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The wooden deck/promenade area wrapping around the exterior of the oval building on its western side shows clusters of people, chairs, parasols and outdoor furniture indicating the venue's outdoor seating zone."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.908506,
+            10.725658
+          ],
+          [
+            59.908593,
+            10.725765
+          ],
+          [
+            59.90857,
+            10.725779
+          ],
+          [
+            59.908546,
+            10.725785
+          ],
+          [
+            59.908526,
+            10.725792
+          ],
+          [
+            59.908499,
+            10.725805
+          ],
+          [
+            59.908472,
+            10.725819
+          ],
+          [
+            59.908452,
+            10.725832
+          ],
+          [
+            59.908432,
+            10.725846
+          ],
+          [
+            59.908412,
+            10.725859
+          ],
+          [
+            59.908392,
+            10.725872
+          ],
+          [
+            59.908372,
+            10.725879
+          ],
+          [
+            59.908351,
+            10.725886
+          ],
+          [
+            59.908331,
+            10.725893
+          ],
+          [
+            59.908304,
+            10.725897
+          ],
+          [
+            59.908277,
+            10.725899
+          ],
+          [
+            59.908257,
+            10.725899
+          ],
+          [
+            59.90825,
+            10.725859
+          ],
+          [
+            59.908257,
+            10.725805
+          ],
+          [
+            59.908271,
+            10.725738
+          ],
+          [
+            59.908298,
+            10.725671
+          ],
+          [
+            59.908324,
+            10.725631
+          ],
+          [
+            59.908351,
+            10.725604
+          ],
+          [
+            59.908385,
+            10.725591
+          ],
+          [
+            59.908419,
+            10.725591
+          ],
+          [
+            59.908452,
+            10.725604
+          ],
+          [
+            59.908479,
+            10.725624
+          ],
+          [
+            59.908493,
+            10.725644
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "The wooden deck/promenade area wrapping around the exterior of the oval building on its western side shows clusters of people, chairs, parasols and outdoor furniture indicating the venue's outdoor seating zone.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:39:11.091Z"
+      }
     },
     "220": {
       "polygon": [
         [
-          59.90983,
-          10.72719
-        ],
-        [
-          59.90989,
-          10.727091
-        ],
-        [
-          59.90986,
-          10.72704
-        ],
-        [
-          59.90987,
-          10.72703
-        ],
-        [
-          59.90988,
-          10.726999
-        ],
-        [
-          59.90992,
-          10.72694
-        ],
-        [
-          59.90989,
-          10.726884
-        ],
-        [
-          59.909877,
-          10.726857
-        ],
-        [
-          59.909843,
-          10.726898
-        ],
-        [
-          59.90981,
-          10.726951
-        ],
-        [
-          59.909783,
-          10.727032
-        ],
-        [
-          59.90979,
-          10.727126
-        ],
-        [
-          59.90983,
-          10.72719
+          [
+            59.90991149408515,
+            10.727365861662207
+          ],
+          [
+            59.90997451423493,
+            10.727530971532246
+          ],
+          [
+            59.90992663729646,
+            10.727616919866177
+          ],
+          [
+            59.909870401912364,
+            10.727468523117725
+          ],
+          [
+            59.909747506251584,
+            10.727183736087877
+          ],
+          [
+            59.90979618089199,
+            10.727113076795348
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:19:50.578Z",
+      "detectedAt": "2026-05-28T09:37:44.258322+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the lower-left edge of the building footprint there is a boardwalk/promenade area with visible furniture clusters and parasols adjacent to the building exterior, consistent with outdoor restaurant seating."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.90983,
+            10.72719
+          ],
+          [
+            59.90989,
+            10.727091
+          ],
+          [
+            59.90986,
+            10.72704
+          ],
+          [
+            59.90987,
+            10.72703
+          ],
+          [
+            59.90988,
+            10.726999
+          ],
+          [
+            59.90992,
+            10.72694
+          ],
+          [
+            59.90989,
+            10.726884
+          ],
+          [
+            59.909877,
+            10.726857
+          ],
+          [
+            59.909843,
+            10.726898
+          ],
+          [
+            59.90981,
+            10.726951
+          ],
+          [
+            59.909783,
+            10.727032
+          ],
+          [
+            59.90979,
+            10.727126
+          ],
+          [
+            59.90983,
+            10.72719
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "Along the lower-left edge of the building footprint there is a boardwalk/promenade area with visible furniture clusters and parasols adjacent to the building exterior, consistent with outdoor restaurant seating.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:19:50.578Z"
+      }
     },
     "221": {
       "polygon": [
         [
-          59.91055,
-          10.72606
+          59.910570000000575,
+          10.726349999999712
         ],
         [
-          59.91052,
-          10.725971
+          59.9105330286242,
+          10.72641537298938
         ],
         [
-          59.910493,
-          10.725977
+          59.91043414403387,
+          10.726189770356939
         ],
         [
-          59.910466,
-          10.726031
-        ],
-        [
-          59.910466,
-          10.72617
-        ],
-        [
-          59.91049,
-          10.72617
-        ],
-        [
-          59.91055,
-          10.72605
+          59.91046695258072,
+          10.726124153400008
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:19:56.288Z",
+      "detectedAt": "2026-05-27T18:47:43.69486+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A narrow strip of raised wooden decking/platform is visible along the lower edge of the building footprint, adjacent to the building's south-west facade, which appears to be an outdoor seating area for the venue."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91055,
+            10.72606
+          ],
+          [
+            59.91052,
+            10.725971
+          ],
+          [
+            59.910493,
+            10.725977
+          ],
+          [
+            59.910466,
+            10.726031
+          ],
+          [
+            59.910466,
+            10.72617
+          ],
+          [
+            59.91049,
+            10.72617
+          ],
+          [
+            59.91055,
+            10.72605
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "A narrow strip of raised wooden decking/platform is visible along the lower edge of the building footprint, adjacent to the building's south-west facade, which appears to be an outdoor seating area for the venue.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:19:56.288Z"
+      }
     },
     "222": {
       "polygon": [
@@ -12034,47 +13059,76 @@
     "265": {
       "polygon": [
         [
-          59.921571,
-          10.727015
-        ],
-        [
-          59.92153,
-          10.72721
-        ],
-        [
-          59.92149,
-          10.72721
-        ],
-        [
-          59.921416,
-          10.727069
-        ],
-        [
-          59.92145,
-          10.726881
-        ],
-        [
-          59.92153,
-          10.726827
-        ],
-        [
-          59.921584,
-          10.726921
+          [
+            59.92146912319009,
+            10.727263814484672
+          ],
+          [
+            59.921485463929514,
+            10.727231779887688
+          ],
+          [
+            59.9214812627157,
+            10.727225144659286
+          ],
+          [
+            59.92146436515654,
+            10.72725452116947
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T19:57:03.159Z",
+      "detectedAt": "2026-05-28T10:22:05.803669+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The curved sidewalk/pedestrian area along the left side of the building (Hegdehaugsveien) shows small clusters of figures and potential street furniture adjacent to the building facade, suggesting outdoor seating along the curved street fro"
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.921571,
+            10.727015
+          ],
+          [
+            59.92153,
+            10.72721
+          ],
+          [
+            59.92149,
+            10.72721
+          ],
+          [
+            59.921416,
+            10.727069
+          ],
+          [
+            59.92145,
+            10.726881
+          ],
+          [
+            59.92153,
+            10.726827
+          ],
+          [
+            59.921584,
+            10.726921
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "The curved sidewalk/pedestrian area along the left side of the building (Hegdehaugsveien) shows small clusters of figures and potential street furniture adjacent to the building facade, suggesting outdoor seating along the curved street fro",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T19:57:03.159Z"
+      }
     },
     "266": {
       "polygon": [
@@ -15255,206 +16309,342 @@
     "335": {
       "polygon": [
         [
-          59.923294,
-          10.725967
-        ],
-        [
-          59.923294,
-          10.72612
-        ],
-        [
-          59.923234,
-          10.726133
-        ],
-        [
-          59.92322,
-          10.726106
-        ],
-        [
-          59.923234,
-          10.725999
-        ],
-        [
-          59.923254,
-          10.725959
+          [
+            59.92301875477043,
+            10.725801829550742
+          ],
+          [
+            59.923038918129414,
+            10.725845313827326
+          ],
+          [
+            59.9229835198557,
+            10.725944555561815
+          ],
+          [
+            59.92296470505884,
+            10.72589665871762
+          ],
+          [
+            59.92298284774278,
+            10.72584876820873
+          ]
         ]
       ],
-      "confidence": 0.52,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T20:01:46.029Z",
+      "detectedAt": "2026-05-28T10:04:09.754159+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "There appears to be an outdoor seating area with tables and parasols on the northeast side of the building adjacent to the entrance, visible as clustered small shapes between the building facade and the street."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.923294,
+            10.725967
+          ],
+          [
+            59.923294,
+            10.72612
+          ],
+          [
+            59.923234,
+            10.726133
+          ],
+          [
+            59.92322,
+            10.726106
+          ],
+          [
+            59.923234,
+            10.725999
+          ],
+          [
+            59.923254,
+            10.725959
+          ]
+        ],
+        "confidence": 0.52,
+        "notVisible": false,
+        "reasoning": "There appears to be an outdoor seating area with tables and parasols on the northeast side of the building adjacent to the entrance, visible as clustered small shapes between the building facade and the street.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T20:01:46.029Z"
+      }
     },
     "336": {
       "polygon": [
         [
-          59.921915,
-          10.726719
-        ],
-        [
-          59.921942,
-          10.726907
-        ],
-        [
-          59.921875,
-          10.726961
-        ],
-        [
-          59.921808,
-          10.726934
-        ],
-        [
-          59.921794,
-          10.726826
-        ],
-        [
-          59.921848,
-          10.726692
+          [
+            59.92210490254752,
+            10.727229766863275
+          ],
+          [
+            59.92200432869248,
+            10.727267142360944
+          ],
+          [
+            59.92200573866805,
+            10.727228017194733
+          ],
+          [
+            59.92200348111791,
+            10.727182998848747
+          ],
+          [
+            59.92211311692549,
+            10.727145604386095
+          ],
+          [
+            59.922117811547906,
+            10.72722205792661
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:28:54.681Z",
+      "detectedAt": "2026-05-28T10:15:07.825267+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A cluster of parked vehicles and what appears to be a small outdoor seating area with chairs along the sidewalk strip adjacent to the green planting strip near Hegdehaugsveien, outside the building footprint."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.921915,
+            10.726719
+          ],
+          [
+            59.921942,
+            10.726907
+          ],
+          [
+            59.921875,
+            10.726961
+          ],
+          [
+            59.921808,
+            10.726934
+          ],
+          [
+            59.921794,
+            10.726826
+          ],
+          [
+            59.921848,
+            10.726692
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "A cluster of parked vehicles and what appears to be a small outdoor seating area with chairs along the sidewalk strip adjacent to the green planting strip near Hegdehaugsveien, outside the building footprint.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:28:54.681Z"
+      }
     },
     "337": {
       "polygon": [
         [
-          59.92204,
-          10.7265
-        ],
-        [
-          59.922032,
-          10.726462
-        ],
-        [
-          59.922005,
-          10.726456
-        ],
-        [
-          59.921979,
-          10.726476
-        ],
-        [
-          59.921962,
-          10.726529
-        ],
-        [
-          59.921972,
-          10.726583
-        ],
-        [
-          59.922,
-          10.726621
-        ],
-        [
-          59.92199,
-          10.72656
-        ],
-        [
-          59.92201,
-          10.726509
+          [
+            59.92195717256857,
+            10.726537321408955
+          ],
+          [
+            59.92200392858667,
+            10.726679017241178
+          ],
+          [
+            59.921962116400856,
+            10.726702490926407
+          ],
+          [
+            59.921908202262834,
+            10.726624031956884
+          ],
+          [
+            59.9219028222004,
+            10.726579493789355
+          ],
+          [
+            59.92192206594507,
+            10.726542397181476
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T20:01:49.734Z",
+      "detectedAt": "2026-05-28T09:56:46.982278+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "South and southwest of the building footprint, several people and round parasol/umbrella shapes are visible on the sidewalk adjacent to the venue, indicating an outdoor seating area."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92204,
+            10.7265
+          ],
+          [
+            59.922032,
+            10.726462
+          ],
+          [
+            59.922005,
+            10.726456
+          ],
+          [
+            59.921979,
+            10.726476
+          ],
+          [
+            59.921962,
+            10.726529
+          ],
+          [
+            59.921972,
+            10.726583
+          ],
+          [
+            59.922,
+            10.726621
+          ],
+          [
+            59.92199,
+            10.72656
+          ],
+          [
+            59.92201,
+            10.726509
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "South and southwest of the building footprint, several people and round parasol/umbrella shapes are visible on the sidewalk adjacent to the venue, indicating an outdoor seating area.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T20:01:49.734Z"
+      }
     },
     "338": {
       "polygon": [
         [
-          59.92385,
-          10.726019
-        ],
-        [
-          59.923825,
-          10.72597
-        ],
-        [
-          59.923784,
-          10.72597
-        ],
-        [
-          59.923744,
-          10.72605
-        ],
-        [
-          59.923731,
-          10.726117
-        ],
-        [
-          59.92372,
-          10.72616
-        ],
-        [
-          59.92377,
-          10.72612
-        ],
-        [
-          59.92376,
-          10.726111
-        ],
-        [
-          59.92377,
-          10.72608
-        ],
-        [
-          59.92379,
-          10.72605
-        ],
-        [
-          59.92381,
-          10.72606
-        ],
-        [
-          59.92381,
-          10.72607
-        ],
-        [
-          59.92385,
-          10.726019
+          [
+            59.92371999999955,
+            10.726160000000306
+          ],
+          [
+            59.92378696146591,
+            10.726385525366197
+          ],
+          [
+            59.92366083060144,
+            10.72652834929806
+          ],
+          [
+            59.923609311367805,
+            10.726264969690451
+          ]
         ]
       ],
-      "confidence": 0.52,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T20:01:53.933Z",
+      "detectedAt": "2026-05-28T10:07:15.166274+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the west/south-west facade of the building there appears to be a paved area adjacent to the structure that could accommodate outdoor seating, bordered by the building edge and the surrounding landscaping."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92385,
+            10.726019
+          ],
+          [
+            59.923825,
+            10.72597
+          ],
+          [
+            59.923784,
+            10.72597
+          ],
+          [
+            59.923744,
+            10.72605
+          ],
+          [
+            59.923731,
+            10.726117
+          ],
+          [
+            59.92372,
+            10.72616
+          ],
+          [
+            59.92377,
+            10.72612
+          ],
+          [
+            59.92376,
+            10.726111
+          ],
+          [
+            59.92377,
+            10.72608
+          ],
+          [
+            59.92379,
+            10.72605
+          ],
+          [
+            59.92381,
+            10.72606
+          ],
+          [
+            59.92381,
+            10.72607
+          ],
+          [
+            59.92385,
+            10.726019
+          ]
+        ],
+        "confidence": 0.52,
+        "notVisible": false,
+        "reasoning": "Along the west/south-west facade of the building there appears to be a paved area adjacent to the structure that could accommodate outdoor seating, bordered by the building edge and the surrounding landscaping.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T20:01:53.933Z"
+      }
     },
     "339": {
       "polygon": [
@@ -17314,43 +18504,72 @@
     "384": {
       "polygon": [
         [
-          59.897203,
-          10.813037
-        ],
-        [
-          59.89727,
-          10.813171
-        ],
-        [
-          59.897216,
-          10.813292
-        ],
-        [
-          59.897169,
-          10.813346
-        ],
-        [
-          59.897115,
-          10.813238
-        ],
-        [
-          59.897149,
-          10.813091
+          [
+            59.89711999999966,
+            10.813180000001637
+          ],
+          [
+            59.89692842981836,
+            10.813557154523295
+          ],
+          [
+            59.896898349042715,
+            10.813469307326471
+          ],
+          [
+            59.89708023602043,
+            10.813099710061579
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:22:57.461Z",
+      "detectedAt": "2026-05-28T10:41:24.284822+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Light-colored paved area adjacent to the building exterior along the sidewalk strip shows potential outdoor seating elements consistent with a bar venue's terrace area."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.897203,
+            10.813037
+          ],
+          [
+            59.89727,
+            10.813171
+          ],
+          [
+            59.897216,
+            10.813292
+          ],
+          [
+            59.897169,
+            10.813346
+          ],
+          [
+            59.897115,
+            10.813238
+          ],
+          [
+            59.897149,
+            10.813091
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "Light-colored paved area adjacent to the building exterior along the sidewalk strip shows potential outdoor seating elements consistent with a bar venue's terrace area.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:22:57.461Z"
+      }
     },
     "385": {
       "polygon": [
@@ -17400,51 +18619,80 @@
     "386": {
       "polygon": [
         [
-          59.89714,
-          10.81321
-        ],
-        [
-          59.89716,
-          10.81325
-        ],
-        [
-          59.897071,
-          10.813427
-        ],
-        [
-          59.897111,
-          10.813521
-        ],
-        [
-          59.897071,
-          10.813601
-        ],
-        [
-          59.897024,
-          10.813521
-        ],
-        [
-          59.897051,
-          10.813333
-        ],
-        [
-          59.897098,
-          10.813226
+          [
+            59.89686647090963,
+            10.813679135897047
+          ],
+          [
+            59.89680608892351,
+            10.813822177829564
+          ],
+          [
+            59.89680020158278,
+            10.813762124218925
+          ],
+          [
+            59.89685127755175,
+            10.813657500166073
+          ]
         ]
       ],
-      "confidence": 0.35,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T20:03:48.454Z",
+      "detectedAt": "2026-05-28T10:40:02.862739+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Near the building entrance at the bottom-left corner there appears to be a small paved area adjacent to the building facade that could host outdoor seating, though no distinct furniture is clearly visible in this satellite view of what appe"
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.89714,
+            10.81321
+          ],
+          [
+            59.89716,
+            10.81325
+          ],
+          [
+            59.897071,
+            10.813427
+          ],
+          [
+            59.897111,
+            10.813521
+          ],
+          [
+            59.897071,
+            10.813601
+          ],
+          [
+            59.897024,
+            10.813521
+          ],
+          [
+            59.897051,
+            10.813333
+          ],
+          [
+            59.897098,
+            10.813226
+          ]
+        ],
+        "confidence": 0.35,
+        "notVisible": false,
+        "reasoning": "Near the building entrance at the bottom-left corner there appears to be a small paved area adjacent to the building facade that could host outdoor seating, though no distinct furniture is clearly visible in this satellite view of what appe",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T20:03:48.454Z"
+      }
     },
     "387": {
       "polygon": [
@@ -18841,57 +20089,130 @@
       "reasoning": "Along the southwest facade of the building there appears to be a narrow pedestrian/patio zone adjacent to the building entrance area where outdoor seating could be placed, though furniture is not clearly visible at this resolution."
     },
     "418": {
-      "polygon": [],
-      "confidence": 0,
-      "notVisible": true,
-      "detectedAt": "2026-05-10T22:30:04.601Z",
+      "polygon": [
+        [
+          [
+            59.92606000000009,
+            10.847546949374873
+          ],
+          [
+            59.92610071995648,
+            10.84750148131323
+          ],
+          [
+            59.92610715022341,
+            10.847536663664703
+          ],
+          [
+            59.92609037421548,
+            10.847561404356982
+          ],
+          [
+            59.92609893289378,
+            10.847604831517344
+          ],
+          [
+            59.92607054999431,
+            10.847632548097096
+          ],
+          [
+            59.92606000000009,
+            10.847597110693926
+          ]
+        ]
+      ],
+      "confidence": 1,
+      "notVisible": false,
+      "detectedAt": "2026-05-28T10:47:20.554492+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The satellite image shows large flat rooftops and a plaza area, but no visible outdoor seating furniture, parasols, or demarcated cafe seating zone adjacent to the building footprint within range of the venue marker."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch"
     },
     "419": {
       "polygon": [
         [
-          59.92467,
-          10.84335
-        ],
-        [
-          59.924575,
-          10.843256
-        ],
-        [
-          59.924521,
-          10.843377
-        ],
-        [
-          59.924542,
-          10.843484
-        ],
-        [
-          59.92454,
-          10.84347
+          [
+            59.924817126575675,
+            10.84415317675382
+          ],
+          [
+            59.92476943843339,
+            10.844181410747426
+          ],
+          [
+            59.92472475545704,
+            10.844159988776342
+          ],
+          [
+            59.9246881459396,
+            10.844083584163002
+          ],
+          [
+            59.92481548473236,
+            10.843963655138708
+          ],
+          [
+            59.92484086150718,
+            10.84401387005875
+          ],
+          [
+            59.92484339532288,
+            10.844090912307479
+          ]
         ]
       ],
-      "confidence": 0.35,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T20:05:00.565Z",
+      "detectedAt": "2026-05-28T10:45:27.799972+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A small paved area adjacent to the southwest corner of the building near the entrance shows some demarcated space that could serve as outdoor seating, though no clear furniture is visible from this satellite view."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92467,
+            10.84335
+          ],
+          [
+            59.924575,
+            10.843256
+          ],
+          [
+            59.924521,
+            10.843377
+          ],
+          [
+            59.924542,
+            10.843484
+          ],
+          [
+            59.92454,
+            10.84347
+          ]
+        ],
+        "confidence": 0.35,
+        "notVisible": false,
+        "reasoning": "A small paved area adjacent to the southwest corner of the building near the entrance shows some demarcated space that could serve as outdoor seating, though no clear furniture is visible from this satellite view.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T20:05:00.565Z"
+      }
     },
     "420": {
       "polygon": [
@@ -19988,35 +21309,64 @@
     "443": {
       "polygon": [
         [
-          59.913941,
-          10.840799
-        ],
-        [
-          59.913941,
-          10.840933
-        ],
-        [
-          59.913759,
-          10.841202
-        ],
-        [
-          59.913759,
-          10.841067
+          [
+            59.91377850150292,
+            10.841250036045892
+          ],
+          [
+            59.913718083619045,
+            10.841407937699131
+          ],
+          [
+            59.91369273608865,
+            10.841378871011557
+          ],
+          [
+            59.913748019472365,
+            10.841229426669912
+          ]
         ]
       ],
-      "confidence": 0.72,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T20:06:34.590Z",
+      "detectedAt": "2026-05-28T10:52:55.518693+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A cluster of tables, chairs, and parasols is visible on the paved area adjacent to the building edge, forming a clear outdoor dining zone outside the building footprint."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.913941,
+            10.840799
+          ],
+          [
+            59.913941,
+            10.840933
+          ],
+          [
+            59.913759,
+            10.841202
+          ],
+          [
+            59.913759,
+            10.841067
+          ]
+        ],
+        "confidence": 0.72,
+        "notVisible": false,
+        "reasoning": "A cluster of tables, chairs, and parasols is visible on the paved area adjacent to the building edge, forming a clear outdoor dining zone outside the building footprint.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T20:06:34.590Z"
+      }
     },
     "444": {
       "polygon": [],
@@ -20487,136 +21837,202 @@
     "465": {
       "polygon": [
         [
-          59.92652,
-          10.73086
-        ],
-        [
-          59.92652,
-          10.73097
-        ],
-        [
-          59.926508,
-          10.731071
-        ],
-        [
-          59.926481,
-          10.731095
-        ],
-        [
-          59.92634,
-          10.731071
-        ],
-        [
-          59.926347,
-          10.731014
-        ],
-        [
-          59.92646,
-          10.73092
-        ],
-        [
-          59.92646,
-          10.73091
-        ],
-        [
-          59.92649,
-          10.73086
+          [
+            59.926340000000266,
+            10.73106999999817
+          ],
+          [
+            59.926480000000254,
+            10.731149999998138
+          ],
+          [
+            59.92647307582456,
+            10.731198254468552
+          ],
+          [
+            59.926333075795384,
+            10.731118254468527
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T19:53:58.649Z",
+      "detectedAt": "2026-05-28T10:02:24.554124+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the front facade of the building facing the street there appears to be a narrow sidewalk strip adjacent to the building exterior where outdoor seating would typically be placed for this cafe/bar venue."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92652,
+            10.73086
+          ],
+          [
+            59.92652,
+            10.73097
+          ],
+          [
+            59.926508,
+            10.731071
+          ],
+          [
+            59.926481,
+            10.731095
+          ],
+          [
+            59.92634,
+            10.731071
+          ],
+          [
+            59.926347,
+            10.731014
+          ],
+          [
+            59.92646,
+            10.73092
+          ],
+          [
+            59.92646,
+            10.73091
+          ],
+          [
+            59.92649,
+            10.73086
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "Along the front facade of the building facing the street there appears to be a narrow sidewalk strip adjacent to the building exterior where outdoor seating would typically be placed for this cafe/bar venue.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T19:53:58.649Z"
+      }
     },
     "469": {
       "polygon": [
         [
-          59.925807,
-          10.731062
-        ],
-        [
-          59.92583,
-          10.731189
-        ],
-        [
-          59.925797,
-          10.731209
-        ],
-        [
-          59.925787,
-          10.731229
-        ],
-        [
-          59.925777,
-          10.731263
-        ],
-        [
-          59.925767,
-          10.731303
-        ],
-        [
-          59.925767,
-          10.731343
-        ],
-        [
-          59.925767,
-          10.731363
-        ],
-        [
-          59.925753,
-          10.73137
-        ],
-        [
-          59.92574,
-          10.731343
-        ],
-        [
-          59.925733,
-          10.73129
-        ],
-        [
-          59.92574,
-          10.731236
-        ],
-        [
-          59.925753,
-          10.731182
-        ],
-        [
-          59.925767,
-          10.731129
-        ],
-        [
-          59.92578,
-          10.731075
-        ],
-        [
-          59.925793,
-          10.731035
+          [
+            59.92575648667418,
+            10.731249755073287
+          ],
+          [
+            59.92574879092267,
+            10.731299667791212
+          ],
+          [
+            59.925754542698115,
+            10.731358962683856
+          ],
+          [
+            59.9257419238291,
+            10.731392489702749
+          ],
+          [
+            59.92571788993646,
+            10.7313334816993
+          ],
+          [
+            59.92572057816732,
+            10.73122695629507
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:30:34.952Z",
+      "detectedAt": "2026-05-28T10:08:32.41295+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Adjacent to the southwest/front facade of the building there is an open paved plaza area where parasols and small structures consistent with outdoor cafe furniture are visible, outside the building footprint."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.925807,
+            10.731062
+          ],
+          [
+            59.92583,
+            10.731189
+          ],
+          [
+            59.925797,
+            10.731209
+          ],
+          [
+            59.925787,
+            10.731229
+          ],
+          [
+            59.925777,
+            10.731263
+          ],
+          [
+            59.925767,
+            10.731303
+          ],
+          [
+            59.925767,
+            10.731343
+          ],
+          [
+            59.925767,
+            10.731363
+          ],
+          [
+            59.925753,
+            10.73137
+          ],
+          [
+            59.92574,
+            10.731343
+          ],
+          [
+            59.925733,
+            10.73129
+          ],
+          [
+            59.92574,
+            10.731236
+          ],
+          [
+            59.925753,
+            10.731182
+          ],
+          [
+            59.925767,
+            10.731129
+          ],
+          [
+            59.92578,
+            10.731075
+          ],
+          [
+            59.925793,
+            10.731035
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "Adjacent to the southwest/front facade of the building there is an open paved plaza area where parasols and small structures consistent with outdoor cafe furniture are visible, outside the building footprint.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:30:34.952Z"
+      }
     },
     "473": {
       "polygon": [
@@ -21126,47 +22542,76 @@
     "515": {
       "polygon": [
         [
-          59.91525,
-          10.71687
-        ],
-        [
-          59.91516,
-          10.71718
-        ],
-        [
-          59.915192,
-          10.717217
-        ],
-        [
-          59.915232,
-          10.717204
-        ],
-        [
-          59.915286,
-          10.71711
-        ],
-        [
-          59.915306,
-          10.716976
-        ],
-        [
-          59.91525,
-          10.71687
+          [
+            59.914980000000014,
+            10.716789999999605
+          ],
+          [
+            59.91494000000009,
+            10.716910000000127
+          ],
+          [
+            59.91492578733863,
+            10.716891146817318
+          ],
+          [
+            59.91496578735567,
+            10.716771146816825
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:24:23.628Z",
+      "detectedAt": "2026-05-28T10:56:12.566223+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Near the upper-central area of the image, adjacent to the building's northwest edge, there appears to be a rooftop or courtyard terrace area with what looks like parasols/umbrellas and furniture clusters visible just outside the building fo"
+      "reasoning": "supabase-sync",
+      "origin": "approved",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91525,
+            10.71687
+          ],
+          [
+            59.91516,
+            10.71718
+          ],
+          [
+            59.915192,
+            10.717217
+          ],
+          [
+            59.915232,
+            10.717204
+          ],
+          [
+            59.915286,
+            10.71711
+          ],
+          [
+            59.915306,
+            10.716976
+          ],
+          [
+            59.91525,
+            10.71687
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "Near the upper-central area of the image, adjacent to the building's northwest edge, there appears to be a rooftop or courtyard terrace area with what looks like parasols/umbrellas and furniture clusters visible just outside the building fo",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:24:23.628Z"
+      }
     },
     "517": {
       "polygon": [],
@@ -23234,47 +24679,86 @@
     "639": {
       "polygon": [
         [
-          59.916384,
-          10.715724
+          59.916314758543884,
+          10.71596808102044
         ],
         [
-          59.916481,
-          10.715791
+          59.91630318356911,
+          10.71605628271959
         ],
         [
-          59.916461,
-          10.715966
+          59.91632879658789,
+          10.716059064132168
         ],
         [
-          59.916411,
-          10.716033
+          59.91633000000013,
+          10.716120000000473
         ],
         [
-          59.916364,
-          10.716006
+          59.9163254280499,
+          10.716092568296233
         ],
         [
-          59.916337,
-          10.715952
+          59.91632859117985,
+          10.716060000000653
         ],
         [
-          59.916357,
-          10.715738
+          59.916338168990706,
+          10.71597423641677
         ]
       ],
-      "confidence": 0.65,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:31:04.103Z",
+      "detectedAt": "2026-05-28T08:10:04.15243+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "There is a visible cluster of people, furniture, and what appears to be outdoor seating/café area along the southern facade of the building, adjacent to the street corner near the venue marker."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.916384,
+            10.715724
+          ],
+          [
+            59.916481,
+            10.715791
+          ],
+          [
+            59.916461,
+            10.715966
+          ],
+          [
+            59.916411,
+            10.716033
+          ],
+          [
+            59.916364,
+            10.716006
+          ],
+          [
+            59.916337,
+            10.715952
+          ],
+          [
+            59.916357,
+            10.715738
+          ]
+        ],
+        "confidence": 0.65,
+        "notVisible": false,
+        "reasoning": "There is a visible cluster of people, furniture, and what appears to be outdoor seating/café area along the southern facade of the building, adjacent to the street corner near the venue marker.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:31:04.103Z"
+      }
     },
     "640": {
       "polygon": [
@@ -23402,88 +24886,190 @@
     "643": {
       "polygon": [
         [
-          59.92752,
-          10.731564
-        ],
-        [
-          59.9275,
-          10.731725
-        ],
-        [
-          59.927439,
-          10.731698
-        ],
-        [
-          59.927379,
-          10.731618
-        ],
-        [
-          59.927399,
-          10.73151
-        ],
-        [
-          59.927466,
-          10.731524
+          [
+            59.92738122955538,
+            10.731640676253619
+          ],
+          [
+            59.92746525688628,
+            10.73168689120692
+          ],
+          [
+            59.92746169476086,
+            10.731715612268449
+          ],
+          [
+            59.92738591016465,
+            10.731677883432445
+          ],
+          [
+            59.927356819517364,
+            10.731669151104393
+          ],
+          [
+            59.92735998263575,
+            10.731628226452415
+          ],
+          [
+            59.927364054767104,
+            10.731563644179843
+          ],
+          [
+            59.92738838851341,
+            10.73158128042104
+          ]
         ]
       ],
-      "confidence": 0.55,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:31:24.158Z",
+      "detectedAt": "2026-05-28T10:16:36.778433+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Small cluster of people and what appears to be outdoor seating furniture visible on the sidewalk/plaza area just outside the building entrance corner around coordinates 620-720, 500-650."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.92752,
+            10.731564
+          ],
+          [
+            59.9275,
+            10.731725
+          ],
+          [
+            59.927439,
+            10.731698
+          ],
+          [
+            59.927379,
+            10.731618
+          ],
+          [
+            59.927399,
+            10.73151
+          ],
+          [
+            59.927466,
+            10.731524
+          ]
+        ],
+        "confidence": 0.55,
+        "notVisible": false,
+        "reasoning": "Small cluster of people and what appears to be outdoor seating furniture visible on the sidewalk/plaza area just outside the building entrance corner around coordinates 620-720, 500-650.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:31:24.158Z"
+      }
     },
     "644": {
       "polygon": [
         [
-          59.91,
-          10.725584
-        ],
-        [
-          59.910013,
-          10.725745
-        ],
-        [
-          59.909966,
-          10.725879
-        ],
-        [
-          59.909892,
-          10.725906
-        ],
-        [
-          59.909859,
-          10.725772
-        ],
-        [
-          59.909899,
-          10.725611
-        ],
-        [
-          59.909953,
-          10.725544
+          [
+            59.91005226633724,
+            10.725383861859308
+          ],
+          [
+            59.91006678309299,
+            10.725425354965777
+          ],
+          [
+            59.9100798955938,
+            10.725465967072822
+          ],
+          [
+            59.910075479340385,
+            10.725498930572211
+          ],
+          [
+            59.910061831630586,
+            10.725519544061788
+          ],
+          [
+            59.9100438099365,
+            10.725498635836544
+          ],
+          [
+            59.909999665848545,
+            10.7255061336611
+          ],
+          [
+            59.90996027559197,
+            10.7254845866143
+          ],
+          [
+            59.909974444792866,
+            10.725437697962992
+          ],
+          [
+            59.90999821228319,
+            10.725383861859308
+          ],
+          [
+            59.91002524,
+            10.72538386
+          ]
         ]
       ],
-      "confidence": 0.55,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:31:34.142Z",
+      "detectedAt": "2026-05-28T09:25:10.604114+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Adjacent to the building's southeast edge, there is a terrace/plaza area with visible small furniture-like shapes consistent with outdoor café seating at Aker Brygge waterfront."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91,
+            10.725584
+          ],
+          [
+            59.910013,
+            10.725745
+          ],
+          [
+            59.909966,
+            10.725879
+          ],
+          [
+            59.909892,
+            10.725906
+          ],
+          [
+            59.909859,
+            10.725772
+          ],
+          [
+            59.909899,
+            10.725611
+          ],
+          [
+            59.909953,
+            10.725544
+          ]
+        ],
+        "confidence": 0.55,
+        "notVisible": false,
+        "reasoning": "Adjacent to the building's southeast edge, there is a terrace/plaza area with visible small furniture-like shapes consistent with outdoor café seating at Aker Brygge waterfront.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:31:34.142Z"
+      }
     },
     "645": {
       "polygon": [
@@ -23840,47 +25426,96 @@
     "653": {
       "polygon": [
         [
-          59.91074,
-          10.72853
-        ],
-        [
-          59.91069,
-          10.72868
-        ],
-        [
-          59.91064,
-          10.72877
-        ],
-        [
-          59.910656,
-          10.728837
-        ],
-        [
-          59.91075,
-          10.728837
-        ],
-        [
-          59.910797,
-          10.728729
-        ],
-        [
-          59.910777,
-          10.728622
+          [
+            59.91074,
+            10.72853
+          ],
+          [
+            59.91069,
+            10.72868
+          ],
+          [
+            59.91064,
+            10.72877
+          ],
+          [
+            59.910656,
+            10.728837
+          ],
+          [
+            59.910713438043835,
+            10.728832345072165
+          ],
+          [
+            59.91072732424207,
+            10.728796031641957
+          ],
+          [
+            59.910745103819394,
+            10.728751963575531
+          ],
+          [
+            59.91077288470555,
+            10.728697967152142
+          ],
+          [
+            59.910777,
+            10.728622
+          ]
         ]
       ],
-      "confidence": 0.62,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:32:25.798Z",
+      "detectedAt": "2026-05-28T09:25:48.304576+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the upper-right edge of the building footprint, rows of regularly-spaced chairs and tables are visible on the paved sidewalk/plaza area adjacent to the building edge, outside the building footprint."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91074,
+            10.72853
+          ],
+          [
+            59.91069,
+            10.72868
+          ],
+          [
+            59.91064,
+            10.72877
+          ],
+          [
+            59.910656,
+            10.728837
+          ],
+          [
+            59.91075,
+            10.728837
+          ],
+          [
+            59.910797,
+            10.728729
+          ],
+          [
+            59.910777,
+            10.728622
+          ]
+        ],
+        "confidence": 0.62,
+        "notVisible": false,
+        "reasoning": "Along the upper-right edge of the building footprint, rows of regularly-spaced chairs and tables are visible on the paved sidewalk/plaza area adjacent to the building edge, outside the building footprint.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:32:25.798Z"
+      }
     },
     "654": {
       "polygon": [
@@ -23942,51 +25577,96 @@
     "655": {
       "polygon": [
         [
-          59.920585,
-          10.727473
-        ],
-        [
-          59.920619,
-          10.727661
-        ],
-        [
-          59.920602,
-          10.727795
-        ],
-        [
-          59.920538,
-          10.727701
-        ],
-        [
-          59.920471,
-          10.727607
-        ],
-        [
-          59.92043,
-          10.727446
-        ],
-        [
-          59.920484,
-          10.727379
-        ],
-        [
-          59.920545,
-          10.727433
+          [
+            59.920490225094355,
+            10.727692941139903
+          ],
+          [
+            59.920526833849294,
+            10.727736572681295
+          ],
+          [
+            59.9205073258847,
+            10.72779025735801
+          ],
+          [
+            59.92045064316275,
+            10.727948213437486
+          ],
+          [
+            59.92041722685452,
+            10.727877903110079
+          ],
+          [
+            59.92042327835329,
+            10.727852354666553
+          ],
+          [
+            59.9204362763587,
+            10.727808153441986
+          ],
+          [
+            59.92045963527166,
+            10.727752182872488
+          ]
         ]
       ],
-      "confidence": 0.65,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:32:36.359Z",
+      "detectedAt": "2026-05-28T09:48:14.599943+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "There is a visible cluster of outdoor tables, chairs, and parasols in the courtyard/plaza area to the left and below the building footprint, adjacent to the venue."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.920585,
+            10.727473
+          ],
+          [
+            59.920619,
+            10.727661
+          ],
+          [
+            59.920602,
+            10.727795
+          ],
+          [
+            59.920538,
+            10.727701
+          ],
+          [
+            59.920471,
+            10.727607
+          ],
+          [
+            59.92043,
+            10.727446
+          ],
+          [
+            59.920484,
+            10.727379
+          ],
+          [
+            59.920545,
+            10.727433
+          ]
+        ],
+        "confidence": 0.65,
+        "notVisible": false,
+        "reasoning": "There is a visible cluster of outdoor tables, chairs, and parasols in the courtyard/plaza area to the left and below the building footprint, adjacent to the venue.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:32:36.359Z"
+      }
     },
     "656": {
       "polygon": [
@@ -24102,51 +25782,84 @@
     "659": {
       "polygon": [
         [
-          59.90965,
-          10.726499
-        ],
-        [
-          59.90965,
-          10.72675
-        ],
-        [
-          59.90978,
-          10.726969
-        ],
-        [
-          59.909736,
-          10.727062
-        ],
-        [
-          59.909682,
-          10.726968
-        ],
-        [
-          59.909622,
-          10.726874
-        ],
-        [
-          59.909568,
-          10.726713
-        ],
-        [
-          59.909588,
-          10.726526
+          [
+            59.909743901417954,
+            10.727044517820815
+          ],
+          [
+            59.909637926024914,
+            10.726779701380934
+          ],
+          [
+            59.90960026022813,
+            10.726853225978033
+          ],
+          [
+            59.90966008877441,
+            10.726978008779689
+          ],
+          [
+            59.90971388257816,
+            10.72711242323686
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:32:46.495Z",
+      "detectedAt": "2026-05-28T09:47:10.267179+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the lower-right facade of the building there appears to be a cluster of small regularly-spaced shapes consistent with outdoor tables and chairs on the adjacent paved plaza area."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.90965,
+            10.726499
+          ],
+          [
+            59.90965,
+            10.72675
+          ],
+          [
+            59.90978,
+            10.726969
+          ],
+          [
+            59.909736,
+            10.727062
+          ],
+          [
+            59.909682,
+            10.726968
+          ],
+          [
+            59.909622,
+            10.726874
+          ],
+          [
+            59.909568,
+            10.726713
+          ],
+          [
+            59.909588,
+            10.726526
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "Along the lower-right facade of the building there appears to be a cluster of small regularly-spaced shapes consistent with outdoor tables and chairs on the adjacent paved plaza area.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:32:46.495Z"
+      }
     },
     "660": {
       "polygon": [
@@ -24302,47 +26015,90 @@
     "663": {
       "polygon": [
         [
-          59.91206,
-          10.71877
+          [
+            59.91198000000054,
+            10.71880999999783
+          ],
+          [
+            59.91198000000054,
+            10.719129999997875
+          ],
+          [
+            59.911966525320906,
+            10.719129999997875
+          ],
+          [
+            59.911966525320906,
+            10.71880999999783
+          ]
         ],
         [
-          59.912079,
-          10.718658
-        ],
-        [
-          59.912045,
-          10.718618
-        ],
-        [
-          59.912018,
-          10.718658
-        ],
-        [
-          59.912018,
-          10.71877
-        ],
-        [
-          59.912018,
-          10.71881
-        ],
-        [
-          59.91205,
-          10.71881
+          [
+            59.911949091706134,
+            10.719212765138423
+          ],
+          [
+            59.911933726529924,
+            10.71920903758172
+          ],
+          [
+            59.91193725636845,
+            10.719252525745475
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:42:24.634Z",
+      "detectedAt": "2026-05-28T08:48:58.043205+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The area directly adjacent to the front/side entrance of the building along the sidewalk to the west/northwest of the building footprint is the most plausible outdoor seating zone for this restaurant, though furniture is not clearly disting"
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91206,
+            10.71877
+          ],
+          [
+            59.912079,
+            10.718658
+          ],
+          [
+            59.912045,
+            10.718618
+          ],
+          [
+            59.912018,
+            10.718658
+          ],
+          [
+            59.912018,
+            10.71877
+          ],
+          [
+            59.912018,
+            10.71881
+          ],
+          [
+            59.91205,
+            10.71881
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "The area directly adjacent to the front/side entrance of the building along the sidewalk to the west/northwest of the building footprint is the most plausible outdoor seating zone for this restaurant, though furniture is not clearly disting",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:42:24.634Z"
+      }
     },
     "664": {
       "polygon": [

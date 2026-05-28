@@ -62,17 +62,20 @@ function drawSeatingAreas() {
     const fillShade   = 'rgba(40,80,180,0.13)';
     const strokeShade = 'rgba(80,130,220,0.35)';
 
-    // Priority 1: resolved AI/manual polygon (data.js#getSeatingPolygon)
-    const aiPoly = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v) : null;
-    if (aiPoly) {
-      const px = projectSeatingPolygon(aiPoly);
-      ctx.beginPath();
-      px.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.closePath();
-      ctx.fillStyle   = sunny ? fillSunny   : fillShade;
-      ctx.fill();
-      ctx.strokeStyle = sunny ? strokeSunny : strokeShade;
-      ctx.lineWidth   = 1.5; ctx.setLineDash([]); ctx.stroke();
+    // Priority 1: resolved AI/manual polygon(s) (data.js#getSeatingPolygons) —
+    // multi-area: draw every ring.
+    const seatRings = (typeof getSeatingPolygons === 'function') ? getSeatingPolygons(v) : [];
+    if (seatRings.length) {
+      seatRings.forEach(ring => {
+        const px = projectSeatingPolygon(ring);
+        ctx.beginPath();
+        px.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fillStyle   = sunny ? fillSunny   : fillShade;
+        ctx.fill();
+        ctx.strokeStyle = sunny ? strokeSunny : strokeShade;
+        ctx.lineWidth   = 1.5; ctx.setLineDash([]); ctx.stroke();
+      });
       return;
     }
 
@@ -122,9 +125,9 @@ function drawSeatingAreas() {
  * polygon to clip against (rare fan-fallback case).
  */
 function _venueSeatingPolygonsPx(v) {
-  const overridePoly = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v) : null;
-  if (Array.isArray(overridePoly) && overridePoly.length >= 3) {
-    return [projectSeatingPolygon(overridePoly)];
+  const seatRings = (typeof getSeatingPolygons === 'function') ? getSeatingPolygons(v) : [];
+  if (seatRings.length) {
+    return seatRings.map(ring => projectSeatingPolygon(ring));
   }
   if (typeof getTerraceWalls === 'function' && typeof terracePolygons === 'function') {
     const depth = (typeof getEffectiveDepth === 'function') ? getEffectiveDepth(v) : 0;

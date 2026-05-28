@@ -1742,6 +1742,7 @@ function draw() {
     const editDateStr = datePicker.value;
     ctx.globalAlpha = 0.18;
     VENUES.forEach(v => {
+      if (v.id === editingVenueId) return;   // the edited venue gets a full-opacity beacon below
       const cls = classifyPin(v, editDateStr, editHour);
       const pt  = map.project([v.lng, v.lat]);
       const friends = _getCheckins(v);
@@ -1764,6 +1765,21 @@ function draw() {
       });
     });
     ctx.globalAlpha = 1;
+    // Beacon at the edited venue's point (its Google location = where the
+    // outdoor seating is supposed to be). Full opacity + honey so it stands out
+    // against the dimmed context pins, and anchors the venue even before any
+    // polygon exists.
+    const _ev = (typeof venueById === 'function') ? venueById(editingVenueId) : null;
+    if (_ev) {
+      const ep = map.project([_ev.lng, _ev.lat]);
+      ctx.beginPath(); ctx.arc(ep.x, ep.y, 16, 0, Math.PI * 2);
+      ctx.strokeStyle = _rgba(TOKENS.accent, 0.9); ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(ep.x, ep.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = _rgba(TOKENS.accent, 0.95); ctx.fill();
+      ctx.strokeStyle = _rgba(TOKENS.text, 0.95); ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(ep.x, ep.y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = _rgba(TOKENS.bg, 0.9); ctx.fill();
+    }
     drawBuildingEditor();
     ctx.restore();
     return;
@@ -2732,6 +2748,17 @@ canvas.addEventListener('click', e => {
     // Tap a polygon edge LINE (not a handle, and not after a drag) → remove
     // that wall segment by deleting its trailing vertex. deletePolygonVertex
     // already guards against dropping below 3 vertices.
+    // Street: a tap on a building wall toggles which side(s) the terrace is on.
+    // Always available (even with an override) and takes priority over polygon
+    // edge-delete, so you can always re-pick walls. selectWallByIdx re-derives.
+    const wallIdx = hitTestWall(cx, cy);
+    if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) {
+      selectWallByIdx(wallIdx);
+      return;
+    }
+
+    // Tap a polygon edge LINE (not a handle, not after a drag) → remove that
+    // wall segment. deletePolygonVertex guards against dropping below 3.
     if (!_polyDragMoved
         && typeof hitTestActivePolygonVertex === 'function'
         && hitTestActivePolygonVertex(cx, cy) === null
@@ -2749,10 +2776,6 @@ canvas.addEventListener('click', e => {
         return;
       }
     }
-
-    const wallIdx = hitTestWall(cx, cy);
-    if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
-        && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
     return;
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
@@ -2943,6 +2966,9 @@ if (_isTouchDevice) {
     if (!t) return;
     _touchStartX = t.clientX; _touchStartY = t.clientY;
 
+    // GL Draw owns all edit-mode polygon gestures now; the old canvas/document
+    // cascade below stays dormant in edit mode (and is non-edit-only anyway).
+    if (editingVenueId) return;
     if (!editingVenueId) return;
     _polyDragMoved = false;     // fresh gesture — no movement yet
     const rect = canvas.getBoundingClientRect();
@@ -3002,6 +3028,7 @@ if (_isTouchDevice) {
   }, { passive: false });
 
   document.addEventListener('touchmove', e => {
+    if (editingVenueId) return;   // GL Draw owns edit-mode gestures
     if (!editingVenueId) return;
     const t = Array.from(e.touches).find(tt => tt.identifier === _editTouchId) ?? e.touches[0];
     if (!t) return;
@@ -3040,6 +3067,9 @@ if (_isTouchDevice) {
   }, { passive: false });
 
   document.addEventListener('touchend', e => {
+    // GL Draw owns edit-mode gestures; only the non-edit venue tap-select tail
+    // (below) runs now. The edit branches stay dormant in edit mode.
+    if (editingVenueId) return;
     if (editingVenueId && (editDraggingDepth || editDraggingPolyVertex
                         || editDraggingPolyEdge || editDraggingPolyTranslate)) {
       const v = venueById(editingVenueId);
@@ -3103,6 +3133,13 @@ if (_isTouchDevice) {
         return;
       }
 
+      // Street wall toggle — always available, priority over edge-delete.
+      const wallIdx = hitTestWall(cx, cy);
+      if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) {
+        selectWallByIdx(wallIdx);
+        return;
+      }
+
       // Tap a polygon edge LINE (not a handle, not after a drag) → remove
       // that wall segment. Mirrors the desktop click path.
       if (!_polyDragMoved
@@ -3121,10 +3158,6 @@ if (_isTouchDevice) {
           return;
         }
       }
-
-      const wallIdx = hitTestWall(cx, cy);
-      if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
-          && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
       return;
     }
 

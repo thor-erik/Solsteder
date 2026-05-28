@@ -1,0 +1,45 @@
+name: Sync seating polygons from Supabase
+
+# Regenerates data/seating-detected.json (source:"manual" records) from the
+# shared seating_corrections table so the AI training loop + the static file
+# the app ships pick up admins' corrections automatically — no manual export
+# + merge-seating-corrections.mjs step. detect-seating-areas.yml then consumes
+# the manual records as few-shot exactly as before.
+#
+# Requires repo secret SUPABASE_SERVICE_KEY (service-role key). SUPABASE_URL is
+# optional (defaults to the prod project in the script).
+
+on:
+  schedule:
+    - cron: '23 * * * *'   # hourly
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Sync manual polygons from Supabase
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/sync-seating-from-supabase.mjs
+
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet -- data/seating-detected.json; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/seating-detected.json
+            git commit -m "chore: sync manual seating polygons from Supabase [skip ci]"
+            git push
+          else
+            echo "No seating changes to commit."
+          fi

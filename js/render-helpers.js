@@ -538,3 +538,59 @@ function seatingPolygonTestPoints(latLngPoly) {
   }
   return pts;
 }
+
+/**
+ * Normalize a seating-polygon value to a LIST OF RINGS: [[ [lat,lng], … ], … ].
+ * Accepts either a single ring [[lat,lng], …] (legacy storage, AI, venues.json)
+ * or an already-multi list of rings — disambiguated by array nesting depth:
+ *   single ring  → value[0] is a [lat,lng] pair (value[0][0] is a number)
+ *   list of rings→ value[0] is a ring      (value[0][0] is an array)
+ * Rings with < 3 points are dropped. Empty/invalid input → [].
+ * This is what makes multi-polygon backward-compatible with all existing
+ * single-ring data without a schema change.
+ */
+function asRings(value) {
+  if (!Array.isArray(value) || value.length === 0) return [];
+  if (Array.isArray(value[0]) && Array.isArray(value[0][0])) {
+    return value.filter(r => Array.isArray(r) && r.length >= 3);
+  }
+  return value.length >= 3 ? [value] : [];
+}
+
+/** Union of seatingPolygonTestPoints across every ring → flat {lat,lng}[].
+ *  Accepts a single ring or a ring list (normalized via asRings). */
+function seatingPolygonsTestPoints(rings) {
+  const pts = [];
+  for (const ring of asRings(rings)) {
+    for (const p of seatingPolygonTestPoints(ring)) pts.push(p);
+  }
+  return pts;
+}
+
+/** Sun test points for a venue's seating polygon(s), with under-roof points
+ *  removed. For 'street'/'detached' types, drops grid points that fall inside the
+ *  venue's own building or any nearby building (under-roof = not sun, e.g. a
+ *  terrace polygon clipped into the wall). SKIPS the filter for 'rooftop' (the
+ *  building IS the area) and 'courtyard' (its polygon legitimately sits inside the
+ *  footprint — OSM rarely models the courtyard hole). Falls back to the first
+ *  ring's centroid if filtering removes everything, so the venue still scores. */
+function seatingTestPointsForVenue(v, rings) {
+  const pts = seatingPolygonsTestPoints(rings);
+  if (!pts.length || typeof pointInPolygon !== 'function') return pts;
+  const type = (v && v.terraceType) || 'street';
+  if (type === 'rooftop' || type === 'courtyard') return pts;
+  const bldgs = [];
+  if (v && Array.isArray(v.buildingGeometry) && v.buildingGeometry.length >= 3) bldgs.push(v.buildingGeometry);
+  if (v && Array.isArray(v.nearbyBuildings)) {
+    for (const b of v.nearbyBuildings) {
+      if (b && Array.isArray(b.geometry) && b.geometry.length >= 3) bldgs.push(b.geometry);
+    }
+  }
+  if (!bldgs.length) return pts;
+  const insideAny = (lat, lng) => bldgs.some(g => pointInPolygon(lat, lng, g));
+  const kept = pts.filter(p => !insideAny(p.lat, p.lng));
+  if (kept.length) return kept;
+  const list = asRings(rings);
+  const c = list.length ? seatingPolygonCentroid(list[0]) : null;
+  return c ? [{ lat: c.lat, lng: c.lng }] : pts;
+}

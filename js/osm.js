@@ -325,10 +325,10 @@ function computeTerraceTestPoints(venue, osmElement) {
   // Tier 0 — AI-detected or manually edited polygon (most accurate when
   // available). Sampled across the polygon interior so shadow-on-seating is
   // computed against the actual seating area instead of a wall projection.
-  if (typeof getSeatingPolygon === 'function') {
-    const ai = getSeatingPolygon(venue);
-    if (ai && typeof seatingPolygonTestPoints === 'function') {
-      const pts = seatingPolygonTestPoints(ai);
+  if (typeof getSeatingPolygons === 'function') {
+    const rings = getSeatingPolygons(venue);
+    if (rings.length && typeof seatingTestPointsForVenue === 'function') {
+      const pts = seatingTestPointsForVenue(venue, rings);   // union, building-clipped points dropped
       if (pts.length) return pts;
     }
   }
@@ -708,10 +708,10 @@ function _applyCompactGeometry(data) {
     // so shadow checks use the realistic seating outline rather than the
     // wall-projection grid baked into geometry.json.
     let aiPts = null;
-    if (typeof getSeatingPolygon === 'function') {
-      const ai = getSeatingPolygon(v);
-      if (ai && typeof seatingPolygonTestPoints === 'function') {
-        aiPts = seatingPolygonTestPoints(ai);
+    if (typeof getSeatingPolygons === 'function') {
+      const rings = getSeatingPolygons(v);
+      if (rings.length && typeof seatingTestPointsForVenue === 'function') {
+        aiPts = seatingTestPointsForVenue(v, rings);   // union, building-clipped points dropped
         if (!aiPts.length) aiPts = null;
       }
     }

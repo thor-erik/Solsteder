@@ -63,30 +63,23 @@ function toggleEditVertexMode(mode) {
  *   key = 'override' (street override), 'ai' (street AI poly visible),
  *         'courtyard', or 'detached'.
  */
-function getActivePolygon(v) {
-  if (!v) return null;
+/** All editable rings for a venue's active type as { rings, key }. rings is a
+ *  list [[ [lat,lng], … ], … ] (multi-area). key ∈ override/ai/derived/courtyard/
+ *  detached/rooftop/null. asRings normalizes single-ring legacy values. */
+function getActivePolygons(v) {
+  if (!v) return { rings: [], key: null };
   const type = v.terraceType ?? 'street';
-  if (type === 'rooftop') return null;
-  if (type === 'courtyard') {
-    return Array.isArray(v.courtyardPolygon) && v.courtyardPolygon.length >= 3
-      ? { latlng: v.courtyardPolygon, key: 'courtyard' } : null;
-  }
-  if (type === 'detached') {
-    return Array.isArray(v.detachedPolygon) && v.detachedPolygon.length >= 3
-      ? { latlng: v.detachedPolygon, key: 'detached' } : null;
-  }
-  // Street: prefer manual override; fall back to AI polygon; finally derive
-  // from selected walls + depth so polygon handles work in wall-mode too.
-  if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) {
-    return { latlng: v.seatingPolygonOverride, key: 'override' };
-  }
-  // Editor opts in to seeing the AI polygon (as a ghost / for drag-handle
-  // editing). Public renderers do not — getSeatingPolygon defaults to
-  // override-only. See data.js for the gate rationale.
-  const sp = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v, { includeAi: true }) : null;
-  if (Array.isArray(sp) && sp.length >= 3) return { latlng: sp, key: 'ai' };
-  // Wall-derived preview polygon (lat/lng). Used for hit-testing handles before
-  // the user has dragged anything (i.e. before bakeStreetPolygon runs).
+  if (type === 'rooftop')   return { rings: [], key: 'rooftop' };
+  if (type === 'courtyard') return { rings: asRings(v.courtyardPolygon), key: 'courtyard' };
+  if (type === 'detached')  return { rings: asRings(v.detachedPolygon),  key: 'detached' };
+  // Street: prefer the manual override, else fall straight to the wall-derived
+  // polygon (entrance/facing wall + depth — the reliable default). The AI
+  // proposal is NO LONGER the default: it's opt-in via "Vis AI-forslag"
+  // (adoptAiProposal), so a wrong AI shape never silently replaces the good
+  // wall-derived one or gets baked by an "approve".
+  const override = asRings(v.seatingPolygonOverride);
+  if (override.length) return { rings: override, key: 'override' };
+  // Wall-derived preview (single ring) — seeds the editor before any override.
   if (typeof getTerraceWalls === 'function' && typeof terracePolygons === 'function') {
     const walls = getTerraceWalls(v);
     if (walls.length) {
@@ -95,30 +88,86 @@ function getActivePolygon(v) {
       const trimmed = _applyTrimToWalls(v, walls, pxPerM);
       const polys = terracePolygons(v, trimmed, depthPx);
       if (polys.length) {
-        const polyPx = polys[0];
-        const latlng = polyPx.map(p => {
-          const ll = map.unproject([p.x, p.y]);
-          return [ll.lat, ll.lng];
-        });
-        return { latlng, key: 'derived' };
+        const latlng = polys[0].map(p => { const ll = map.unproject([p.x, p.y]); return [ll.lat, ll.lng]; });
+        return { rings: [latlng], key: 'derived' };
       }
     }
   }
-  return null;
+  return { rings: [], key: null };
 }
 
-function setActivePolygon(v, latlng) {
-  if (!v) return;
-  const type = v.terraceType ?? 'street';
-  if (type === 'courtyard')      v.courtyardPolygon       = latlng;
-  else if (type === 'detached')  v.detachedPolygon        = latlng;
-  else                           v.seatingPolygonOverride = latlng;
+/** Single-ring shim (first ring) for legacy callers. */
+function getActivePolygon(v) {
+  const { rings, key } = getActivePolygons(v);
+  return rings.length ? { latlng: rings[0], key } : null;
+}
 
-  if (Array.isArray(latlng) && latlng.length >= 3
-      && typeof seatingPolygonTestPoints === 'function') {
-    const pts = seatingPolygonTestPoints(latlng);
+/** Write a ring LIST to the active type's field + recompute the union of test
+ *  points across all rings (building-clipped points dropped for street/detached;
+ *  see seatingTestPointsForVenue). Empty list → field null. */
+function setActivePolygons(v, rings) {
+  if (!v) return;
+  const list   = asRings(rings);
+  const stored = list.length ? list : null;
+  const type   = v.terraceType ?? 'street';
+  if (type === 'courtyard')      v.courtyardPolygon       = stored;
+  else if (type === 'detached')  v.detachedPolygon        = stored;
+  else                           v.seatingPolygonOverride = stored;
+  if (typeof seatingTestPointsForVenue === 'function') {
+    const pts = seatingTestPointsForVenue(v, list);
+    if (pts.length) v.terraceTestPoints = pts;
+  } else if (typeof seatingPolygonsTestPoints === 'function') {
+    const pts = seatingPolygonsTestPoints(list);
     if (pts.length) v.terraceTestPoints = pts;
   }
+}
+
+/** Single-ring shim. */
+function setActivePolygon(v, latlng) {
+  setActivePolygons(v, (Array.isArray(latlng) && latlng.length >= 3) ? [latlng] : []);
+}
+
+/** Best-effort terrace-type classification from polygon placement (auto-type):
+ *  detached (no/away-from building) → street (hugs a precomputed street-facing
+ *  wall, per autoTerraceWallIndices) → courtyard (hugs another building wall).
+ *  Never returns 'rooftop' (that stays a manual choice). */
+function classifyTerraceType(v, rings) {
+  const list = asRings(rings);
+  if (!list.length) return null;
+  const bld = v && v.buildingGeometry;
+  if (!Array.isArray(bld) || bld.length < 3) return 'detached';
+  const bldNodes = bld.map(n => ({ lat: n.lat, lon: n.lon }));
+  const walls = Array.isArray(v.wallNormals) ? v.wallNormals : [];
+  const TOUCH_M = 4;
+  let touches = false, nearestWallIdx = -1, nearestD = Infinity;
+  for (const ring of list) {
+    for (const [lat, lng] of ring) {
+      if (typeof pointInPolygon === 'function' && pointInPolygon(lat, lng, bldNodes)) touches = true;
+      for (let wi = 0; wi < walls.length; wi++) {
+        const d = _distPointToWallM(lat, lng, walls[wi]);
+        if (d < nearestD) { nearestD = d; nearestWallIdx = wi; }
+      }
+    }
+  }
+  if (nearestD <= TOUCH_M) touches = true;
+  if (!touches) return 'detached';
+  const streetWalls = Array.isArray(v.autoTerraceWallIndices) ? v.autoTerraceWallIndices : [];
+  return streetWalls.includes(nearestWallIdx) ? 'street' : 'courtyard';
+}
+
+/** Distance in metres from (lat,lng) to a wall segment (equirectangular approx). */
+function _distPointToWallM(lat, lng, w) {
+  if (!w) return Infinity;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+  const ax = w.aLng * cosLat, ay = w.aLat;
+  const bx = w.bLng * cosLat, by = w.bLat;
+  const px = lng * cosLat,    py = lat;
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1e-12;
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * dx, cy = ay + t * dy;
+  return Math.hypot(py - cy, px - cx) * 111320;
 }
 
 // ── Polygon seeders (default shapes when a type is first selected) ───────────
@@ -446,10 +495,11 @@ function drawBuildingEditor() {
     return;
   }
 
-  // Street: wall arrows are the entry point for selecting which side(s) the
-  // terrace is on. Once an override polygon exists we hide the arrows so the
-  // canvas isn't cluttered.
-  if (terrType === 'street' && !v.seatingPolygonOverride) {
+  // Street: wall arrows are how you pick which building side(s) the terrace is
+  // on — and they stay available ALWAYS (even after edits), so you can always
+  // re-pick walls. (Type drives the model: street = walls; for a free-form
+  // shape, switch the type to Frittstående.)
+  if (terrType === 'street') {
     walls.forEach((wall, idx) => {
       const pa = map.project([wall.aLng, wall.aLat]);
       const pb = map.project([wall.bLng, wall.bLat]);
@@ -504,49 +554,13 @@ function drawBuildingEditor() {
       }
     });
 
-    // Wall-derived polygon preview (with corner + edge handles). When the user
-    // grabs any handle, bakeStreetPolygon() converts this into a real override.
-    const currentWalls = getTerraceWalls(v);
-    if (currentWalls.length > 0) {
-      const pxPerM  = pxPerMetre(v);
-      const depthPx = getEffectiveDepth(v) * pxPerM;
-      const trimmed = _applyTrimToWalls(v, currentWalls, pxPerM);
-      const polys = terracePolygons(v, trimmed, depthPx);
-      polys.forEach((poly, polyIdx) => {
-        // Outline only — no fill, so the satellite shows through. Dark
-        // under-stroke + tangerine over-stroke keeps the line crisp on any
-        // imagery.
-        ctx.beginPath();
-        poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-        ctx.closePath();
-        ctx.strokeStyle = 'rgba(10,14,28,0.55)'; ctx.lineWidth = 4; ctx.stroke();
-        ctx.strokeStyle = 'rgba(245,194,94,0.95)'; ctx.lineWidth = 2; ctx.stroke();
-
-        // Only draw handles on the FIRST chain — bakeStreetPolygon picks chain 0.
-        // Other chains can be merged via the Slå sammen button.
-        if (polyIdx === 0) {
-          _drawPolygonHandlesPx(poly, /*activeKey*/ 'street-preview');
-        }
-      });
-      return;       // skip override drawing — preview owns this state
-    }
+    // The editable terrace polygon (wall-derived, or any override) is rendered
+    // by Mapbox GL Draw now — not on this canvas. The wall arrows above remain
+    // as a static reference of which building side(s) the terrace derives from.
   }
 
-  // Active-polygon mode: courtyard, detached, or street with override.
-  // Drop the legacy crosshair pin for detached.
-  const ap = getActivePolygon(v);
-  if (ap) {
-    const px = ap.latlng.map(([lat, lng]) => map.project([lng, lat]));
-    _drawPolygonOutlinePx(px, ap.key);
-    _drawPolygonHandlesPx(px, ap.key);
-  } else if (terrType === 'detached') {
-    // No polygon yet (shouldn't happen normally — setTerraceType seeds one)
-    const loc = v.terraceDetachedLocation ?? { lat: v.lat, lng: v.lng };
-    const pt  = map.project([loc.lng, loc.lat]);
-    ctx.beginPath(); ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(245,194,94,0.18)'; ctx.fill();
-    ctx.strokeStyle = TOKENS.accent; ctx.lineWidth = 2.5; ctx.stroke();
-  }
+  // Courtyard / detached / street-override polygons are all rendered by Mapbox
+  // GL Draw (map layers), so nothing further is drawn on this canvas here.
 }
 
 // ── Polygon outline + handle drawing ─────────────────────────────────────────

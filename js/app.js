@@ -4471,6 +4471,13 @@ if (typeof window !== 'undefined') {
 }
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
+/** Normalize a seating field (single ring OR ring list) to a deep-cloned ring
+ *  list, or null. Keeps snapshots in the canonical multi-area shape. */
+function _snapshotRings(x) {
+  const r = (typeof asRings === 'function') ? asRings(x) : (Array.isArray(x) ? [x] : []);
+  return r.length ? r.map(ring => ring.map(p => p.slice())) : null;
+}
+
 function _venueEditSnapshot(v) {
   return {
     terraceType:             v.terraceType ?? 'street',
@@ -4484,10 +4491,10 @@ function _venueEditSnapshot(v) {
     // Manual seating polygon edit (vertex-drag in render-editor). Captured
     // here so the corrections-log → merge-seating-corrections.mjs round trip
     // sees the edit and writes it into data/seating-detected.json.
-    seatingPolygonOverride:  Array.isArray(v.seatingPolygonOverride) ? v.seatingPolygonOverride.map(p => p.slice()) : null,
+    seatingPolygonOverride:  _snapshotRings(v.seatingPolygonOverride),
     // Courtyard / detached polygons for the new resizable shapes.
-    courtyardPolygon:        Array.isArray(v.courtyardPolygon) ? v.courtyardPolygon.map(p => p.slice()) : null,
-    detachedPolygon:         Array.isArray(v.detachedPolygon)  ? v.detachedPolygon.map(p => p.slice())  : null,
+    courtyardPolygon:        _snapshotRings(v.courtyardPolygon),
+    detachedPolygon:         _snapshotRings(v.detachedPolygon),
   };
 }
 
@@ -4501,9 +4508,9 @@ function _applyVenueSnapshot(v, snap) {
   v.facing                  = snap.facing;
   v.facingSource            = snap.facingSource;
   v.terraceDetachedLocation = snap.terraceDetachedLocation ? { ...snap.terraceDetachedLocation } : null;
-  v.seatingPolygonOverride  = Array.isArray(snap.seatingPolygonOverride) ? snap.seatingPolygonOverride.map(p => p.slice()) : null;
-  v.courtyardPolygon        = Array.isArray(snap.courtyardPolygon) ? snap.courtyardPolygon.map(p => p.slice()) : null;
-  v.detachedPolygon         = Array.isArray(snap.detachedPolygon)  ? snap.detachedPolygon.map(p => p.slice())  : null;
+  v.seatingPolygonOverride  = _snapshotRings(snap.seatingPolygonOverride);
+  v.courtyardPolygon        = _snapshotRings(snap.courtyardPolygon);
+  v.detachedPolygon         = _snapshotRings(snap.detachedPolygon);
   saveFacingCache(v.id, v.facing, v.facingSource,
     v.terraceWallIndices, v.terraceDepth, null, v.terraceType, v.terraceDetachedLocation,
     v.terraceWallTrimStart, v.terraceWallTrimEnd, v.seatingPolygonOverride);
@@ -4555,6 +4562,7 @@ function enterEditMode(venueId) {
   if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
+  _auditHistory = [];   // fresh audit walk (Back-to-redo history)
 
   _navPush('edit');
 
@@ -4588,14 +4596,24 @@ function enterEditMode(venueId) {
   // ON the satellite tiles rather than after them.)
   editSatelliteActive = true;
   _syncMapToggleSwitch();
+  // Canvas overlay goes non-interactive so GL Draw (map-layer handles) owns
+  // every gesture. Stash the prior value to restore on exit.
+  const _coEnter = document.getElementById('canvas-overlay');
+  if (_coEnter) { _editPriorCanvasPE = _coEnter.style.pointerEvents; _coEnter.style.pointerEvents = 'none'; }
   map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
   _syncFtsPosition();
 
   if (popup) { popup.remove(); popup = null; }
   tooltip.classList.remove('visible');
 
-  // Per-venue setup (also re-run on auto-advance to the next venue).
-  _loadVenueIntoEditor(venueId);
+  // GL Draw must be (re)added AFTER the satellite style finishes loading —
+  // setStyle wipes custom sources/layers. _loadVenueIntoEditor then seeds the
+  // draw feature. (Also re-run directly on auto-advance, where no style swap
+  // happens and GL Draw is already present.)
+  map.once('style.load', () => {
+    _initEditDraw();
+    _loadVenueIntoEditor(venueId);
+  });
 }
 
 /** Load a venue into the (already-open) editor: snapshot, labels, camera,
@@ -4604,12 +4622,17 @@ function enterEditMode(venueId) {
 function _loadVenueIntoEditor(venueId) {
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
+  if (_bldgPickActive) _editPickBuildingStop();   // don't carry a pick session across venues
+  _editTypeManual    = false;                     // fresh venue → auto-type allowed again
   editingVenueId     = venueId;
   editHoveredWallIdx = null;
   if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
 
   _editBeforeSnapshot = _venueEditSnapshot(v);
   _editHasChanges = false;
+
+  // Broadcast that I'm editing this venue (soft edit-lock for other admins).
+  if (typeof auditStorePresenceTrack === 'function') auditStorePresenceTrack(venueId);
 
   const lbl = document.getElementById('edit-venue-label');
   if (lbl) lbl.textContent = v.name;
@@ -4641,6 +4664,9 @@ function _loadVenueIntoEditor(venueId) {
       card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, 200);
+
+  // Seed GL Draw with this venue's editable polygon (direct_select).
+  _syncDrawFromVenue(v);
 
   draw();
 }
@@ -4704,7 +4730,6 @@ function _prevVenueId(beforeId) {
 /** Editor "back": jump to the previous venue without marking the current one. */
 function editGoBack() {
   if (!editingVenueId) return;
-  const prevId = _prevVenueId(editingVenueId);
   // Discard any in-progress changes on the current venue before leaving.
   if (_editBeforeSnapshot) {
     const v = VENUES.find(x => x.id === editingVenueId);
@@ -4712,7 +4737,22 @@ function editGoBack() {
     sunWindowCache.clear();
     dispatchToWorker(datePicker.value);
   }
-  if (prevId != null) _loadVenueIntoEditor(prevId);
+  // Prefer the audit-walk history: return to the venue we just acted on and
+  // CLEAR its verdict (good/unsure/archive) so it can be re-reviewed — this is
+  // the "oops, undo that good·next" path. Fall back to previous-in-list order.
+  let targetId = null;
+  if (_auditHistory.length) {
+    targetId = _auditHistory.pop();
+    if (typeof unmarkVenueAudited === 'function') unmarkVenueAudited(targetId);
+    const tv = VENUES.find(x => x.id === targetId);
+    if (tv && typeof isVenueArchived === 'function' && isVenueArchived(tv)
+        && typeof unarchiveVenue === 'function') {
+      unarchiveVenue(targetId);
+    }
+  } else {
+    targetId = _prevVenueId(editingVenueId);
+  }
+  if (targetId != null) _loadVenueIntoEditor(targetId);
 }
 
 /** Editor "skip": advance to the next unreviewed venue without marking current.
@@ -4808,14 +4848,419 @@ function _resetAuditSatellite() {
 
 let editSatelliteActive = false;
 
+// ── Mapbox GL Draw editor engine (admin polygon audit) ──────────────────────
+// GL Draw owns ALL polygon editing: drag a vertex to move it, drag a midpoint
+// to add one, select a vertex + Delete/Backspace to remove it. The canvas
+// overlay goes pointer-events:none in edit mode so GL Draw's map-layer handles
+// receive every gesture; the canvas then only renders the building/wall
+// reference + shade. Edited geometry syncs back to the venue on draw.update.
+let editDraw           = null;   // MapboxDraw singleton (created lazily)
+let _editDrawAdded     = false;  // is the control currently added to the map?
+let _editDrawFeatureId = null;   // id of the polygon feature being edited
+let _editPriorCanvasPE = '';     // #canvas-overlay pointer-events to restore on exit
+let _editUndoStack     = [];     // [lat,lng][] snapshots taken BEFORE each edit
+let _editRedoStack     = [];     // undone snapshots, for redo
+let _editKeysBound     = false;  // document keydown listener bound once
+let _editTypeManual    = false;  // admin picked the type via dropdown → don't auto-type
+let _auditHistory      = [];     // venue ids acted on in the audit walk (for Back-to-redo)
+
+// Geometry conversion. Our polygons are [lat,lng][]; GL Draw uses GeoJSON rings
+// [[ [lng,lat] … closingPoint ]].
+function _drawRingFromLatLng(poly) {
+  const r = poly.map(([lat, lng]) => [lng, lat]);
+  if (r.length) r.push(r[0]);                 // close the ring
+  return r;
+}
+function _latLngFromDrawFeature(feat) {
+  const ring = feat?.geometry?.coordinates?.[0];
+  if (!Array.isArray(ring)) return [];
+  return ring.slice(0, -1).map(([lng, lat]) => [lat, lng]);   // drop closing dup
+}
+
+// Honey/ink/cream mirror the :root tokens (--accent / --bg / --text). Raw hex is
+// fine here: this is a vendor (GL Draw) style spec and validate-tokens.mjs scans
+// only css/ + index.html <style>, never js/. Keep these in sync with tokens.js.
+const EDIT_DRAW_STYLES = [
+  { id: 'gl-draw-polygon-fill', type: 'fill',
+    filter: ['all', ['==', '$type', 'Polygon']],
+    paint: { 'fill-color': '#F5C25E', 'fill-opacity': 0.06 } },
+  // Dark under-stroke (wider) first, so the honey outline reads over bright imagery.
+  { id: 'gl-draw-polygon-stroke-under', type: 'line',
+    filter: ['all', ['==', '$type', 'Polygon']],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': '#0A0E1C', 'line-width': 4.5, 'line-opacity': 0.55 } },
+  { id: 'gl-draw-polygon-stroke', type: 'line',
+    filter: ['all', ['==', '$type', 'Polygon']],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': '#F5C25E', 'line-width': 2 } },
+  // Midpoints: cream bead with dark stroke.
+  { id: 'gl-draw-midpoint', type: 'circle',
+    filter: ['all', ['==', 'meta', 'midpoint'], ['==', '$type', 'Point']],
+    paint: { 'circle-radius': 4, 'circle-color': '#FFF4E0',
+             'circle-stroke-color': '#0A0E1C', 'circle-stroke-width': 1.25 } },
+  // Dark halo under every vertex for contrast over bright imagery.
+  { id: 'gl-draw-vertex-halo', type: 'circle',
+    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
+    paint: { 'circle-radius': 8, 'circle-color': '#0A0E1C', 'circle-opacity': 0.45 } },
+  // Unselected vertex: honey fill, cream ring.
+  { id: 'gl-draw-vertex-inactive', type: 'circle',
+    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'active', 'true']],
+    paint: { 'circle-radius': 5.5, 'circle-color': '#F5C25E',
+             'circle-stroke-color': '#FFF4E0', 'circle-stroke-width': 1.25 } },
+  // Selected vertex (tapped): inverted + larger so the select state is obvious —
+  // cream fill, thick honey ring.
+  { id: 'gl-draw-vertex-active', type: 'circle',
+    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['==', 'active', 'true']],
+    paint: { 'circle-radius': 7.5, 'circle-color': '#FFF4E0',
+             'circle-stroke-color': '#F5C25E', 'circle-stroke-width': 3 } },
+];
+
+function _initEditDraw() {
+  if (typeof MapboxDraw === 'undefined') { console.warn('[edit] MapboxDraw unavailable'); return; }
+  if (!editDraw) {
+    editDraw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {},
+      touchEnabled: true,
+      touchBuffer: 25,
+      keybindings: false,        // we own Delete/Backspace + undo keys (focus-independent)
+      suppressAPIEvents: true,   // programmatic add/deleteAll (seed/undo/snap) must NOT fire draw.*
+      styles: EDIT_DRAW_STYLES,
+    });
+  }
+  if (!_editDrawAdded) { map.addControl(editDraw); _editDrawAdded = true; }
+  // Re-bind defensively (style swaps re-run _initEditDraw). update/create/delete
+  // all funnel through _onDrawChange (multi-area: reads ALL features).
+  ['draw.update', 'draw.create', 'draw.delete'].forEach(ev => { map.off(ev, _onDrawChange); map.on(ev, _onDrawChange); });
+  map.off('draw.selectionchange', _onDrawSelectionChange); map.on('draw.selectionchange', _onDrawSelectionChange);
+  if (!_editKeysBound) { document.addEventListener('keydown', _onEditKeydown); _editKeysBound = true; }
+}
+
+function _teardownEditDraw() {
+  if (editDraw) {
+    ['draw.update', 'draw.create', 'draw.delete'].forEach(ev => map.off(ev, _onDrawChange));
+    map.off('draw.selectionchange', _onDrawSelectionChange);
+    if (_editDrawAdded) { try { map.removeControl(editDraw); } catch (_) {} _editDrawAdded = false; }
+  }
+  _editDrawFeatureId = null;
+}
+
+/** Deep-clone a ring LIST ([lat,lng][][]). */
+function _cloneRings(rings) {
+  return Array.isArray(rings) ? rings.map(r => r.map(([a, b]) => [a, b])) : [];
+}
+
+/** Read all polygon features currently in GL Draw as a ring list [lat,lng][][]. */
+function _drawRings() {
+  if (!editDraw || !_editDrawAdded) return [];
+  let fc; try { fc = editDraw.getAll(); } catch (_) { return []; }
+  const rings = [];
+  for (const f of (fc?.features || [])) {
+    if (f.geometry?.type !== 'Polygon') continue;
+    const r = _latLngFromDrawFeature(f);
+    if (r.length >= 3) rings.push(r);
+  }
+  return rings;
+}
+
+/** Replace ALL GL Draw features with one per ring (multi-area). Programmatic
+ *  (suppressAPIEvents) so it fires no draw.*. Mode: 1 ring → direct_select
+ *  (immediate vertex edit); >1 → simple_select (tap an area to edit it). */
+function _reseedDrawGeometry(rings) {
+  if (!editDraw || !_editDrawAdded) return;
+  editDraw.deleteAll();
+  _editDrawFeatureId = null;
+  const list = (typeof asRings === 'function') ? asRings(rings) : (Array.isArray(rings) ? rings : []);
+  const ids = [];
+  for (const r of list) {
+    const gj = _drawRingFromLatLng(r);
+    if (gj.length < 4) continue;
+    try {
+      const added = editDraw.add({ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [gj] } });
+      if (added && added[0]) ids.push(added[0]);
+    } catch (e) { console.warn('[edit] GL Draw seed failed', e); }
+  }
+  try {
+    if (ids.length === 1)      { _editDrawFeatureId = ids[0]; editDraw.changeMode('direct_select', { featureId: ids[0] }); }
+    else if (ids.length > 1)   editDraw.changeMode('simple_select', { featureIds: ids });
+    else                       editDraw.changeMode('simple_select');
+  } catch (_) {}
+}
+
+/** Seed GL Draw from the venue's active-type rings (new baseline: resets undo). */
+function _syncDrawFromVenue(v) {
+  if (!editDraw || !_editDrawAdded || !v) return;
+  let rings = [];
+  try { rings = getActivePolygons(v).rings; } catch (_) {}
+  _reseedDrawGeometry(rings);
+  _editUndoStack = [];
+  _editRedoStack = [];
+  _updateEditToolButtons();
+}
+
+/** Closest point on segment AB to P (pixel space). */
+function _closestPointOnSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1;
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return { x: ax + t * dx, y: ay + t * dy };
+}
+
+/** Snap one ring's vertices within SNAP_PX of a building wall onto it. Vertices
+ *  already on the wall (sub-pixel) are left untouched so the wall-side edge
+ *  doesn't churn. Returns { changed, ring }. */
+function _snapRingToWalls(v, ring) {
+  const walls = v?.wallNormals;
+  if (!Array.isArray(walls) || !walls.length) return { changed: false, ring };
+  const SNAP_PX = 12;
+  let changed = false;
+  const out = ring.map(([lat, lng]) => {
+    const p = map.project([lng, lat]);
+    let best = null, bestD = SNAP_PX;
+    for (const w of walls) {
+      const a = map.project([w.aLng, w.aLat]);
+      const b = map.project([w.bLng, w.bLat]);
+      const c = _closestPointOnSeg(p.x, p.y, a.x, a.y, b.x, b.y);
+      const d = Math.hypot(p.x - c.x, p.y - c.y);
+      if (d < bestD) { bestD = d; best = c; }
+    }
+    if (best && Math.hypot(p.x - best.x, p.y - best.y) > 0.75) {
+      changed = true;
+      const ll = map.unproject([best.x, best.y]);
+      return [ll.lat, ll.lng];
+    }
+    return [lat, lng];
+  });
+  return { changed, ring: changed ? out : ring };
+}
+
+/** A USER edit committed (vertex move, midpoint add, new area, aborted draw).
+ *  Snapshot for undo, snap street rings IN PLACE (preserves mode/selection),
+ *  write ALL rings back to the venue, recompute. */
+function _onDrawChange() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+
+  // Undo: snapshot pre-edit rings; a fresh edit clears redo.
+  const prev = (() => { try { return getActivePolygons(v).rings; } catch (_) { return []; } })();
+  _editUndoStack.push(_cloneRings(prev));
+  if (_editUndoStack.length > 50) _editUndoStack.shift();
+  _editRedoStack = [];
+
+  // Read every feature; snap street rings to walls in place (by id → keeps mode).
+  const isStreet = (v.terraceType ?? 'street') === 'street';
+  let fc; try { fc = editDraw.getAll(); } catch (_) { fc = null; }
+  const rings = [];
+  for (const f of (fc?.features || [])) {
+    if (f.geometry?.type !== 'Polygon') continue;
+    let ring = _latLngFromDrawFeature(f);
+    if (ring.length < 3) continue;
+    if (isStreet) {
+      const r = _snapRingToWalls(v, ring);
+      if (r.changed) {
+        ring = r.ring;
+        try { editDraw.add({ id: f.id, type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [_drawRingFromLatLng(ring)] } }); } catch (_) {}
+      }
+    }
+    rings.push(ring);
+  }
+
+  // Auto-type from placement (best-effort) — unless the admin picked a type this
+  // session or it's rooftop. Runs per drag-commit so the label follows where the
+  // polygon sits (street ↔ courtyard ↔ detached). Dropdown choice always wins.
+  if (!_editTypeManual && (v.terraceType ?? 'street') !== 'rooftop' && typeof classifyTerraceType === 'function') {
+    const at = classifyTerraceType(v, rings);
+    if (at && at !== (v.terraceType ?? 'street')) {
+      v.terraceType = at;
+      if (at !== 'courtyard') v.courtyardPolygon       = null;   // keep only the active field populated
+      if (at !== 'detached')  v.detachedPolygon        = null;
+      if (at !== 'street')    v.seatingPolygonOverride = null;
+      if (typeof _syncTerraceTypeUI === 'function') _syncTerraceTypeUI(at);
+    }
+  }
+
+  setActivePolygons(v, rings);
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  _setEditChanged();
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _updateEditToolButtons();
+  draw();
+}
+
+/** Apply a ring-list snapshot to the venue + GL Draw (undo/redo/delete/reseed).
+ *  Does NOT touch the undo/redo stacks. */
+function _applyRingsToEditor(v, rings) {
+  setActivePolygons(v, rings);
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  _reseedDrawGeometry(rings);
+  _setEditChanged();
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _updateEditToolButtons();
+  draw();
+}
+
+function editUndo() {
+  if (!_editUndoStack.length || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  let current = []; try { current = getActivePolygons(v).rings; } catch (_) {}
+  _editRedoStack.push(_cloneRings(current));
+  _applyRingsToEditor(v, _editUndoStack.pop());
+}
+
+function editRedo() {
+  if (!_editRedoStack.length || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  let current = []; try { current = getActivePolygons(v).rings; } catch (_) {}
+  _editUndoStack.push(_cloneRings(current));
+  _applyRingsToEditor(v, _editRedoStack.pop());
+}
+
+/** "+ område": drop a default ~6 m square at the current map centre as a new
+ *  seating area, then enter direct_select on it so it's immediately editable.
+ *  (No draw mode → nothing to cancel; the user drags/resizes the square.) */
+function editAddArea() {
+  if (!editDraw || !_editDrawAdded || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  if ((v.terraceType ?? 'street') === 'rooftop') return;
+  if (typeof _seedSquarePolygon !== 'function') return;
+  const c = map.getCenter();
+  const sq = _seedSquarePolygon(c.lat, c.lng, 6);   // [lat,lng][]
+  let current = []; try { current = getActivePolygons(v).rings; } catch (_) {}
+  _editUndoStack.push(_cloneRings(current)); if (_editUndoStack.length > 50) _editUndoStack.shift();
+  _editRedoStack = [];
+  _applyRingsToEditor(v, current.concat([sq]));
+  // Focus the just-added area (last feature) for immediate vertex editing.
+  try {
+    const feats = editDraw.getAll().features;
+    const last = feats[feats.length - 1];
+    if (last) editDraw.changeMode('direct_select', { featureId: last.id });
+  } catch (_) {}
+}
+
+/** Delete the currently-selected vertex (or vertices). Vertex-only — keeps each
+ *  ring ≥3. Whole-area deletion is the dedicated trash button (editDeleteArea),
+ *  so Delete/Backspace can't accidentally nuke an area you're editing. */
+function editDeleteSelectedVertex() {
+  if (!editDraw || !_editDrawAdded || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  let rings = []; try { rings = getActivePolygons(v).rings; } catch (_) {}
+  if (!rings.length) return;
+  // getSelectedPoints() returns features with ONLY geometry.coordinates ([lng,lat])
+  // — no coord_path. Match those coords against the rings to find which to drop.
+  let sel = null; try { sel = editDraw.getSelectedPoints(); } catch (_) {}
+  const selCoords = (sel?.features || [])
+    .map(f => f.geometry && f.geometry.coordinates)
+    .filter(c => Array.isArray(c) && c.length >= 2);
+  if (!selCoords.length) return;
+  const EPS = 1e-6;
+  const next = rings.map(ring => {
+    const drop = new Set();
+    for (const c of selCoords) {
+      const lng = c[0], lat = c[1];
+      for (let i = 0; i < ring.length; i++) {
+        if (drop.has(i)) continue;
+        if (Math.abs(ring[i][0] - lat) < EPS && Math.abs(ring[i][1] - lng) < EPS) { drop.add(i); break; }
+      }
+    }
+    return (drop.size && ring.length - drop.size >= 3) ? ring.filter((_, i) => !drop.has(i)) : ring;
+  });
+  if (JSON.stringify(next) === JSON.stringify(rings)) return;   // nothing deletable (would break ≥3)
+  _editUndoStack.push(_cloneRings(rings)); if (_editUndoStack.length > 50) _editUndoStack.shift();
+  _editRedoStack = [];
+  _applyRingsToEditor(v, next);
+}
+
+/** Delete the whole selected/active AREA (trash button). Keeps ≥1 area. */
+function editDeleteArea() {
+  if (!editDraw || !_editDrawAdded || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  let rings = []; try { rings = getActivePolygons(v).rings; } catch (_) {}
+  if (rings.length <= 1) return;                 // keep at least one area
+  let ids = []; try { ids = editDraw.getSelectedIds() || []; } catch (_) {}
+  if (!ids.length) return;                        // tap an area first
+  _editUndoStack.push(_cloneRings(rings)); if (_editUndoStack.length > 50) _editUndoStack.shift();
+  _editRedoStack = [];
+  try { editDraw.delete(ids); } catch (_) {}      // suppressed → no draw.delete
+  const remaining = _drawRings();
+  if (!remaining.length) { _editUndoStack.pop(); _reseedDrawGeometry(rings); return; }  // never empty
+  setActivePolygons(v, remaining);
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  _setEditChanged();
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _updateEditToolButtons();
+  draw();
+}
+
+/** Selection changed. In simple_select, tapping a single area enters
+ *  direct_select so its vertices become editable immediately. Mode-guarded so
+ *  the resulting selection event can't loop. Also refreshes button states. */
+function _onDrawSelectionChange() {
+  if (editDraw && _editDrawAdded) {
+    try {
+      if (editDraw.getMode() === 'simple_select') {
+        const ids = editDraw.getSelectedIds() || [];
+        if (ids.length === 1) editDraw.changeMode('direct_select', { featureId: ids[0] });
+      }
+    } catch (_) {}
+  }
+  _updateEditToolButtons();
+}
+
+/** Undo / redo / delete button enabled states. Delete is enabled when a ring has
+ *  > 3 vertices (a vertex is removable) OR there's more than one area (an area is
+ *  removable); the actual target is the live selection. */
+function _updateUndoRedoButtons() {
+  const u = document.getElementById('edit-undo-btn');
+  const r = document.getElementById('edit-redo-btn');
+  if (u) u.disabled = _editUndoStack.length === 0;
+  if (r) r.disabled = _editRedoStack.length === 0;
+  const rings = _drawRings();
+  const dv = document.getElementById('edit-del-vertex-btn');   // delete a vertex
+  if (dv) dv.disabled = !(editingVenueId && rings.some(r2 => r2.length > 3));
+  const da = document.getElementById('edit-del-area-btn');     // delete whole area
+  if (da) da.disabled = !(editingVenueId && rings.length > 1);
+}
+
+/** Keyboard: Delete/Backspace removes the selected vertex/area; Cmd/Ctrl+Z undo,
+ *  Cmd/Ctrl+Shift+Z (or Ctrl+Y) redo. Active only while editing, never in inputs. */
+function _onEditKeydown(e) {
+  if (!editingVenueId) return;
+  const tag = (e.target?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
+  const meta = e.metaKey || e.ctrlKey;
+  if (meta && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); e.shiftKey ? editRedo() : editUndo(); return; }
+  if (meta && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); editRedo(); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); editDeleteSelectedVertex(); }
+}
+
 function toggleEditSatellite() {
+  if (_bldgPickActive) _editPickBuildingStop();   // its layers would be wiped by setStyle
   editSatelliteActive = !editSatelliteActive;
   document.body.classList.toggle('edit-satellite', editSatelliteActive);
   _syncMapToggleSwitch();
+  // setStyle wipes GL Draw's sources/layers — remove the control, swap the
+  // style, then re-add and re-seed the current venue once the new style is live.
+  _teardownEditDraw();
   map.setStyle(editSatelliteActive
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
     : buildShadeStyle()
   );
+  map.once('style.load', () => {
+    _initEditDraw();
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) _syncDrawFromVenue(v);
+  });
 }
 
 /** Sync the segmented map-mode switch (Satellitt ↔ 3D-kart) with the active state.
@@ -4885,6 +5330,8 @@ function resetEditPolygonToAI() {
   sunWindowCache.clear();
   dispatchToWorker(datePicker.value);
   _setEditChanged();
+  // Re-seed GL Draw from the reverted state (AI / wall-derived).
+  _syncDrawFromVenue(v);
   _updateEditToolButtons();
   draw();
 }
@@ -4926,6 +5373,28 @@ function mergeEditPolygons() {
   draw();
 }
 
+/** "Vis AI-forslag": adopt the AI-detected polygon(s) as the working override so
+ *  the admin can review/keep them. The reliable wall-derived shape is the default
+ *  (getActivePolygons); this is the opt-in path to the AI proposal. "Fra vegg" is
+ *  the inverse (clear override → re-derive from wall). */
+function adoptAiProposal() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  const ai = (typeof asRings === 'function') ? asRings(v.seatingPolygonAi) : [];
+  if (!ai.length) return;
+  setActivePolygons(v, ai);
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _setEditChanged();
+  _syncDrawFromVenue(v);
+  _updateEditToolButtons();
+  draw();
+}
+
 /** Cancel button: discard changes, exit edit mode without submitting. */
 function cancelEditMode() {
   if (editingVenueId && _editBeforeSnapshot) {
@@ -4941,7 +5410,10 @@ function cancelEditMode() {
 }
 
 function exitEditMode() {
+  if (_bldgPickActive) _editPickBuildingStop();
   if (!_navHandlingPop) _navDropLayer('edit');
+  // Release the soft edit-lock so other admins can take this venue.
+  if (typeof auditStorePresenceClear === 'function') auditStorePresenceClear();
   // Detect and record corrections before clearing state
   if (editingVenueId && _editBeforeSnapshot) {
     const v    = VENUES.find(x => x.id === editingVenueId);
@@ -4993,6 +5465,14 @@ function exitEditMode() {
   // Reset vertex-tool state so the next edit session starts fresh.
   if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
+  // Tear down GL Draw before swapping styles (setStyle would orphan its layers)
+  // and restore the canvas overlay's interactive default so pin hit-testing works.
+  _teardownEditDraw();
+  const _coExit = document.getElementById('canvas-overlay');
+  if (_coExit) {
+    const _touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    _coExit.style.pointerEvents = _editPriorCanvasPE || (_touch ? 'none' : 'auto');
+  }
   if (editSatelliteActive) {
     editSatelliteActive = false;
     map.setStyle(buildShadeStyle());
@@ -5063,18 +5543,194 @@ function onEditActionBtn() {
   }
   // Commit current venue, then jump straight to the next one to review.
   _commitEditForAudit();
-  // Null the snapshot so exitEditMode (below / via back button) won't re-commit.
+  _auditAdvanceFromEditor();
+}
+
+/** Advance the audit walk to the next unreviewed venue without tearing down the
+ *  editor; exit (with a toast) when the queue is empty. Shared by the primary
+ *  action, "Usikker", and "Arkivér". Clears the snapshot so exit won't re-commit. */
+function _auditAdvanceFromEditor() {
   const currentId = editingVenueId;
+  // Remember the venue we just acted on so Back can return + undo its verdict.
+  if (currentId != null) { _auditHistory.push(currentId); if (_auditHistory.length > 50) _auditHistory.shift(); }
   _editBeforeSnapshot = null;
   _editHasChanges = false;
-  const nextId = _nextUnreviewedVenueId(currentId);
-  if (nextId != null) {
-    _loadVenueIntoEditor(nextId);
-    return;
-  }
+  const nextId = (typeof _nextUnreviewedVenueId === 'function') ? _nextUnreviewedVenueId(currentId) : null;
+  if (nextId != null) { _loadVenueIntoEditor(nextId); return; }
   _updateAuditProgress();
   if (typeof showMapToast === 'function') showMapToast('Alle steder gjennomgått 🎉', 2800);
   exitEditMode();
+}
+
+/** "Usikker": mark the venue reviewed-but-uncertain (counts as done, filterable,
+ *  no polygon bake) and advance. */
+function editMarkUnsure() {
+  if (!editingVenueId) return;
+  if (typeof markVenueAudited === 'function') markVenueAudited(editingVenueId, 'unsure');
+  _auditAdvanceFromEditor();
+}
+
+/** "Arkivér": reveal the archive-reason chips in the edit sheet (toggle). */
+function editArchiveVenue() {
+  const box = document.getElementById('edit-archive-reasons');
+  if (!box) return;
+  if (!box.hidden) { box.hidden = true; box.innerHTML = ''; return; }
+  box.innerHTML = '';
+  const reasons = (typeof AUDIT_ARCHIVE_REASONS !== 'undefined') ? AUDIT_ARCHIVE_REASONS : { other: 'Annet' };
+  Object.entries(reasons).forEach(([k, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'edit-reason-chip';
+    b.textContent = label;
+    b.addEventListener('click', () => _editArchiveWithReason(k));
+    box.appendChild(b);
+  });
+  box.hidden = false;
+}
+
+function _editArchiveWithReason(reason) {
+  if (!editingVenueId) return;
+  const box = document.getElementById('edit-archive-reasons');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+  if (typeof archiveVenue === 'function') archiveVenue(editingVenueId, reason);
+  _auditAdvanceFromEditor();
+}
+
+/** "Street View": open the Google Street View panorama at the venue's point. */
+function openStreetView() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  // Google's venue point usually sits INSIDE the building, so a bare viewpoint
+  // snaps to whatever pano is nearest (sometimes an interior 360). Offset ~22 m
+  // outward along the terrace facing (toward the street) and aim the camera back
+  // at the building, so it opens on a street-level pano looking at the venue.
+  const d = 22;
+  const br = (v.facing ?? 0) * Math.PI / 180;
+  const lat2 = v.lat + Math.cos(br) * d / 111320;
+  const lng2 = v.lng + Math.sin(br) * d / (111320 * Math.cos(v.lat * Math.PI / 180));
+  const heading = (((v.facing ?? 0) + 180) % 360 + 360) % 360;
+  const url = 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat2 + ',' + lng2 + '&heading=' + heading;
+  try {
+    if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.Plugins?.Browser?.open) {
+      window.Capacitor.Plugins.Browser.open({ url });
+    } else {
+      window.open(url, '_blank', 'noopener');
+    }
+  } catch (_) { try { window.open(url, '_blank', 'noopener'); } catch (__) {} }
+}
+
+// ── "Feil bygning": re-associate the venue with the correct building ──────────
+// nearbyBuildings (footprints within ~150 m) are already on every venue. Render
+// them as a tappable Mapbox fill layer; tapping one re-points the venue's
+// buildingGeometry/wallNormals (rooftop centroid + street walls re-derive).
+let _bldgPickActive = false;
+const _BLDG_PICK_SRC  = 'edit-bldg-pick-src';
+const _BLDG_PICK_FILL = 'edit-bldg-pick-fill';
+const _BLDG_PICK_LINE = 'edit-bldg-pick-line';
+
+function editPickBuildingToggle() {
+  if (_bldgPickActive) { _editPickBuildingStop(); return; }
+  _editPickBuildingStart();
+}
+
+function _editPickBuildingStart() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  const nb = v && Array.isArray(v.nearbyBuildings) ? v.nearbyBuildings : [];
+  const features = nb.map((b, i) => {
+    const ring = (b.geometry || []).map(n => [n.lon, n.lat]);
+    if (ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) ring.push(ring[0]);
+    return { type: 'Feature', properties: { _idx: i }, geometry: { type: 'Polygon', coordinates: [ring] } };
+  }).filter(f => f.geometry.coordinates[0].length >= 4);
+  if (!features.length) {
+    if (typeof showMapToast === 'function') showMapToast('Ingen nærliggende bygninger funnet', 2200);
+    return;
+  }
+  try {
+    _editPickBuildingRemoveLayers();
+    map.addSource(_BLDG_PICK_SRC, { type: 'geojson', data: { type: 'FeatureCollection', features } });
+    map.addLayer({ id: _BLDG_PICK_FILL, type: 'fill', source: _BLDG_PICK_SRC,
+      paint: { 'fill-color': '#F5C25E', 'fill-opacity': 0.28 } });
+    map.addLayer({ id: _BLDG_PICK_LINE, type: 'line', source: _BLDG_PICK_SRC,
+      paint: { 'line-color': '#F5C25E', 'line-width': 2 } });
+    map.on('click', _BLDG_PICK_FILL, _onPickBuildingClick);
+    map.on('mouseenter', _BLDG_PICK_FILL, _bldgPickCursorOn);
+    map.on('mouseleave', _BLDG_PICK_FILL, _bldgPickCursorOff);
+  } catch (e) { console.warn('[edit] building-pick layer failed', e); return; }
+  _bldgPickActive = true;
+  document.getElementById('edit-pick-bldg-btn')?.classList.add('active');
+  if (typeof showMapToast === 'function') showMapToast('Trykk på riktig bygning («Feil bygning» igjen for å avbryte)', 3000);
+}
+
+function _editPickBuildingRemoveLayers() {
+  try { if (map.getLayer(_BLDG_PICK_LINE)) map.removeLayer(_BLDG_PICK_LINE); } catch (_) {}
+  try { if (map.getLayer(_BLDG_PICK_FILL)) map.removeLayer(_BLDG_PICK_FILL); } catch (_) {}
+  try { if (map.getSource(_BLDG_PICK_SRC)) map.removeSource(_BLDG_PICK_SRC); } catch (_) {}
+}
+
+function _editPickBuildingStop() {
+  try {
+    map.off('click', _BLDG_PICK_FILL, _onPickBuildingClick);
+    map.off('mouseenter', _BLDG_PICK_FILL, _bldgPickCursorOn);
+    map.off('mouseleave', _BLDG_PICK_FILL, _bldgPickCursorOff);
+  } catch (_) {}
+  _editPickBuildingRemoveLayers();
+  _bldgPickCursorOff();
+  _bldgPickActive = false;
+  document.getElementById('edit-pick-bldg-btn')?.classList.remove('active');
+}
+
+function _bldgPickCursorOn()  { try { map.getCanvas().style.cursor = 'pointer'; } catch (_) {} }
+function _bldgPickCursorOff() { try { map.getCanvas().style.cursor = ''; } catch (_) {} }
+
+function _onPickBuildingClick(e) {
+  const f = e.features && e.features[0];
+  const idx = f && f.properties ? f.properties._idx : null;
+  if (idx != null) _editPickBuildingApply(idx);
+}
+
+function _editPickBuildingApply(idx) {
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v || !Array.isArray(v.nearbyBuildings)) { _editPickBuildingStop(); return; }
+  const b = v.nearbyBuildings[idx];
+  if (!b || !Array.isArray(b.geometry) || b.geometry.length < 3) { _editPickBuildingStop(); return; }
+  // Re-point the venue at the chosen building footprint + recompute walls.
+  v.buildingGeometry = b.geometry.map(n => ({ lat: n.lat, lon: n.lon }));
+  if (typeof getWallNormals === 'function') v.wallNormals = getWallNormals(v.buildingGeometry);
+  // The previous terrace/override belonged to the wrong building — clear so the
+  // terrace re-derives from the new walls (rooftop centroid re-derives too).
+  v.terraceWallIndices = [];
+  v.autoTerraceWallIndices = null;
+  v.seatingPolygonOverride = null;
+  // Facing = bearing of the wall nearest the venue point (old default heuristic).
+  if (Array.isArray(v.wallNormals) && v.wallNormals.length) {
+    let best = null, bestD = Infinity;
+    for (const w of v.wallNormals) {
+      const d = (w.my - v.lat) * (w.my - v.lat) + (w.mx - v.lng) * (w.mx - v.lng);
+      if (d < bestD) { bestD = d; best = w; }
+    }
+    if (best) { v.facing = Math.round(best.bearing); v.facingSource = 'manual'; v.wallSegment = best; }
+  }
+  if (typeof computeTerraceTestPoints === 'function') v.terraceTestPoints = computeTerraceTestPoints(v, null);
+  saveFacingCache(v.id, v.facing, v.facingSource ?? 'manual', v.terraceWallIndices, v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd, null);
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _setEditChanged();
+  _editPickBuildingStop();
+  _syncDrawFromVenue(v);
+  // Re-frame on the new building.
+  if (v.buildingGeometry.length) {
+    const lats = v.buildingGeometry.map(n => n.lat), lons = v.buildingGeometry.map(n => n.lon);
+    try {
+      map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
+        { padding: 110, maxZoom: 19, duration: 600 });
+    } catch (_) {}
+  }
+  _updateEditToolButtons();
+  draw();
+  if (typeof showMapToast === 'function') showMapToast('Bygning oppdatert', 1800);
 }
 
 function _setEditChanged() {
@@ -5106,40 +5762,56 @@ function _updateEditToolButtons() {
   if (!editingVenueId) return;
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v) return;
+  const type = v.terraceType ?? 'street';
 
-  // Tilbakestill: visible when there's an override that differs from the AI / wall-derived default.
+  // Tilbakestill: visible when a manual override exists (something to reset).
   const resetBtn = document.getElementById('edit-reset-ai-btn');
   if (resetBtn) {
-    const hasOverride = !!v.seatingPolygonOverride
-      || !!v.courtyardPolygon
-      || !!v.detachedPolygon;
+    const hasOverride = !!v.seatingPolygonOverride || !!v.courtyardPolygon || !!v.detachedPolygon;
     resetBtn.hidden = !hasOverride;
   }
 
-  // Slå sammen: visible when the wall-derived preview yields ≥ 2 chains
-  // (i.e. user selected non-adjacent walls). Once a polygon override exists
-  // there's only one polygon, so the button hides automatically.
-  const mergeBtn = document.getElementById('edit-merge-btn');
-  if (mergeBtn) {
-    let chains = 0;
-    if ((v.terraceType ?? 'street') === 'street' && !v.seatingPolygonOverride
-        && typeof getTerraceWalls === 'function'
-        && typeof terracePolygons === 'function') {
-      const walls = getTerraceWalls(v);
-      if (walls.length) {
-        const depthPx = getEffectiveDepth(v) * pxPerMetre(v);
-        chains = terracePolygons(v, walls, depthPx).length;
-      }
-    }
-    mergeBtn.hidden = chains < 2;
+  // "Fra vegg": re-derive the terrace polygon from the building walls + depth.
+  // Street only — courtyard/detached/rooftop have no wall model.
+  const wallBtn = document.getElementById('edit-from-wall-btn');
+  if (wallBtn) wallBtn.hidden = (type !== 'street');
+
+  // "+ område": rooftop has no editable polygon model — hide there.
+  const addBtn = document.getElementById('edit-add-area-btn');
+  if (addBtn) addBtn.hidden = (type === 'rooftop');
+
+  // "Vis AI-forslag": street venues that carry an AI proposal (the editor now
+  // defaults to the wall-derived shape; AI is opt-in).
+  const aiBtn = document.getElementById('edit-show-ai-btn');
+  if (aiBtn) {
+    const hasAi = (typeof asRings === 'function') ? asRings(v.seatingPolygonAi).length : 0;
+    aiBtn.hidden = !(type === 'street' && hasAi);
   }
 
-  // Hjørne add/del chips: only meaningful for editable polygon types
-  const type = v.terraceType ?? 'street';
-  const polyEditable = type === 'street' || type === 'courtyard' || type === 'detached';
-  ['edit-add-vertex-btn', 'edit-del-vertex-btn'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.hidden = !polyEditable;
-  });
+  _updateUndoRedoButtons();
+}
+
+/** "Fra vegg" button: re-derive a street terrace from its building wall(s) +
+ *  depth, baking the result into seatingPolygonOverride, then re-seed GL Draw.
+ *  This is the escape hatch back to the wall-derived shape after free editing. */
+function reseedStreetFromWall() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v || (v.terraceType ?? 'street') !== 'street') return;
+  v.seatingPolygonOverride = null;
+  const baked = (typeof bakeStreetPolygon === 'function') ? bakeStreetPolygon(v) : false;
+  if (!baked && typeof computeTerraceTestPoints === 'function') {
+    v.terraceTestPoints = computeTerraceTestPoints(v, null);
+  }
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _setEditChanged();
+  _syncDrawFromVenue(v);
+  _updateEditToolButtons();
+  draw();
 }
 
 function selectWallByIdx(idx) {
@@ -5154,13 +5826,23 @@ function selectWallByIdx(idx) {
     v.terraceWallIndices.push(idx);        // add
   }
 
+  // Street is wall-driven: re-picking walls rebuilds the polygon from
+  // walls + depth, so drop any baked free-vertex override and let it re-derive.
+  if (v.seatingPolygonOverride) {
+    v.seatingPolygonOverride = null;
+    if (typeof computeTerraceTestPoints === 'function') {
+      v.terraceTestPoints = computeTerraceTestPoints(v, null);
+    }
+  }
+
   // Primary wall = first selected; fallback to index 0
   const primaryIdx = v.terraceWallIndices[0] ?? 0;
   v.wallSegment    = v.wallNormals[primaryIdx];
   v.facing         = v.terraceWallIndices.length > 0 ? Math.round(v.wallSegment.bearing) : v.facing;
   v.facingSource   = 'manual';
 
-  saveFacingCache(v.id, v.facing, 'manual', v.terraceWallIndices, v.terraceDepth ?? 7);
+  saveFacingCache(v.id, v.facing, 'manual', v.terraceWallIndices, v.terraceDepth ?? 7,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd, null);
   clearSpriteCache();
   sunWindowCache.clear();
   _setEditChanged();
@@ -5205,7 +5887,7 @@ function _wireTypeDropdown() {
     li.addEventListener('click', e => {
       e.stopPropagation();
       const v = li.dataset.value;
-      if (v) setTerraceType(v);
+      if (v) { _editTypeManual = true; setTerraceType(v); }   // manual pick wins over auto-type
       _toggleTypeDropdown(false);
     });
   });
@@ -5260,6 +5942,8 @@ function setTerraceType(type) {
     v.terraceWallIndices, v.terraceDepth, v.noiseScore, type, v.terraceDetachedLocation);
   sunWindowCache.clear();
   dispatchToWorker(datePicker.value);
+  // Re-seed GL Draw from the (re-)derived polygon for the new type.
+  _syncDrawFromVenue(v);
   draw();
   renderList();
 }

@@ -40,10 +40,14 @@
 <link rel="preconnect" href="https://api.mapbox.com" crossorigin>
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css"></noscript>
+<!-- Mapbox GL Draw — admin polygon editor only; controls hidden, geometry styled via EDIT_DRAW_STYLES (app.js). -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.5.1/dist/mapbox-gl-draw.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.5.1/dist/mapbox-gl-draw.css"></noscript>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" href="https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2" as="font" type="font/woff2" crossorigin>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script defer src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.5.1/dist/mapbox-gl-draw.js"></script>
 <script>
   // Invite-loading gate: when the URL is an invite link (/i/<token>, /s/<id>,
   // or #invite/<token>), hide the map's first paint so the receiver doesn't
@@ -117,25 +121,26 @@
 <script defer src="js/places.js?v=20260519p"></script>
 <script defer src="js/busyness.js?v=20260411b"></script>
 <script defer src="js/solar.js?v=20260411b"></script>
-<script defer src="js/data.js?v=20260519p"></script>
+<script defer src="js/data.js?v=20260528g"></script>
 <script defer src="js/weather.js?v=20260525m"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260528d"></script>
-<script defer src="js/render-helpers.js?v=20260527a"></script>
-<script defer src="js/render-seating.js?v=20260519b"></script>
-<script defer src="js/render-editor.js?v=20260527a"></script>
-<script defer src="js/render-pins.js?v=20260527a"></script>
-<script defer src="js/ui-shared.js?v=20260528c"></script>
-<script defer src="js/ui-list.js?v=20260528e"></script>
+<script defer src="js/app.js?v=20260528r"></script>
+<script defer src="js/render-helpers.js?v=20260528r"></script>
+<script defer src="js/render-seating.js?v=20260528r"></script>
+<script defer src="js/render-editor.js?v=20260528r"></script>
+<script defer src="js/render-pins.js?v=20260528r"></script>
+<script defer src="js/ui-shared.js?v=20260528r"></script>
+<script defer src="js/ui-list.js?v=20260528r"></script>
 <script defer src="js/admin-review.js?v=20260527b"></script>
-<script defer src="js/admin-audit.js?v=20260527d"></script>
+<script defer src="js/admin-audit.js?v=20260528i"></script>
+<script defer src="js/audit-store.js?v=20260528g"></script>
 <script defer src="js/ui-shelter.js?v=20260522zm"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260528q"></script>
 <script defer src="js/ui-plan-preview.js?v=20260525z"></script>
-<script defer src="js/osm.js?v=20260519p"></script>
+<script defer src="js/osm.js?v=20260528j"></script>
 <script defer src="js/notifications.js?v=20260527b"></script>
 <script defer src="js/push.js?v=20260518c"></script>
 <script defer src="js/lens-effects.js?v=20260521e"></script>
@@ -181,8 +186,8 @@
 <link rel="stylesheet" href="css/tokens.css?v=20260527r">
 <link rel="stylesheet" href="css/base.css?v=20260526q">
 <link rel="stylesheet" href="css/components-chrome.css?v=20260527e">
-<link rel="stylesheet" href="css/components-content.css?v=20260528g">
-<link rel="stylesheet" href="css/components-overlays.css?v=20260528q">
+<link rel="stylesheet" href="css/components-content.css?v=20260528r">
+<link rel="stylesheet" href="css/components-overlays.css?v=20260528r">
 
 <script type="application/ld+json">
 {
@@ -282,19 +287,32 @@
     <!-- EDIT FACING OVERLAY — all controls live inside the bottom sheet so
          nothing floats over the polygon work area. -->
     <!-- Floating polygon-tool stack — vertical, like the zoom jog (cream-frost).
-         Add angle / remove angle / reset. -->
+         GL Draw owns vertex add (drag a midpoint) / remove (select + Delete), so
+         only re-seed actions live here: reset to AI, derive-from-wall (street). -->
     <div id="edit-tools-float">
-      <button id="edit-add-vertex-btn" class="edit-tool-icon" onclick="toggleEditVertexMode('add')" aria-label="Legg til vinkel" title="Legg til vinkel">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <button id="edit-undo-btn" class="edit-tool-icon" onclick="editUndo()" aria-label="Angre" title="Angre (⌘Z)" disabled>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H8"/></svg>
       </button>
-      <button id="edit-del-vertex-btn" class="edit-tool-icon" onclick="toggleEditVertexMode('del')" aria-label="Fjern vinkel" title="Fjern vinkel">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <button id="edit-redo-btn" class="edit-tool-icon" onclick="editRedo()" aria-label="Gjør om" title="Gjør om (⌘⇧Z)" disabled>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H16"/></svg>
+      </button>
+      <button id="edit-add-area-btn" class="edit-tool-icon" onclick="editAddArea()" aria-label="Legg til område" title="Legg til seteområde">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="12" height="12" rx="1.5"/><path d="M19 14.5v6M16 17.5h6"/></svg>
+      </button>
+      <button id="edit-del-vertex-btn" class="edit-tool-icon" onclick="editDeleteSelectedVertex()" aria-label="Slett valgt punkt" title="Slett valgt punkt (Delete)" disabled>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8 12h8"/></svg>
+      </button>
+      <button id="edit-del-area-btn" class="edit-tool-icon" onclick="editDeleteArea()" aria-label="Slett område" title="Slett valgt område" disabled>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M10 7V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13"/></svg>
+      </button>
+      <button id="edit-from-wall-btn" class="edit-tool-icon" onclick="reseedStreetFromWall()" aria-label="Utled fra vegg" title="Utled terrasse fra bygningsvegg" hidden>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+      </button>
+      <button id="edit-show-ai-btn" class="edit-tool-icon" onclick="adoptAiProposal()" aria-label="Vis AI-forslag" title="Vis AI-forslag (overstyrer veggutledet)" hidden>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.7 4.8L18.5 9l-4.8 1.7L12 15l-1.7-4.3L5.5 9l4.8-1.2z"/><path d="M18 15l.7 2L21 17.7 19 18.4 18.3 20.5 17.5 18.4 15.5 17.7 17.5 17z"/></svg>
       </button>
       <button id="edit-reset-ai-btn" class="edit-tool-icon" onclick="resetEditPolygonToAI()" aria-label="Tilbakestill polygon" title="Tilbakestill til AI-detektert polygon" hidden>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/></svg>
-      </button>
-      <button id="edit-merge-btn" class="edit-tool-icon" onclick="mergeEditPolygons()" aria-label="Slå sammen polygoner" title="Slå sammen polygoner" hidden>
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v6a5 5 0 0 0 5 5 5 5 0 0 0 5-5V3"/><line x1="12" y1="14" x2="12" y2="21"/></svg>
       </button>
     </div>
 
@@ -322,6 +340,17 @@
             <span class="map-toggle-option" data-option="satellite">Satellitt</span>
           </button>
         </div>
+        <!-- Context tools: fix a wrong building match, or open Street View. -->
+        <div id="edit-context-row">
+          <button type="button" id="edit-pick-bldg-btn" class="edit-secondary-btn" onclick="editPickBuildingToggle()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M6 21V8l6-4 6 4v13"/><path d="M10 21v-5h4v5"/></svg>
+            <span>Feil bygning</span>
+          </button>
+          <button type="button" id="edit-streetview-btn" class="edit-secondary-btn" onclick="openStreetView()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="11" r="2.5"/><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/></svg>
+            <span>Street View</span>
+          </button>
+        </div>
         <!-- Flow: back · primary (commit+advance) · skip. (Polygon tools live
              in the floating vertical stack #edit-tools-float, like the zoom jog.) -->
         <div id="edit-action-row">
@@ -333,6 +362,18 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
           </button>
         </div>
+        <!-- Secondary verdicts (the primary "Ser bra ut" honey pill is above). -->
+        <div id="edit-verdict-row">
+          <button type="button" id="edit-unsure-btn" class="edit-secondary-btn" onclick="editMarkUnsure()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 3.4 2.3c-.8.4-1 .9-1 1.7"/><path d="M12 17h.01"/></svg>
+            <span>Usikker</span>
+          </button>
+          <button type="button" id="edit-archive-btn" class="edit-secondary-btn" onclick="editArchiveVenue()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18v4H3z"/><path d="M5 11v9h14v-9M9.5 15h5"/></svg>
+            <span>Arkivér</span>
+          </button>
+        </div>
+        <div id="edit-archive-reasons" hidden></div>
       </div>
     </div>
 
@@ -645,10 +686,6 @@
       <button id="audit-filter-toggle" type="button" class="panel-filter-pill" onclick="toggleAuditFilterPanel()" title="Filtrer steder">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
         <span>Filter</span><span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span>
-      </button>
-      <button id="audit-export-btn" type="button" class="panel-filter-pill" onclick="auditExport()" title="Last ned alle rettelser som JSON for AI-trening.">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span>Eksport</span><span id="audit-export-count" class="audit-filter-toggle-badge"></span>
       </button>
     </div>
     <div id="audit-filter-panel" class="audit-filter-panel" style="display:none"></div>
