@@ -12,15 +12,23 @@
  *      Google place via Text Search.
  *   Deduplicates by place_id across all passes.
  *
- * Coverage: anchor grid is built from data/oslo-candidates.json — one
- * anchor per 1.2 km cell with at least 2 candidates (~62 anchors covering
- * 97.5% of the OSM+Google universe). Falls back to a 20-point manual
- * list if the candidates file is missing.
+ * Coverage: two anchor grids are built from data/oslo-candidates.json.
+ *   - Nearby Search (Pass A) uses a FINE ~250 m grid (~200 anchors,
+ *     geometric cell-centre). Nearby Search v1 caps at 20 DISTANCE-ranked
+ *     results, so a coarse grid only checks outdoorSeating on the ~20
+ *     venues nearest each anchor and drops everything past ~140 m in dense
+ *     blocks. The fine grid puts an anchor within ~180 m of every venue.
+ *   - Text Search (Pass B) keeps the COARSE ~1.2 km grid (~62 anchors) —
+ *     it's a relevance search and fine tiling only multiplies cost.
+ *   Falls back to a 20-point manual list if the candidates file is missing.
+ *   Known residual: hyper-dense blocks where >20 food venues sit within
+ *   ~95 m of each other still exceed the 20-result cap; those rely on
+ *   Pass B/C signals.
  *
  * Usage:   node scripts/fetch-oslo-candidates.mjs   # refresh universe (free, OSM)
  *          node scripts/fetch-venues-places.mjs
  * Output:  data/venues-fetched.json  (review before merging)
- * Cost:    ~$15–25 (under the $200/mo free credit; run periodically)
+ * Cost:    ~$25–40 (under the $200/mo free credit; run periodically)
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -64,45 +72,80 @@ const SEED_ANCHORS = [
   { lat: 59.8750, lng: 10.7280, area: 'Nordstrand vest' },
 ];
 
-// Cell size (degrees) ≈ 1.2 km × 1.2 km at Oslo latitude.
+// Coarse grid (~1.2 km cells) — anchors for keyword Text Search (Pass B).
+// Text Search is a relevance search biased over a 1.35 km circle, so fine
+// tiling adds cost without coverage. Centroid anchors are fine here.
 const CELL_LAT = 0.011;
 const CELL_LNG = 0.022;
+// Fine grid (~250 m cells, geometric cell-centre anchors) — anchors for
+// Nearby Search (Pass A). Nearby Search v1 hard-caps at 20 results with no
+// pagination and ranks by DISTANCE, so each anchor only "sees" its 20
+// nearest neighbours — as little as ~140 m in dense blocks. A coarse,
+// centroid-positioned anchor drifts into the densest sub-cluster of its
+// cell and its 20-result window collapses, leaving every outdoorSeating
+// venue on the cell periphery unchecked and silently dropped (this is how
+// Frances — outdoorSeating=true, 337 m from its centroid anchor — fell
+// through all passes). A 250 m grid with geometric cell-centre anchors
+// puts an anchor within ~180 m of every venue and never drifts, well
+// inside the empirically-measured ~300 m catch radius.
+const FINE_CELL_LAT = 0.00225; // ~250 m
+const FINE_CELL_LNG = 0.0045;  // ~250 m
 const MIN_CANDIDATES_PER_CELL = 2;
 
-function buildSearchPoints() {
-  const candPath = join(ROOT, 'data/oslo-candidates.json');
-  let candidates;
-  try {
-    candidates = JSON.parse(readFileSync(candPath, 'utf8'));
-  } catch (_) {
-    console.warn('  oslo-candidates.json missing — using 20 seed anchors only.');
-    console.warn('  Run `node scripts/fetch-oslo-candidates.mjs` first for full coverage.\n');
-    return SEED_ANCHORS;
-  }
-
+/**
+ * Bin candidates into a lat/lng grid and emit one anchor per cell holding
+ * at least MIN_CANDIDATES_PER_CELL candidates.
+ *   anchorMode 'centroid' — mean of the cell's candidates (coarse grid).
+ *   anchorMode 'center'   — geometric cell centre (fine grid); immune to
+ *                           the centroid drift that collapsed Pass A
+ *                           coverage in mixed-density cells.
+ */
+function buildGrid(candidates, cellLat, cellLng, anchorMode) {
   const cells = new Map();
   for (const c of candidates) {
-    const key = `${Math.floor(c.lat / CELL_LAT)}|${Math.floor(c.lng / CELL_LNG)}`;
-    if (!cells.has(key)) cells.set(key, []);
-    cells.get(key).push(c);
+    const ky = Math.floor(c.lat / cellLat);
+    const kx = Math.floor(c.lng / cellLng);
+    const key = `${ky}|${kx}`;
+    if (!cells.has(key)) cells.set(key, { ky, kx, list: [] });
+    cells.get(key).list.push(c);
   }
-
   const points = [];
-  for (const list of cells.values()) {
+  for (const { ky, kx, list } of cells.values()) {
     if (list.length < MIN_CANDIDATES_PER_CELL) continue;
-    const lat = list.reduce((s, c) => s + c.lat, 0) / list.length;
-    const lng = list.reduce((s, c) => s + c.lng, 0) / list.length;
+    let lat, lng;
+    if (anchorMode === 'center') {
+      lat = (ky + 0.5) * cellLat;
+      lng = (kx + 0.5) * cellLng;
+    } else {
+      lat = list.reduce((s, c) => s + c.lat, 0) / list.length;
+      lng = list.reduce((s, c) => s + c.lng, 0) / list.length;
+    }
     const { area } = assignArea([lat, lng]);
     points.push({ lat, lng, area, candidateCount: list.length });
   }
   points.sort((a, b) => b.candidateCount - a.candidateCount);
-  console.log(`  Built ${points.length} dense anchors from ${candidates.length} candidates`);
-  console.log(`  (${CELL_LAT.toFixed(3)}° × ${CELL_LNG.toFixed(3)}° cells, min ${MIN_CANDIDATES_PER_CELL} candidates per cell)\n`);
   return points;
 }
 
-console.log('Building anchor grid…');
-const SEARCH_POINTS = buildSearchPoints();
+console.log('Building anchor grids…');
+let NEARBY_POINTS, KEYWORD_POINTS;
+{
+  let candidates = null;
+  try { candidates = JSON.parse(readFileSync(join(ROOT, 'data/oslo-candidates.json'), 'utf8')); }
+  catch (_) {}
+  if (!candidates) {
+    console.warn('  oslo-candidates.json missing — using 20 seed anchors for both passes.');
+    console.warn('  Run `node scripts/fetch-oslo-candidates.mjs` first for full coverage.\n');
+    NEARBY_POINTS  = SEED_ANCHORS;
+    KEYWORD_POINTS = SEED_ANCHORS;
+  } else {
+    NEARBY_POINTS  = buildGrid(candidates, FINE_CELL_LAT, FINE_CELL_LNG, 'center');
+    KEYWORD_POINTS = buildGrid(candidates, CELL_LAT, CELL_LNG, 'centroid');
+    console.log(`  Nearby Search (Pass A): ${NEARBY_POINTS.length} fine anchors (~250 m cells, cell-centre)`);
+    console.log(`  Text Search  (Pass B): ${KEYWORD_POINTS.length} coarse anchors (~1.2 km cells, centroid)`);
+    console.log(`  (from ${candidates.length} candidates, min ${MIN_CANDIDATES_PER_CELL} per cell)\n`);
+  }
+}
 
 const RADIUS = 900; // metres
 const INCLUDED_TYPES = ['restaurant', 'bar', 'cafe'];
@@ -306,13 +349,14 @@ async function fetchOSMOutdoor() {
  * Resolve an OSM venue (name + coords) to a Google Place via Text Search.
  * Returns the matched place or null.
  *
- * Uses locationRestriction (a hard 250 m circle) instead of locationBias
- * (a soft hint). For chain venues like "Los Tacos" with 10 branches in
- * Oslo, locationBias caused the response to collapse to the most-popular
- * branch — the specific OSM coords didn't make the top-5. With
- * locationRestriction Google can only return places inside the circle,
- * so each branch resolves independently. maxResultCount bumped to 20 to
- * give a fair chance of finding a food-typed match in dense blocks.
+ * Biases the query to a 250 m circle around the OSM coords, then keeps the
+ * closest food/drink result within 150 m (the hard distance gate is the
+ * post-filter below). NOTE: searchText's locationRestriction only accepts
+ * a `rectangle` — passing a `circle` returns HTTP 400, which silently
+ * sank every resolve (caught by `if (!resp.ok) return null`) and made this
+ * whole pass a no-op. Only `locationBias` accepts a circle, so that is
+ * what we use; the 150 m post-filter keeps chain branches (e.g. "Los
+ * Tacos") resolving independently per OSM coordinate.
  */
 async function resolveOSMToGoogle(osmVenue) {
   const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -324,7 +368,7 @@ async function resolveOSMToGoogle(osmVenue) {
     },
     body: JSON.stringify({
       textQuery: `${osmVenue.name} Oslo`,
-      locationRestriction: {
+      locationBias: {
         circle: { center: { latitude: osmVenue.lat, longitude: osmVenue.lng }, radius: 250 },
       },
       maxResultCount: 20,
@@ -376,7 +420,7 @@ const addSignal = (id, place, area, source) => {
 let droppedNonFood = 0;
 
 console.log('Pass A: Nearby Search with outdoorSeating filter…\n');
-for (const point of SEARCH_POINTS) {
+for (const point of NEARBY_POINTS) {
   process.stdout.write(`  ${point.area} … `);
   try {
     const places = await nearbySearchV1(point.lat, point.lng);
@@ -413,7 +457,7 @@ const KEYWORDS = [
 console.log(`\nPass B: Text Search × ${KEYWORDS.length} keywords (${KEYWORDS.join(', ')})…\n`);
 for (const keyword of KEYWORDS) {
   console.log(`  Keyword: "${keyword}"`);
-  for (const point of SEARCH_POINTS) {
+  for (const point of KEYWORD_POINTS) {
     process.stdout.write(`    ${point.area} … `);
     try {
       const places = await textSearchKeyword(point.lat, point.lng, point.area, keyword);
@@ -564,7 +608,8 @@ writeFileSync(join(ROOT, 'data/venues-osm-unresolved.json'), JSON.stringify(osmU
 const meta = {
   lastDiscoveryRun: new Date().toISOString(),
   runStats: {
-    anchors:           SEARCH_POINTS.length,
+    nearbyAnchors:     NEARBY_POINTS.length,
+    keywordAnchors:    KEYWORD_POINTS.length,
     keywords:          KEYWORDS,
     seenUnique:        seen.size,
     highConfidence:    high.length,
