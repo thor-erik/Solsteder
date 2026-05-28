@@ -348,9 +348,11 @@ function calcWalkTime(distanceMeters) {
  */
 function noiseScoreToBucket(score) {
   if (score == null) return null;
-  if (score <= 33) return { label: 'Rolig', score: score };
-  if (score <= 66) return { label: 'Moderat trafikkstøy', score: score };
-  return { label: 'Mye trafikkstøy', score: score };
+  // Localized (was hardcoded NO) so it matches the busyness labels' language —
+  // the EN/NO mix ("Not too busy" next to "Moderat trafikkstøy") read as a bug.
+  if (score <= 33) return { label: t('noise_low'),  score: score };
+  if (score <= 66) return { label: t('noise_mid'),  score: score };
+  return { label: t('noise_high'), score: score };
 }
 
 // ── Venue list helpers ────────────────────────────────────────────────────────
