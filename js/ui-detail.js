@@ -1603,23 +1603,17 @@ function _openInviteSheet(venueId) {
               </button>
             </div>
           </div>` : targetsRow;
-  // Back lives in a balanced head row: a muted icon-only chevron on the left,
-  // the centred "Send til" label, and an equal-width spacer on the right so
-  // the label stays optically centred. This reads as a proper section header
-  // (back + title) instead of a chevron tacked into the corner — and it's the
-  // same row height the standalone label used, so it costs no extra space.
+  // Back — a small chevron+label PILL matching the app's standard back
+  // affordance (#dp-close-btn): subtle ink fill + border, radius-sm. Absolutely
+  // pinned to the share page's top-left so the centred "Send til" label,
+  // avatars, and targets all stay on the sheet axis (the pill doesn't shove
+  // them off-centre) and it costs no vertical space.
   const backBtn = `
-            <button type="button" class="dpinvite-back" onclick="_dpinviteGoToWhen()" aria-label="${t('back')}">${chevronLeftSvg}</button>`;
-  const shareHead = hasFriends ? `
-          <div class="dpinvite-share-head">
-            ${backBtn}
-            <div class="dpinvite-friends-label">${t('invite_friends_label')}</div>
-            <span class="dpinvite-share-head-spacer" aria-hidden="true"></span>
-          </div>` : `
-          <div class="dpinvite-share-head">
-            ${backBtn}
-            <span class="dpinvite-share-head-spacer" aria-hidden="true"></span>
-          </div>`;
+            <button type="button" class="dpinvite-back" onclick="_dpinviteGoToWhen()">${chevronLeftSvg}<span>${t('back')}</span></button>`;
+  // "Send til" — a centred section label, structurally identical to the "eller"
+  // divider below so both sit on the same axis with the same gap to their row.
+  const sendLabel = hasFriends ? `
+          <div class="dpinvite-friends-label">${t('invite_friends_label')}</div>` : '';
   // "eller" divider only when there ARE friends — it forks the in-app send
   // (avatars above) from the external share targets (below). In the empty
   // state there's no fork, so the targets stand alone with no divider.
@@ -1627,7 +1621,8 @@ function _openInviteSheet(venueId) {
           <div class="dpinvite-or">${t('invite_or')}</div>` : '';
   const sharePage = `
         <div class="dpinvite-page dpinvite-page-share" data-page="share" aria-hidden="true">
-          ${shareHead}
+          ${backBtn}
+          ${sendLabel}
           ${friendsBlock}
           ${orDivider}
           ${bottomSlot}
@@ -2830,11 +2825,12 @@ function _inviteShowSent(names) {
     </div>`;
   const pager = sheet.querySelector('#dpinvite-pager');
   if (pager) {
+    // Keep the pager's locked height through the swap so the sheet doesn't jump
+    // — the success block fills it (min-height:100%) and centres instead.
     pager.style.transition = 'opacity 150ms var(--ease-standard)';
     pager.style.opacity = '0';
     setTimeout(() => {
       if (document.getElementById('invite-sheet') !== sheet) return;
-      pager.style.height = 'auto';
       pager.innerHTML = html;
       pager.style.opacity = '1';
     }, 150);

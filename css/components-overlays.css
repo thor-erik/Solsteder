@@ -1185,44 +1185,34 @@
     padding: 0 var(--space-xl);
   }
 
-  /* Share-page head row — a balanced 3-track grid: [back] [centred label]
-     [spacer]. Back and spacer are equal width so the "Send til" label is
-     optically centred on the sheet axis. Reads as a proper section header
-     instead of a chevron tacked into the corner, at the same row height the
-     standalone label used (no extra vertical cost). */
-  .dpinvite-share-head {
-    display: grid;
-    grid-template-columns: 28px 1fr 28px;
-    align-items: center;
-    min-height: 28px;
-  }
-  .dpinvite-share-head .dpinvite-friends-label {
-    grid-column: 2;
-    margin: 0;            /* head row owns the spacing now */
-  }
-  .dpinvite-share-head-spacer { width: 28px; height: 1px; }
-  /* Back — muted icon-only chevron. Low hierarchy (no surface), but a real
-     28px tap target with a soft hover wash so it reads as a control. */
+  /* Back — a chevron+label pill matching the app's standard back affordance
+     (#dp-close-btn): subtle ink fill + border, radius-sm, muted ink. Absolutely
+     pinned to the share page's top-left so it never pushes the centred "Send
+     til" label, avatars, or targets off the sheet axis, and costs no vertical
+     space. Reads as a real control (has a surface), not a tacked-on chevron. */
+  .dpinvite-page-share { position: relative; }
   .dpinvite-back {
-    grid-column: 1;
-    justify-self: start;
-    width: 28px; height: 28px;
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 2;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 0;
-    margin: 0;
-    padding: 0;
-    border-radius: 50%;
+    gap: var(--space-2xs);
+    font-size: 12px;
+    font-weight: 600;
     color: var(--ink-muted);
+    background: var(--line-l-faint);
+    border: 1px solid var(--line-l);
+    border-radius: var(--radius-sm);
+    margin: 0;
+    padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-sm);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: color 120ms, background 120ms, transform 120ms;
   }
-  .dpinvite-back svg { width: 18px; height: 18px; }
-  .dpinvite-back:hover { color: var(--panel-text); background: var(--line-l-faint); }
-  .dpinvite-back:active { transform: scale(0.9); }
+  .dpinvite-back svg { width: 13px; height: 13px; }
+  .dpinvite-back:hover { color: var(--panel-text); background: var(--line-l); }
+  .dpinvite-back:active { transform: scale(0.97); }
   @media (prefers-reduced-motion: reduce) {
     .dpinvite-pager,
     .dpinvite-track { transition: none; }
@@ -1246,17 +1236,27 @@
      friend graph is bigger and a search affordance is added. */
   .dpinvite-group-chips { display: none; }
 
-  /* Compact "Send til" label above the avatar row. Sentence case (not
-     uppercase) to match the sheet's sentence-case voice — "Inviter venner
-     til", "Klokken" — so the section labels and the header read as one tone. */
+  /* Section label — "Velg tidspunkt" (when page) + "Send til" (share page).
+     Sentence case (matches the sheet's "Inviter venner til" / "Klokken" voice),
+     but given real weight: ink + 700 at the label size so it reads as a clear
+     section header, not a faint eyebrow (the "eller" divider stays the quiet
+     one). margin-bottom is the gap to the FTS on the when page; the share page
+     overrides spacing below. */
   .dpinvite-friends-label {
-    font-size: var(--text-caption);
-    font-weight: 600;
-    color: var(--ink-muted);
+    font-size: var(--text-label);
+    font-weight: 700;
+    color: var(--panel-text);
     line-height: 1;
     text-align: center;
     margin-top: var(--space-2xs);
     margin-bottom: var(--space-md);
+  }
+  /* Share page: the label is a direct flex child, so the page gap (--space-lg)
+     handles the gap below — drop margin-bottom to avoid doubling it. A small
+     margin-top vertically centres it against the absolute back pill. This makes
+     "Send til"→avatars equal to "eller"→targets (both = one page gap). */
+  .dpinvite-page-share > .dpinvite-friends-label {
+    margin: var(--space-xs) 0 0;
   }
 
   /* Avatar row — horizontal scroll, multi-select, 40 px circles
@@ -1274,8 +1274,13 @@
     justify-content: safe center;
     overflow-x: auto;
     /* Padding ≥ the selection ring (4.5px) so the first/last avatar's ring
-       isn't shaved by the row's own overflow-x box or the page inset. */
+       isn't shaved by the row's own overflow-x box or the page inset. The
+       negative vertical margin cancels that padding from the flow, so the
+       avatar circles sit one clean page-gap from the label above and the
+       divider below (the padding still clips the ring inside the row box). */
     padding: var(--space-sm);
+    margin-top: calc(var(--space-sm) * -1);
+    margin-bottom: calc(var(--space-sm) * -1);
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
@@ -1414,6 +1419,10 @@
     justify-content: center;
     gap: var(--space-md);
     text-align: center;
+    /* Fill the pager's locked height so the success state centres in place and
+       the sheet height never changes during the confirm swap. */
+    min-height: 100%;
+    box-sizing: border-box;
     padding: var(--space-2xl) 0;
   }
   .dpinvite-sent-check {
