@@ -1452,17 +1452,12 @@ function _openInviteSheet(venueId) {
   sheet.id = 'invite-sheet';
   sheet.className = 'dpinvite-sheet';
 
-  // Friends block — compact horizontal row preceded by a small "Send til"
-  // eyebrow. The v1 section title ("Hvem inviterer du?") and the
-  // Recent / All chip toggle (both chips showed 4 in a 4-friend list,
-  // making the toggle meaningless) are gone. Empty state retains its
-  // own copy + sub.
+  // Friends body — just the avatar row (hasFriends) or the empty-state card.
+  // The "Send til" label now lives in a balanced head row alongside Back
+  // (built below), so it's split out from the avatars here.
   const friendsBlock = hasFriends ? `
-        <div>
-          <div class="dpinvite-friends-label">${t('invite_friends_label')}</div>
-          <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
-            ${avatarsHtml}
-          </div>
+        <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
+          ${avatarsHtml}
         </div>` : (typeof emptyState === 'function'
         ? emptyState({ glyph: 'user-plus', title: t('invite_no_friends_title'), sub: t('invite_no_friends_sub'), ink: true })
         : `
@@ -1608,15 +1603,23 @@ function _openInviteSheet(venueId) {
               </button>
             </div>
           </div>` : targetsRow;
-  // Back is a LOW-hierarchy affordance — a muted chevron+label link, not a
-  // glass-circle like the share targets. It's pinned to the share page's
-  // top-left corner (absolute, out of flow) so the friends label, avatar row,
-  // and share-targets row all stay centred on the sheet axis (back doesn't
-  // push them off-centre) and it costs zero vertical space.
-  const backLink = `
-          <button type="button" class="dpinvite-back" onclick="_dpinviteGoToWhen()">
-            ${chevronLeftSvg}<span>${t('back')}</span>
-          </button>`;
+  // Back lives in a balanced head row: a muted icon-only chevron on the left,
+  // the centred "Send til" label, and an equal-width spacer on the right so
+  // the label stays optically centred. This reads as a proper section header
+  // (back + title) instead of a chevron tacked into the corner — and it's the
+  // same row height the standalone label used, so it costs no extra space.
+  const backBtn = `
+            <button type="button" class="dpinvite-back" onclick="_dpinviteGoToWhen()" aria-label="${t('back')}">${chevronLeftSvg}</button>`;
+  const shareHead = hasFriends ? `
+          <div class="dpinvite-share-head">
+            ${backBtn}
+            <div class="dpinvite-friends-label">${t('invite_friends_label')}</div>
+            <span class="dpinvite-share-head-spacer" aria-hidden="true"></span>
+          </div>` : `
+          <div class="dpinvite-share-head">
+            ${backBtn}
+            <span class="dpinvite-share-head-spacer" aria-hidden="true"></span>
+          </div>`;
   // "eller" divider only when there ARE friends — it forks the in-app send
   // (avatars above) from the external share targets (below). In the empty
   // state there's no fork, so the targets stand alone with no divider.
@@ -1624,7 +1627,7 @@ function _openInviteSheet(venueId) {
           <div class="dpinvite-or">${t('invite_or')}</div>` : '';
   const sharePage = `
         <div class="dpinvite-page dpinvite-page-share" data-page="share" aria-hidden="true">
-          ${backLink}
+          ${shareHead}
           ${friendsBlock}
           ${orDivider}
           ${bottomSlot}
@@ -2758,9 +2761,14 @@ async function _sendInvite(venueId) {
   const [hh, mm] = _hhmmFromHour(h);
   const isoTime = new Date(`${d}T${hh}:${mm}:00`).toISOString();
 
-  const selectedIds = Array.from(
+  const selectedRows = Array.from(
     document.querySelectorAll('#invite-sheet .dpinvite-avatar[aria-checked="true"]')
-  ).map(r => r.getAttribute('data-friend-id'));
+  );
+  const selectedIds = selectedRows.map(r => r.getAttribute('data-friend-id'));
+  // First names for the confirmation line (data-friend-name is the full name).
+  const selectedNames = selectedRows
+    .map(r => (r.getAttribute('data-friend-name') || '').trim().split(/\s+/)[0])
+    .filter(Boolean);
 
   // No silent broadcast — the primary CTA is disabled in this state, but
   // guard defensively in case the handler is invoked some other way.
@@ -2779,7 +2787,7 @@ async function _sendInvite(venueId) {
     if (choice === 'update') {
       await addInviteesToExistingPlan(conflict.id, selectedIds);
       if (_isNowSend(d, h) && typeof checkIn === 'function') await checkIn(venueId, '');
-      _closeInviteSheet();
+      _inviteShowSent(selectedNames);
       return;
     }
     // 'separate' falls through to createPlan below.
@@ -2790,9 +2798,50 @@ async function _sendInvite(venueId) {
   // Now-send → flip pin presence so friends see the user's dot on the venue.
   if (_isNowSend(d, h) && typeof checkIn === 'function') await checkIn(venueId, '');
 
-  // The whole flow is done once the invite is sent — close the single sheet.
-  _closeInviteSheet();
+  // Invite's away — play the slick confirm beat (honey gleam + success check),
+  // then auto-close. Mirrors the accept panel's "I'm in" confirmation.
+  _inviteShowSent(selectedNames);
 }
+
+/** Slick post-send confirmation — mirrors the accept panel's confirm beat: a
+ *  one-shot honey gleam sweeps the whole sheet while a success check springs in
+ *  over a short "Invitasjon sendt" line; then the sheet auto-closes. The venue
+ *  header stays; only the pager region swaps to the success state. */
+function _inviteShowSent(names) {
+  const sheet = document.getElementById('invite-sheet');
+  if (!sheet) { _closeInviteSheet(); return; }
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Honey gleam across the whole sheet (reuses the @keyframes dprcv-panel-sheen
+  // defined for the accept panel). Re-trigger by toggling the class off→on.
+  sheet.classList.remove('is-confirming'); void sheet.offsetWidth; sheet.classList.add('is-confirming');
+  try { if (navigator.vibrate) navigator.vibrate(12); } catch {}
+  const list = (Array.isArray(names) ? names.filter(Boolean) : []);
+  let subText = '';
+  if (list.length) {
+    subText = list.slice(0, 2).map(esc).join(', ');
+    if (list.length > 2) subText += ` +${list.length - 2}`;
+  }
+  const checkSvg = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const html = `
+    <div class="dpinvite-sent">
+      <div class="dpinvite-sent-check" aria-hidden="true">${checkSvg}</div>
+      <div class="dpinvite-sent-title">${t('invite_sent_title')}</div>
+      ${subText ? `<div class="dpinvite-sent-sub">${subText}</div>` : ''}
+    </div>`;
+  const pager = sheet.querySelector('#dpinvite-pager');
+  if (pager) {
+    pager.style.transition = 'opacity 150ms var(--ease-standard)';
+    pager.style.opacity = '0';
+    setTimeout(() => {
+      if (document.getElementById('invite-sheet') !== sheet) return;
+      pager.style.height = 'auto';
+      pager.innerHTML = html;
+      pager.style.opacity = '1';
+    }, 150);
+  }
+  setTimeout(() => _closeInviteSheet(), 1250);
+}
+if (typeof window !== 'undefined') window._inviteShowSent = _inviteShowSent;
 
 /** Find an existing user-created plan for this venue within ±3h of the new
  *  time. Returns the plan record or null. _plans is populated by loadPlans()

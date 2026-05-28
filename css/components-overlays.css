@@ -1185,36 +1185,44 @@
     padding: 0 var(--space-xl);
   }
 
-  /* Low-hierarchy back — a muted chevron+label link pinned to the share page's
-     top-left corner. Absolute (out of flow) so the centred friends label,
-     avatar row, and share-targets row stay on the sheet axis, and so it eats
-     zero vertical space. Visually subordinate to the glass-circle targets:
-     no surface, muted ink, caption weight. */
-  .dpinvite-page-share { position: relative; }
+  /* Share-page head row — a balanced 3-track grid: [back] [centred label]
+     [spacer]. Back and spacer are equal width so the "Send til" label is
+     optically centred on the sheet axis. Reads as a proper section header
+     instead of a chevron tacked into the corner, at the same row height the
+     standalone label used (no extra vertical cost). */
+  .dpinvite-share-head {
+    display: grid;
+    grid-template-columns: 28px 1fr 28px;
+    align-items: center;
+    min-height: 28px;
+  }
+  .dpinvite-share-head .dpinvite-friends-label {
+    grid-column: 2;
+    margin: 0;            /* head row owns the spacing now */
+  }
+  .dpinvite-share-head-spacer { width: 28px; height: 1px; }
+  /* Back — muted icon-only chevron. Low hierarchy (no surface), but a real
+     28px tap target with a soft hover wash so it reads as a control. */
   .dpinvite-back {
-    position: absolute;
-    top: 0; left: 0;
-    z-index: 2;
+    grid-column: 1;
+    justify-self: start;
+    width: 28px; height: 28px;
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2xs);
+    justify-content: center;
     background: transparent;
     border: 0;
     margin: 0;
-    padding: var(--space-2xs) var(--space-md) var(--space-sm) 0;
-    font-family: inherit;
-    font-size: var(--text-caption);
-    font-weight: 600;
-    letter-spacing: 0.3px;
+    padding: 0;
+    border-radius: 50%;
     color: var(--ink-muted);
-    line-height: 1;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: color 120ms;
+    transition: color 120ms, background 120ms, transform 120ms;
   }
-  .dpinvite-back svg { width: 13px; height: 13px; }
-  .dpinvite-back:hover { color: var(--panel-text); }
-  .dpinvite-back:active { opacity: 0.65; }
+  .dpinvite-back svg { width: 18px; height: 18px; }
+  .dpinvite-back:hover { color: var(--panel-text); background: var(--line-l-faint); }
+  .dpinvite-back:active { transform: scale(0.9); }
   @media (prefers-reduced-motion: reduce) {
     .dpinvite-pager,
     .dpinvite-track { transition: none; }
@@ -1238,14 +1246,13 @@
      friend graph is bigger and a search affordance is added. */
   .dpinvite-group-chips { display: none; }
 
-  /* Compact "Send til" label above the avatar row — replaces the
-     section title. Reads as a small eyebrow, not a question. */
+  /* Compact "Send til" label above the avatar row. Sentence case (not
+     uppercase) to match the sheet's sentence-case voice — "Inviter venner
+     til", "Klokken" — so the section labels and the header read as one tone. */
   .dpinvite-friends-label {
     font-size: var(--text-caption);
     font-weight: 600;
     color: var(--ink-muted);
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
     line-height: 1;
     text-align: center;
     margin-top: var(--space-2xs);
@@ -1379,8 +1386,6 @@
     color: var(--ink-muted);
     font-size: var(--text-caption);
     font-weight: 600;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
   }
   .dpinvite-or::before,
   .dpinvite-or::after {
@@ -1388,6 +1393,43 @@
     flex: 1;
     height: 1px;
     background: var(--line-l-faint);
+  }
+
+  /* ── Post-send confirmation ──────────────────────────────────────────────
+     The slick "I'm in" beat, ported to Send: a one-shot honey gleam sweeps the
+     whole sheet (reuses @keyframes dprcv-panel-sheen from the accept panel)
+     while a success check springs in (@keyframes dprcv-confirm-pop). The pager
+     region is swapped to .dpinvite-sent; the venue header stays put. */
+  .dpinvite-sheet.is-confirming::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 6;
+    border-radius: inherit;
+    background: linear-gradient(115deg, transparent 32%, var(--accent) 50%, transparent 68%);
+    transform: translateX(-120%); opacity: 0; mix-blend-mode: screen;
+    animation: dprcv-panel-sheen 720ms var(--ease-decelerate) forwards;
+  }
+  .dpinvite-sent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    text-align: center;
+    padding: var(--space-2xl) 0;
+  }
+  .dpinvite-sent-check {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    box-shadow: var(--glassctl-raise);
+    animation: dprcv-confirm-pop var(--dur-slow) var(--ease-spring) both;
+  }
+  .dpinvite-sent-title { font-size: var(--text-body); font-weight: 700; color: var(--panel-text); }
+  .dpinvite-sent-sub   { font-size: var(--text-caption); color: var(--ink-muted); }
+  @media (prefers-reduced-motion: reduce) {
+    .dpinvite-sheet.is-confirming::after { animation: none; opacity: 0; }
+    .dpinvite-sent-check { animation: none; }
   }
 
   /* Empty state (no friends) — calm, no card surface, no icon. Just two
