@@ -413,7 +413,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // Audit mode skips this collapse so the action row (Mark good / Edit /
   // Archive) is reachable on every venue regardless of opening hours.
   const _auditHere = typeof auditModeActive !== 'undefined' && auditModeActive;
-  if (!_auditHere && !isOpen && !isOpeningSoon && !(qual && qual.surfaced)) {
+  if (!dpVariant && !_auditHere && !isOpen && !isOpeningSoon && !(qual && qual.surfaced)) {
     return `
       <div class="venue-card closed-card ${v.id === selectedId ? 'selected' : ''}"
            data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
@@ -633,8 +633,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}${auditCardCls}"
            data-vid="${v.id}">
         <div class="dp-sun-headline">${headlineMain}</div>
-        ${headlineSub ? `<div class="dp-sun-sub">${headlineSub}</div>` : ''}
-        ${pillsRowHtml}
+        <div class="dp-sun-sub">${headlineSub || '&nbsp;'}</div>
+        <div class="card-pills dp-card-pills">${pillsHtml}</div>
         ${timelineBlock}
         ${reviewChips}
         ${auditActionsHtml}

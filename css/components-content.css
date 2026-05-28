@@ -5251,6 +5251,15 @@
   .dp-card .dp-sun-headline + .card-pills {
     margin-top: var(--space-md);
   }
+  /* Reserve the disruption-pill row height in the detail card even when there
+     are no pills, so the card height (and the timeline's y) stays CONSTANT as
+     the user scrubs — the pill set changes with time and was resizing the card,
+     making the timeline jump under the finger. Single nowrap row → 26px. */
+  .dp-card .dp-card-pills {
+    min-height: 26px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
 
   /* ── Section title (used by Avtaler + Le for vind) ─────────────────────── */
   .dp-section { margin-top: var(--space-lg); }
