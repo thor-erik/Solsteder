@@ -1,8 +1,27 @@
 apply plugin: 'com.android.application'
 
+// Release signing — loaded from a gitignored android/keystore.properties so the
+// keystore + passwords never live in the repo. Absent (e.g. CI debug, fresh
+// clone) -> release stays unsigned and debug builds are unaffected.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "app.findshades"
     compileSdk = rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     defaultConfig {
         applicationId "app.findshades"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -18,6 +37,9 @@ android {
     }
     buildTypes {
         release {
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
