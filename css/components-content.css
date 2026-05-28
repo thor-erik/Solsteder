@@ -5249,7 +5249,7 @@
      Was 12px — tightened to 8px so the card breathes less between rows. */
   .dp-card .dp-sun-headline + .dp-sun-sub + .card-pills,
   .dp-card .dp-sun-headline + .card-pills {
-    margin-top: var(--space-md);
+    margin-top: var(--space-sm);
   }
   /* Reserve the disruption-pill row height in the detail card even when there
      are no pills, so the card height (and the timeline's y) stays CONSTANT as

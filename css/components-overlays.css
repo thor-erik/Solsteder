@@ -68,14 +68,14 @@
   .dp-card {
     cursor: default;
     margin-bottom: var(--space-lg);
-    /* Was 16/16/14 — tightened to 12/14/12 to cut the dead space the
-       card was carrying without changing the visual hierarchy. */
-    padding: var(--space-lg) var(--space-lg) var(--space-lg);
+    /* Tight vertical padding (8) — the card is mostly the timeline now and the
+       scrub popup OVERLAPS (overflow:visible) rather than reserving space. */
+    padding: var(--space-md) var(--space-lg);
     animation: none;
     border-radius: var(--radius-md);
     overflow: visible;  /* re-allow timeline to render outside compact's clip */
   }
-  .dp-card.card-compact { padding-bottom: var(--space-lg); overflow: visible; }
+  .dp-card.card-compact { padding-bottom: var(--space-md); overflow: visible; }
   .dp-card.card-compact .card-fillbar { display: none; }
   .dp-card:hover { background: var(--surface-content); }   /* kill list-card hover */
   .dp-card .card-top { gap: var(--space-lg); align-items: flex-start; }
@@ -111,8 +111,8 @@
     line-height: 1.35;
     margin-top: 1px;
   }
-  /* Timeline block sits at the bottom — 8px gap below the pills row (was 12). */
-  .dp-card .card-timeline-block { margin-top: var(--space-md); }
+  /* Timeline block sits at the bottom — tight 4px gap below the pills row. */
+  .dp-card .card-timeline-block { margin-top: var(--space-xs); }
 
   /* dp-card timeline matches the list card's thin variant (8px). The tall
      38px treatment is gone now that the FTS pill is no longer reparented
