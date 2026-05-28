@@ -5997,39 +5997,72 @@
     "125": {
       "polygon": [
         [
-          59.91995,
-          10.717759
-        ],
-        [
-          59.919975,
-          10.717694
-        ],
-        [
-          59.919955,
-          10.71764
-        ],
-        [
-          59.919928,
-          10.717667
-        ],
-        [
-          59.91993,
-          10.717759
+          [
+            59.91994495571814,
+            10.718059269547297
+          ],
+          [
+            59.91998172581765,
+            10.718015224277423
+          ],
+          [
+            59.91998543555029,
+            10.718018172700079
+          ],
+          [
+            59.91998821781152,
+            10.718032252413195
+          ],
+          [
+            59.91995082825591,
+            10.718077533622335
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:26:53.348Z",
+      "detectedAt": "2026-05-28T15:25:02.839239+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A small area adjacent to the northwest entrance/corner of the building footprint where outdoor seating may be placed on the sidewalk/forecourt area near the venue entrance."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91995,
+            10.717759
+          ],
+          [
+            59.919975,
+            10.717694
+          ],
+          [
+            59.919955,
+            10.71764
+          ],
+          [
+            59.919928,
+            10.717667
+          ],
+          [
+            59.91993,
+            10.717759
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "A small area adjacent to the northwest entrance/corner of the building footprint where outdoor seating may be placed on the sidewalk/forecourt area near the venue entrance.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:26:53.348Z"
+      }
     },
     "126": {
       "polygon": [
@@ -10240,47 +10273,76 @@
     "212": {
       "polygon": [
         [
-          59.919125,
-          10.705682
-        ],
-        [
-          59.919159,
-          10.705977
-        ],
-        [
-          59.919098,
-          10.706071
-        ],
-        [
-          59.919031,
-          10.706044
-        ],
-        [
-          59.919018,
-          10.705936
-        ],
-        [
-          59.919045,
-          10.705843
-        ],
-        [
-          59.919065,
-          10.705722
+          [
+            59.918734622408465,
+            10.706128425760738
+          ],
+          [
+            59.9187112905374,
+            10.705946066121896
+          ],
+          [
+            59.91872994238335,
+            10.705938294053539
+          ],
+          [
+            59.91875238219362,
+            10.706120422855747
+          ]
         ]
       ],
-      "confidence": 0.35,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:38:54.522Z",
+      "detectedAt": "2026-05-28T15:26:32.727739+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "There appears to be an outdoor café/terrace area with tables and seating visible in the upper-left portion of the image near the building entrance, adjacent to what looks like an awning structure with furniture clusters."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.919125,
+            10.705682
+          ],
+          [
+            59.919159,
+            10.705977
+          ],
+          [
+            59.919098,
+            10.706071
+          ],
+          [
+            59.919031,
+            10.706044
+          ],
+          [
+            59.919018,
+            10.705936
+          ],
+          [
+            59.919045,
+            10.705843
+          ],
+          [
+            59.919065,
+            10.705722
+          ]
+        ],
+        "confidence": 0.35,
+        "notVisible": false,
+        "reasoning": "There appears to be an outdoor café/terrace area with tables and seating visible in the upper-left portion of the image near the building entrance, adjacent to what looks like an awning structure with furniture clusters.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:38:54.522Z"
+      }
     },
     "213": {
       "polygon": [
