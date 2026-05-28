@@ -104,16 +104,18 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   if (_wxNow && typeof venueWindShelter === 'function' && v.facing != null) {
     const shelter = venueWindShelter(v.facing, _wxNow.wdir);
     if (shelter != null) {
-      const windLabel = shelter >= 0.66 ? 'Lunt for vind' : shelter >= 0.33 ? 'Delvis le' : 'Eksponert for vind'; // TODO i18n
+      const windLabel = shelter >= 0.66 ? t('wind_sheltered') : shelter >= 0.33 ? t('wind_partial') : t('wind_exposed');
       infoItems.push({ icon: windIcon, strong: windLabel });
     }
   }
 
   const hours = getVenueHoursForDay(v, dateStr);
-  const closingStr = hours.close != null ? formatHour(hours.close) : 'Åpent';
+  const hoursLine = hours.close != null
+    ? t('open_until', { time: formatHour(hours.close) })
+    : t('open_label');
   let hoursSubtext = '';
   if (v.kitchenCloseHour != null) {
-    hoursSubtext = `Kjøkken til ${formatHour(v.kitchenCloseHour)}`;
+    hoursSubtext = t('kitchen_until', { time: formatHour(v.kitchenCloseHour) });
   }
   // "Åpent til X" renders as a line under the sun panel (dp-hours-line), not here.
 
@@ -133,12 +135,11 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Footer — community-correction links at the bottom of the panel. Reworded
   // to a softer crowd-sourcing tone ("suggest a change" / "report a problem")
   // and made discoverable (clear underlined links, see .dp-footer-quiet).
-  // TODO(i18n): these strings are hardcoded NO — wire to t() in a later pass.
   const footerHtml = `
     <div class="secondary-row dp-footer-quiet">
-      <button class="secondary-link" onclick="enterEditMode(${v.id})">Foreslå en endring</button>
+      <button class="secondary-link" onclick="enterEditMode(${v.id})">${t('dp_suggest_change')}</button>
       <span class="dp-footer-sep">·</span>
-      <button class="secondary-link" onclick="alert('Vi jobber med en måte å melde fra om feil på.')">Meld fra om feil</button>
+      <button class="secondary-link" onclick="alert('${t('dp_report_problem_alert')}')">${t('dp_report_problem')}</button>
     </div>`;
 
   // Wind shelter — pinned for now. Wind direction + speed already render as
@@ -252,7 +253,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
       <!-- Hours paired with the sun answer: "is it sunny" + "is it open" read
            together, right under the sun panel. -->
-      <div class="dp-hours-line">${clockIcon}<span>Åpent til ${closingStr}${hoursSubtext ? ' · ' + hoursSubtext : ''}</span></div>
+      <div class="dp-hours-line">${clockIcon}<span>${hoursLine}${hoursSubtext ? ' · ' + hoursSubtext : ''}</span></div>
 
       <!-- Order (per Claude-Design): sun → social/plans → invite (all in the
            VENNER zone) → divider → actions → divider → info. -->
@@ -449,12 +450,13 @@ function _renderPlanCards(v) {
         sunCls = 'in-sun';
         sunMain = cap(t('state_sun_until_big', { time: formatHour(cur.end) }));
         const mins = Math.max(1, Math.round((cur.end - planHour) * 60));
-        const dur = mins >= 60 ? `${Math.floor(mins / 60)}t ${mins % 60}m` : `${mins} min`;
-        sunSub = `${dur} i sol når dere møtes`; // TODO i18n
+        const _hu = t('unit_h_short');
+        const dur = mins >= 60 ? `${Math.floor(mins / 60)}${_hu} ${mins % 60}m` : `${mins} min`;
+        sunSub = t('plan_sun_when_meet', { dur });
       } else {
         const next = pw.find(w => w.start > planHour);
-        sunMain = next ? cap(t('state_sun_from', { time: formatHour(next.start) })) : 'I skyggen';
-        sunSub = next ? 'Sol kommer senere' : 'Ingen sol når dere møtes'; // TODO i18n
+        sunMain = next ? cap(t('state_sun_from', { time: formatHour(next.start) })) : t('plan_in_shade');
+        sunSub = next ? t('plan_sun_later') : t('plan_no_sun_when_meet');
       }
     } catch (e) { /* no sun data */ }
 
@@ -462,8 +464,8 @@ function _renderPlanCards(v) {
     const pending = invite && invite.status === 'pending';
     let actions;
     if (pending) {
-      actions = `<button class="p-pill dp-plan-join" onclick="respondToPlanInvite('${invite.id}','accepted')">Bli med</button>
-        <button class="dp-plan-maybe" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">Kanskje</button>`;
+      actions = `<button class="p-pill dp-plan-join" onclick="respondToPlanInvite('${invite.id}','accepted')">${t('plan_join')}</button>
+        <button class="dp-plan-maybe" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">${t('plan_maybe')}</button>`;
     } else if (invite) {
       actions = `<span class="plan-status plan-status-${invite.status}">${t('plan_invite_' + invite.status)}</span>
         <button class="dp-plan-maybe" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">${t('preview_plan')}</button>`;
@@ -476,7 +478,7 @@ function _renderPlanCards(v) {
         <div class="dp-plan-when"><span class="dp-plan-day">${esc(dayLabel)}</span> · <span class="dp-plan-time">${timeStr}</span></div>
         ${goingAv ? `<div class="dp-plan-going-av">${goingAv}</div>` : ''}
       </div>
-      <div class="dp-plan-going">${goingCount} skal hit</div>
+      <div class="dp-plan-going">${t('pp_going_count', { n: goingCount })}</div>
       ${p.message ? `<div class="plan-msg">${esc(p.message)}</div>` : ''}
       ${sunMain ? `<div class="dp-plan-sun ${sunCls}">${sunGlyph}<div class="dp-plan-sun-txt"><span class="dp-plan-sun-main">${esc(sunMain)}</span>${sunSub ? `<span class="dp-plan-sun-sub">${esc(sunSub)}</span>` : ''}</div></div>` : ''}
       <div class="dp-plan-actions">${actions}</div>

@@ -503,8 +503,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const tlMax = dpVariant
       ? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : (sundownH ?? null))
       : (sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null));
-    const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax, qual);
-    // Labels first, then timeline — labels-row sits above the bar visually.
+    // dpVariant (detail sun card) drops the axis labels — the event pills above
+    // already carry the exact times, so the labels just repeated them. The bar
+    // stays fully interactive (the scrubber), just slim + label-free.
+    const tlLabels = dpVariant ? '' : buildTimelineLabels(pills, fromHour, tlMin, tlMax, qual);
     timelineBlock = `<div class="card-timeline-block">${tlLabels}${miniTimeline}</div>`;
   }
 
@@ -633,7 +635,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     // Single source of truth for every value on this card, so the big "left"
     // number and the event pills always agree (the previous mismatch).
     const fmtH = (h) => (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
-    const fmtDur = (hrs) => { const h = Math.floor(hrs), m = Math.round((hrs - h) * 60); return h > 0 ? (m > 0 ? `${h}t ${m}m` : `${h}t`) : `${Math.max(1, m)}m`; };
+    const _hu = (typeof t === 'function') ? t('unit_h_short') : 't';
+    const fmtDur = (hrs) => { const h = Math.floor(hrs), m = Math.round((hrs - h) * 60); return h > 0 ? (m > 0 ? `${h}${_hu} ${m}m` : `${h}${_hu}`) : `${Math.max(1, m)}m`; };
+    const _leftWord = (typeof t === 'function') ? t('word_left') : 'igjen';
     let wins = [];
     try { wins = (computeSunWindows(v, dateStr).windows) || []; } catch (e) { /* no sun data */ }
     const nowH = fromHour;
@@ -650,7 +654,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     // LEFT (big): sun remaining now; else the verdict text for shadow/done.
     let leftHtml;
     if (cur) {
-      leftHtml = `<div class="dp-sun-now"><div class="dp-sun-now-main">${sunG}<span class="dp-sun-now-val">${fmtDur(Math.max(5/60, cur.end - nowH))}</span></div><div class="dp-sun-now-label">igjen</div></div>`;
+      leftHtml = `<div class="dp-sun-now"><div class="dp-sun-now-main">${sunG}<span class="dp-sun-now-val">${fmtDur(Math.max(5/60, cur.end - nowH))}</span></div><div class="dp-sun-now-label">${_leftWord}</div></div>`;
     } else {
       leftHtml = `<div class="dp-sun-now"><div class="dp-sun-now-verdict">${dpState?.mainText || '—'}</div>${dpState?.subText ? `<div class="dp-sun-now-label">${dpState.subText}</div>` : ''}</div>`;
     }
@@ -663,7 +667,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       evs.push(`<span class="dp-evt dp-evt-bonus">${sunSm}${fmtH(nextWin.start)}</span>`);
     }
     wins.filter(w => w.start > ((cur ? cur.end : (nextWin ? nextWin.start : nowH)) + 0.01)).slice(0, 2).forEach(w => {
-      evs.push(`<span class="dp-evt dp-evt-bonus">+${fmtDur(w.end - w.start)} fra ${fmtH(w.start)}</span>`);
+      const oppTxt = (typeof t === 'function')
+        ? t('card_opp_one', { dur: fmtDur(w.end - w.start), time: fmtH(w.start) })
+        : `+${fmtDur(w.end - w.start)} fra ${fmtH(w.start)}`;
+      evs.push(`<span class="dp-evt dp-evt-bonus">${oppTxt}</span>`);
     });
     if (sundownH != null) evs.push(`<span class="dp-evt dp-evt-moon">${moonG}${fmtH(sundownH)}</span>`);
 
