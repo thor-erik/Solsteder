@@ -4927,18 +4927,28 @@ function editRedo() {
 function editDeleteSelectedVertex() {
   if (!editDraw || !_editDrawAdded || !editingVenueId) return;
   const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  // GL Draw's getSelectedPoints() returns features with ONLY geometry.coordinates
+  // ([lng,lat]) and empty properties — no coord_path. Match those coords to the
+  // venue polygon's vertices ([lat,lng]) to find which to drop.
   let sel = null;
   try { sel = editDraw.getSelectedPoints(); } catch (_) {}
-  const idxs = (sel?.features || []).map(f => {
-    const cp = f.properties?.coord_path || '';
-    const i = parseInt(String(cp).split('.').pop(), 10);
-    return Number.isFinite(i) ? i : -1;
-  }).filter(i => i >= 0);
-  if (!idxs.length) return;                       // nothing selected
+  const selCoords = (sel?.features || [])
+    .map(f => f.geometry && f.geometry.coordinates)
+    .filter(c => Array.isArray(c) && c.length >= 2);
+  if (!selCoords.length) return;                  // nothing selected
   let ap = null; try { ap = getActivePolygon(v); } catch (_) {}
   const base = ap?.latlng;
-  if (!Array.isArray(base) || base.length - idxs.length < 3) return;   // keep ≥ 3
-  const drop = new Set(idxs);
+  if (!Array.isArray(base)) return;
+  const EPS = 1e-6;   // ~0.1 m — selected coords are the same source as base verts
+  const drop = new Set();
+  for (const c of selCoords) {
+    const lng = c[0], lat = c[1];
+    for (let i = 0; i < base.length; i++) {
+      if (drop.has(i)) continue;
+      if (Math.abs(base[i][0] - lat) < EPS && Math.abs(base[i][1] - lng) < EPS) { drop.add(i); break; }
+    }
+  }
+  if (!drop.size || base.length - drop.size < 3) return;   // keep ≥ 3
   const next = base.filter((_, i) => !drop.has(i));
   _editUndoStack.push(_cloneGeom(base));
   if (_editUndoStack.length > 50) _editUndoStack.shift();
@@ -4992,11 +5002,19 @@ function _updateUndoRedoButtons() {
   const r = document.getElementById('edit-redo-btn');
   if (u) u.disabled = _editUndoStack.length === 0;
   if (r) r.disabled = _editRedoStack.length === 0;
+  // Delete-vertex enabled whenever a polygon with > 3 vertices is being edited.
+  // (GL Draw fires draw.selectionchange on FEATURE selection, not vertex
+  // selection, so we can't reliably gate on the live vertex selection — the
+  // cream highlight shows which vertex is selected; the button acts on it.)
   const d = document.getElementById('edit-del-vertex-btn');
   if (d) {
-    let has = false;
-    try { has = !!(editDraw && _editDrawAdded && editDraw.getSelectedPoints()?.features?.length); } catch (_) {}
-    d.disabled = !has;
+    let n = 0;
+    try {
+      const f = editDraw && _editDrawAdded && editDraw.get(_editDrawFeatureId);
+      const ring = f?.geometry?.coordinates?.[0];
+      n = Array.isArray(ring) ? ring.length - 1 : 0;   // drop closing dup
+    } catch (_) {}
+    d.disabled = !(editingVenueId && n > 3);
   }
 }
 
