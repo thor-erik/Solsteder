@@ -4836,6 +4836,8 @@
   #detail-panel .dp-card,
   #detail-panel .venue-card,
   #detail-panel .dp-plans-block,
+  #detail-panel .dp-social-card,
+  #detail-panel .dp-info-card,
   #detail-panel .dp-shelter-section {
     background: var(--card-cream-bg);
     backdrop-filter: var(--card-cream-blur);
@@ -5557,6 +5559,92 @@
   #detail-panel .dp-card .card-pill.pill-overflow {
     color: var(--text);
   }
+
+  /* ── Detail pass 2 (Claude-Design mocks, 2026-05-28) ───────────────────────
+     Unified cream-frost cards; sun verdict left + extra pills top-right + tight
+     timeline; VENNER zone (who's-here + plan cards); cream info rows. */
+  .dp-card .dp-sun-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: var(--space-md);
+  }
+  .dp-card .dp-sun-head { min-width: 0; }
+  .dp-card .dp-sun-extra {
+    flex-shrink: 0; display: flex; flex-wrap: wrap; justify-content: flex-end;
+    gap: var(--space-xs); margin: 0; max-width: 55%;
+  }
+  .dp-card .dp-sun-top + .card-timeline-block { margin-top: var(--space-md); }
+
+  /* Section dividers between zones. */
+  .dp-divider { height: 1px; background: var(--line-l-faint); margin: var(--space-lg) 0; }
+
+  /* VENNER zone. */
+  .dp-social-zone { display: flex; flex-direction: column; gap: var(--space-md); }
+  .dp-social-zone > * { margin: 0; }
+  .dp-social-card { border-radius: var(--radius-md); padding: var(--space-lg); }
+
+  /* Who's-here card. */
+  .dp-here-card { display: flex; align-items: center; gap: var(--space-md); }
+  .dp-here-avatars { display: flex; flex-shrink: 0; }
+  .dp-here-avatars .avatar { margin-left: calc(var(--space-md) * -1); border: 2px solid var(--card-cream-bg); border-radius: 50%; }
+  .dp-here-avatars .avatar:first-child { margin-left: 0; }
+  .dp-here-label { flex: 1; min-width: 0; font-size: var(--text-label); font-weight: 600; color: var(--text); line-height: 1.3; }
+  .dp-here-now {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: var(--space-2xs);
+    padding: var(--space-2xs) var(--space-sm); border-radius: var(--radius-pill);
+    background: var(--accent-dim); border: 1px solid var(--accent-border);
+    color: var(--accent-on-light); font-size: var(--text-caption); font-weight: 700;
+  }
+  .dp-here-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-on-light); }
+
+  /* Plan card. */
+  .dp-plan-card { display: flex; flex-direction: column; gap: var(--space-md); }
+  .dp-plan-card .dp-plan-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+  .dp-plan-card .dp-plan-when { display: flex; align-items: baseline; gap: var(--space-2xs); min-width: 0; }
+  .dp-plan-card .dp-plan-day,
+  .dp-plan-card .dp-plan-time { font-size: var(--text-subtitle); font-weight: 700; color: var(--text); }
+  .dp-plan-card .dp-plan-time { font-variant-numeric: tabular-nums; }
+  .dp-plan-going-av { display: flex; flex-shrink: 0; }
+  .dp-plan-going-av .avatar { margin-left: calc(var(--space-md) * -1); border: 2px solid var(--card-cream-bg); border-radius: 50%; }
+  .dp-plan-going-av .avatar:first-child { margin-left: 0; }
+  .dp-plan-going { font-size: var(--text-label); color: var(--text-secondary); font-weight: 500; }
+  /* Sun chip = full-width row (overrides the pass-1 inline pill). */
+  .dp-plan-card .dp-plan-sun {
+    display: flex; align-items: center; gap: var(--space-sm);
+    padding: var(--space-md); border-radius: var(--radius-md);
+    background: var(--accent-dim); border: 1px solid var(--accent-border);
+  }
+  .dp-plan-card .dp-plan-sun.no-sun { background: var(--line-l-faint); border-color: var(--line-l); }
+  .dp-plan-card .dp-plan-sun svg { flex-shrink: 0; color: var(--accent-on-light); }
+  .dp-plan-card .dp-plan-sun.no-sun svg { color: var(--ink-muted); }
+  .dp-plan-sun-txt { display: flex; flex-direction: column; min-width: 0; }
+  .dp-plan-sun-main { font-size: var(--text-label); font-weight: 700; color: var(--accent-on-light); }
+  .dp-plan-card .dp-plan-sun.no-sun .dp-plan-sun-main { color: var(--text); }
+  .dp-plan-sun-sub { font-size: var(--text-caption); color: var(--text-secondary); }
+  .dp-plan-actions { display: flex; gap: var(--space-md); align-items: center; }
+  .dp-plan-actions .p-pill { flex: 1; height: 44px; }
+  .dp-plan-maybe {
+    flex: 1; height: 44px; border-radius: var(--radius-pill);
+    background: transparent; border: 1px solid var(--line-l); color: var(--text);
+    font-size: var(--text-label); font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dp-plan-maybe:active { transform: scale(0.97); }
+
+  /* Info rows (mock 1). */
+  .dp-info-card { border-radius: var(--radius-md); overflow: hidden; }
+  .dp-info-row { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md) var(--space-lg); }
+  .dp-info-row + .dp-info-row { border-top: 1px solid var(--line-l-faint); }
+  .dp-info-icon { flex-shrink: 0; display: inline-flex; color: var(--ink-muted); }
+  .dp-info-icon svg { width: 18px; height: 18px; }
+  .dp-info-text { flex: 1; min-width: 0; font-size: var(--text-label); font-weight: 600; color: var(--text); }
+  .dp-bars { flex-shrink: 0; display: inline-flex; align-items: flex-end; gap: var(--space-2xs); height: 16px; }
+  .dp-bar { width: 4px; background: var(--line-l); }
+  .dp-bar:nth-child(1) { height: 6px; }
+  .dp-bar:nth-child(2) { height: 9px; }
+  .dp-bar:nth-child(3) { height: 12px; }
+  .dp-bar:nth-child(4) { height: 14px; }
+  .dp-bar:nth-child(5) { height: 16px; }
+  .dp-bar.on { background: var(--accent-on-light); }
 
   /* ── Wind shelter section ─────────────────────────────────────────────── */
   .dp-shelter-section {

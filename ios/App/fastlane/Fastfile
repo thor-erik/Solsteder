@@ -1,0 +1,85 @@
+# Fastlane — iOS release pipeline for Shades.
+#
+# Signs with App Store *distribution* (no devices needed), via the App Store
+# Connect API key, so it works headlessly where Xcode's automatic signing
+# refuses (it kept demanding a development profile + a registered device).
+#
+# Run from ios/App:
+#   fastlane build    -> creates dist cert + App Store profile, builds Shades.ipa
+#   fastlane beta     -> build, then upload to TestFlight  (prod action)
+#
+# The API key (.p8) is read from ~/.appstoreconnect/private_keys (gitignored,
+# never committed). key_id / issuer_id are identifiers, not secrets.
+
+API_KEY_ID    = "B8Y98DVM4K"
+API_ISSUER_ID = "f972df9f-9168-4b39-9868-da695039d4e2"
+API_KEY_PATH  = File.expand_path("~/.appstoreconnect/private_keys/AuthKey_B8Y98DVM4K.p8")
+TEAM_ID       = "KG3KK5HF42"
+APP_ID        = "app.findshades"
+
+def asc_key
+  app_store_connect_api_key(
+    key_id: API_KEY_ID,
+    issuer_id: API_ISSUER_ID,
+    key_filepath: API_KEY_PATH,
+  )
+end
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build a signed App Store .ipa (distribution signing, no devices needed)"
+  lane :build do
+    key = asc_key
+
+    # Distribution certificate (create via the API if missing).
+    cert(api_key: key, output_path: "./build")
+    # App Store provisioning profile (App Store profiles don't reference devices,
+    # so the "team has no devices" wall doesn't apply — unlike a DEV profile).
+    sigh(api_key: key, app_identifier: APP_ID, platform: "ios", output_path: "./build")
+    profile_name = lane_context[SharedValues::SIGH_NAME]
+
+    begin
+      # Manual signing on the App TARGET ONLY. Automatic archive insists on a DEV
+      # profile (needs a registered device) — we have none. Manual with the App
+      # Store profile sidesteps that; the Capacitor SPM framework targets stay
+      # auto-signed (frameworks need a cert but no profile, so no device needed).
+      update_code_signing_settings(
+        path: "App.xcodeproj",
+        use_automatic_signing: false,
+        team_id: TEAM_ID,
+        code_sign_identity: "Apple Distribution",
+        profile_name: profile_name,
+        targets: ["App"],
+        build_configurations: ["Release"],
+      )
+
+      gym(
+        project: "App.xcodeproj",
+        scheme: "App",
+        configuration: "Release",
+        clean: true,
+        output_directory: "./build",
+        output_name: "Shades.ipa",
+        export_method: "app-store",
+        export_options: {
+          method: "app-store",
+          teamID: TEAM_ID,
+          signingStyle: "manual",
+          provisioningProfiles: { APP_ID => profile_name },
+        },
+      )
+    ensure
+      # Always restore the committed project's automatic signing — Xcode Cloud
+      # and the checked-in config rely on CODE_SIGN_STYLE=Automatic.
+      repo = File.expand_path("../../..", __dir__)
+      sh("git -C '#{repo}' checkout -- ios/App/App.xcodeproj/project.pbxproj")
+    end
+  end
+
+  desc "Build then upload to TestFlight (production action)"
+  lane :beta do
+    build
+    pilot(api_key: asc_key, ipa: "./build/Shades.ipa", skip_waiting_for_build_processing: true)
+  end
+end

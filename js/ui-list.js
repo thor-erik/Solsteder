@@ -632,12 +632,19 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const dpState = (typeof venueState === 'function') ? venueState(v, fromHour) : null;
     const headlineMain = dpState?.mainText || '—';
     const headlineSub  = dpState?.subText  || '';
+    // Verdict (headline + sub) on the left; the "extra" sun facts (overflow /
+    // opportunity pills, e.g. "+ 45m sol fra 21:00") tucked top-right. Timeline
+    // sits tight under the verdict — no reserved pills row eating space.
     return `
       <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}${auditCardCls}"
            data-vid="${v.id}">
-        <div class="dp-sun-headline">${headlineMain}</div>
-        ${headlineSub ? `<div class="dp-sun-sub">${headlineSub}</div>` : ''}
-        <div class="card-pills dp-card-pills">${pillsHtml}</div>
+        <div class="dp-sun-top">
+          <div class="dp-sun-head">
+            <div class="dp-sun-headline">${headlineMain}</div>
+            ${headlineSub ? `<div class="dp-sun-sub">${headlineSub}</div>` : ''}
+          </div>
+          ${pillsHtml ? `<div class="dp-sun-extra card-pills dp-card-pills">${pillsHtml}</div>` : ''}
+        </div>
         ${timelineBlock}
         ${reviewChips}
         ${auditActionsHtml}

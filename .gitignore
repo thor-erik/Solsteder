@@ -31,3 +31,11 @@ android/local.properties
 ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
 !ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 data/area-assign-review.json
+
+# Fastlane build output + downloaded signing material (secrets — never commit)
+ios/App/build/
+ios/App/fastlane/report.xml
+ios/App/fastlane/README.md
+*.mobileprovision
+*.cer
+*.p12

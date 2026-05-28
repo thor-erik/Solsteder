@@ -77,39 +77,35 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   const peopleIcon = typeof getMapsIcon === 'function' ? getMapsIcon('people') : '';
   const volumeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('volume') : '';
   const clockIcon = typeof getMapsIcon === 'function' ? getMapsIcon('clock') : '';
+  const windIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>`;
 
-  if (v.address) {
-    infoItems.push({ icon: pinIcon, strong: v.address, chipText: v.address });
-  }
-
-  if (v.beerPrice) {
-    infoItems.push({
-      icon: beerIcon,
-      strong: `${v.beerPrice} kr / 0,5 l`,
-      sub: `Kilde: <a href="https://pilsguiden.no" target="_blank" rel="noopener" style="color:var(--accent)">Pilsguiden</a>`,
-      chipText: `${v.beerPrice} kr · 0,5l`,
-    });
-  }
+  if (v.address) infoItems.push({ icon: pinIcon, strong: v.address });
+  if (v.beerPrice) infoItems.push({ icon: beerIcon, strong: `${v.beerPrice} kr / 0,5 l` });
 
   const busynessNow = typeof getBusynessAt === 'function' ? getBusynessAt(v, dateStr, fromHour) : null;
   if (busynessNow != null) {
-    // Level word, not a "~71%" of an unclear base (false precision). Mirrors
-    // the noise row (label-only). busynessLabel → Rolig / … / Veldig travelt.
     const busyWord = (typeof busynessLabel === 'function') ? busynessLabel(busynessNow) : null;
     if (busyWord) {
-      infoItems.push({ icon: peopleIcon, strong: busyWord, chipText: busyWord });
+      // 5-bar signal indicator for the crowd level (mock 1).
+      const bars = Math.max(1, Math.min(5, Math.round(busynessNow / 20)));
+      const barsHtml = `<span class="dp-bars" aria-hidden="true">${[1,2,3,4,5].map(i => `<span class="dp-bar${i <= bars ? ' on' : ''}"></span>`).join('')}</span>`;
+      infoItems.push({ icon: peopleIcon, strong: busyWord, rightHtml: barsHtml });
     }
   }
 
   const noiseScore = s?.noise != null ? s.noise : (v.noiseScore != null ? v.noiseScore * 100 : null);
   if (noiseScore != null) {
     const noiseBucket = typeof noiseScoreToBucket === 'function' ? noiseScoreToBucket(noiseScore) : null;
-    if (noiseBucket) {
-      infoItems.push({
-        icon: volumeIcon,
-        strong: noiseBucket.label,
-        chipText: noiseBucket.label,
-      });
+    if (noiseBucket) infoItems.push({ icon: volumeIcon, strong: noiseBucket.label });
+  }
+
+  // Wind shelter — venueWindShelter(facing, windFrom) → 0 (exposed) … 1 (lee).
+  const _wxNow = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, fromHour) : null;
+  if (_wxNow && typeof venueWindShelter === 'function' && v.facing != null) {
+    const shelter = venueWindShelter(v.facing, _wxNow.wdir);
+    if (shelter != null) {
+      const windLabel = shelter >= 0.66 ? 'Lunt for vind' : shelter >= 0.33 ? 'Delvis le' : 'Eksponert for vind'; // TODO i18n
+      infoItems.push({ icon: windIcon, strong: windLabel });
     }
   }
 
@@ -119,28 +115,17 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   if (v.kitchenCloseHour != null) {
     hoursSubtext = `Kjøkken til ${formatHour(v.kitchenCloseHour)}`;
   }
-  // NOTE: "Åpent til X" is no longer pushed into the generic info list — it now
-  // renders as a dedicated line right under the sun panel (dp-hours-line), so
-  // "is it sunny" and "is it open" are answered together. See the return below.
+  // "Åpent til X" renders as a line under the sun panel (dp-hours-line), not here.
 
-  // Adaptive shape: ≤3 → compact chip row (each chip is icon + chipText);
-  // ≥4 → full vertical list (icon + strong + optional sub).
+  // Info as cream-frost rows (mock 1): icon + label, optional right indicator
+  // (busyness bars). One card with divided rows.
   let infoListHtml = '';
-  if (infoItems.length > 0 && infoItems.length <= 3) {
-    infoListHtml = `<div class="info-chips">${
-      infoItems.map(it => `<div class="info-chip">
-        <span class="info-chip-icon">${it.icon}</span>
-        <span class="info-chip-text">${it.chipText}</span>
-      </div>`).join('')
-    }</div>`;
-  } else if (infoItems.length > 0) {
-    infoListHtml = `<div class="info-list">${
-      infoItems.map(it => `<div class="info-row">
-        <div class="info-icon">${it.icon}</div>
-        <div class="info-label">
-          <div class="info-label-strong">${it.strong}</div>
-          ${it.sub ? `<div class="info-label-sub">${it.sub}</div>` : ''}
-        </div>
+  if (infoItems.length) {
+    infoListHtml = `<div class="dp-info-card">${
+      infoItems.map(it => `<div class="dp-info-row">
+        <span class="dp-info-icon">${it.icon}</span>
+        <span class="dp-info-text">${it.strong}</span>
+        ${it.rightHtml || ''}
       </div>`).join('')
     }</div>`;
   }
@@ -266,11 +251,15 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <div id="dp-card-slot" class="dp-card-slot"></div>
 
       <!-- Hours paired with the sun answer: "is it sunny" + "is it open" read
-           together, right under the sun panel (was buried in the info list). -->
+           together, right under the sun panel. -->
       <div class="dp-hours-line">${clockIcon}<span>Åpent til ${closingStr}${hoursSubtext ? ' · ' + hoursSubtext : ''}</span></div>
 
-      <!-- Primary actions, lifted ABOVE social: once the sun answer convinces
-           you, the universal "take me there" + save/share/alert are right here. -->
+      <!-- Order (per Claude-Design): sun → social/plans → invite (all in the
+           VENNER zone) → divider → actions → divider → info. -->
+      ${_renderSocialSection(v)}
+
+      <div class="dp-divider" aria-hidden="true"></div>
+
       <div class="dp-actions">
         <a class="s-rnd dp-directions" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}${walkTime ? ' · ' + walkTime : ''}">
           ${dirIcon}
@@ -286,12 +275,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         </div>
       </div>
 
-      <!-- Social, unified into one zone: invite friends + plans here, told as
-           one story instead of scattered across the panel. -->
-      <div class="dp-social-zone">
-        ${_renderSocialSection(v)}
-        ${_renderPlansBlock(v)}
-      </div>
+      <div class="dp-divider" aria-hidden="true"></div>
 
       ${infoListHtml}
 
@@ -375,17 +359,39 @@ function _venueHasPendingInvite(v) {
  *  so the invite CTA steps back to a Secondary outline to keep ONE honey CTA
  *  per screen (DESIGN.md "Primary = the decision, exactly one"). */
 function _renderSocialSection(v) {
-  // "Invite friends here" — a location-pin-with-people glyph reads more
-  // contextually than the old generic user-plus icon. Pin says "this
-  // place"; the two figures inside say "friends".
+  // VENNER zone (Claude-Design pass 2): a "who's here now" card + plan cards +
+  // the invite CTA, all under one section label, told as one story.
+  const checkins = (typeof getFriendCheckinsForVenue === 'function')
+    ? (getFriendCheckinsForVenue(v.id) || []) : [];
+
+  // "Friends here now" card — avatars + label + a honey "Nå" chip.
+  let hereCard = '';
+  if (checkins.length) {
+    const avatars = _renderFriendAvatarsHtml(checkins, 3, 30);
+    const label   = _friendsHereChipLabel(checkins);
+    hereCard = `
+      <div class="dp-social-card dp-here-card">
+        <div class="dp-here-avatars">${avatars}</div>
+        <div class="dp-here-label">${label}</div>
+        <span class="dp-here-now"><span class="dp-here-dot" aria-hidden="true"></span>${t('now') || 'Nå'}</span>
+      </div>`;
+  }
+
+  // Plan cards (own helper). Empty string when no plans.
+  const plansHtml = (typeof _renderPlanCards === 'function') ? _renderPlanCards(v) : '';
+
+  // Invite CTA — the one honey unless a pending RSVP already owns the honey
+  // (then it steps back to a secondary outline).
   const inviteSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="9.6" cy="9.5" r="1.6"/><circle cx="14.4" cy="9.5" r="1.6"/><path d="M7 13.5c.6-1.1 1.6-1.7 2.6-1.7M14.4 11.8c1 0 2 .6 2.6 1.7"/></svg>`;
-  const cls = _venueHasPendingInvite(v) ? 'dp-invite-cta is-secondary' : 'p-pill dp-invite-cta';
+  const inviteCls = _venueHasPendingInvite(v) ? 'dp-invite-cta is-secondary' : 'p-pill dp-invite-cta';
+  const inviteBtn = `<button class="${inviteCls}" onclick="_openInviteSheet(${v.id})">${inviteSvg}<span>${t('invite_friends')}</span></button>`;
+
   return `
-    <div class="social-card">
-      <button class="${cls}" onclick="_openInviteSheet(${v.id})">
-        ${inviteSvg}
-        <span>${t('invite_friends')}</span>
-      </button>
+    <div class="dp-social-zone">
+      <div class="dp-section-title">${t('friends') || 'Venner'}</div>
+      ${hereCard}
+      ${plansHtml}
+      ${inviteBtn}
     </div>`;
 }
 
@@ -404,113 +410,78 @@ function _renderSocialSection(v) {
  *              ink via .on-light). Non-pending invitees see a status chip.
  *  All data/logic (getPlansForVenue, creator check, _invitees, arrival_time,
  *  message) is unchanged — markup + CSS only. */
-function _renderPlansBlock(v) {
+/** Plan cards for the VENNER zone (Claude-Design pass 2). Returns just the
+ *  cards (no wrapper/section title — the social zone owns those). Empty string
+ *  when there are no plans. Each card: day · time + going-avatars, "N skal hit",
+ *  a sun chip for the planned moment, and actions (Bli med / Kanskje). */
+function _renderPlanCards(v) {
   const plans = typeof getPlansForVenue === 'function' ? getPlansForVenue(v.id) : [];
   if (!plans.length) return '';
 
-  // Lucide glyphs (stroke 2, currentColor) — no emoji.
-  const calIcon  = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 14v2.2l1.5 1.3"/><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h6.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/><circle cx="16" cy="16" r="5.5"/></svg>`;
-  const userIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-  const eyeIcon  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z"/></svg>`;
-
-  const sunGlyph = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+  const sunGlyph = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
   const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const myUid = (typeof authCurrentUser === 'function' && authCurrentUser()) ? authCurrentUser().id : null;
-  const plansHtml = plans.map(p => {
-      const d = new Date(p.planned_at);
-      const planDateStr = (p.planned_at || '').slice(0, 10);
-      const planHour = d.getHours() + d.getMinutes() / 60;
-      const dayLabel = (typeof _dayLabel === 'function' && planDateStr)
-        ? ((s) => s.charAt(0).toUpperCase() + s.slice(1))(_dayLabel(planDateStr))
-        : d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
-      const timeStr = (typeof formatHour === 'function')
-        ? formatHour(planHour)
-        : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const cap = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
-      // Sun context AT the planned moment (computed for the plan's own date),
-      // so the plan ties back to why you opened a sun app: "Sol til 15:30".
-      let sunCtx = '', sunCls = 'no-sun';
-      try {
-        const { windows: pw } = computeSunWindows(v, planDateStr);
-        const cur = pw.find(w => planHour >= w.start && planHour < w.end);
-        if (cur) { sunCtx = `Sol til ${formatHour(cur.end)}`; sunCls = 'in-sun'; }
-        else {
-          const next = pw.find(w => w.start > planHour);
-          sunCtx = next ? `Sol fra ${formatHour(next.start)}` : 'I skyggen';
-        }
-      } catch (e) { /* no sun data — chip omitted */ }
+  return plans.map(p => {
+    const d = new Date(p.planned_at);
+    const planDateStr = (p.planned_at || '').slice(0, 10);
+    const planHour = d.getHours() + d.getMinutes() / 60;
+    const dayLabel = (typeof _dayLabel === 'function' && planDateStr)
+      ? cap(_dayLabel(planDateStr))
+      : d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+    const timeStr = (typeof formatHour === 'function') ? formatHour(planHour)
+      : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      const creator = p.creator?.name || p.creator?.email || '';
-      const invite = p._invite;
-      const pending = invite && invite.status === 'pending';
+    // Going = creator + accepted invitees → avatars + count ("N skal hit").
+    const accepted = Array.isArray(p._invitees) ? p._invitees.filter(i => i.status === 'accepted') : [];
+    const goingUsers = [];
+    if (p.creator) goingUsers.push({ user: p.creator });
+    accepted.forEach(i => { if (i.user) goingUsers.push({ user: i.user }); });
+    const goingCount = goingUsers.length || 1;
+    const goingAv = goingUsers.length ? _renderFriendAvatarsHtml(goingUsers, 4, 28) : '';
 
-      // Actions: pending → honey Accept + red Decline; answered → status chip.
-      let actions = '';
-      if (pending) {
-        actions = `<div class="plan-actions">
-          <button class="p-pill" onclick="respondToPlanInvite('${invite.id}','accepted')">${t('plan_accept')}</button>
-          <button class="d-pill" onclick="respondToPlanInvite('${invite.id}','declined')">${t('plan_decline')}</button>
-        </div>`;
-      } else if (invite) {
-        actions = `<span class="plan-status plan-status-${invite.status}">${t('plan_invite_' + invite.status)}</span>`;
+    // Sun for the planned moment (its own date) — the reason you'd meet here.
+    let sunMain = '', sunSub = '', sunCls = 'no-sun';
+    try {
+      const { windows: pw } = computeSunWindows(v, planDateStr);
+      const cur = pw.find(w => planHour >= w.start && planHour < w.end);
+      if (cur) {
+        sunCls = 'in-sun';
+        sunMain = cap(t('state_sun_until_big', { time: formatHour(cur.end) }));
+        const mins = Math.max(1, Math.round((cur.end - planHour) * 60));
+        const dur = mins >= 60 ? `${Math.floor(mins / 60)}t ${mins % 60}m` : `${mins} min`;
+        sunSub = `${dur} i sol når dere møtes`; // TODO i18n
+      } else {
+        const next = pw.find(w => w.start > planHour);
+        sunMain = next ? cap(t('state_sun_from', { time: formatHour(next.start) })) : 'I skyggen';
+        sunSub = next ? 'Sol kommer senere' : 'Ingen sol når dere møtes'; // TODO i18n
       }
+    } catch (e) { /* no sun data */ }
 
-      // Guests row (avatars + status pips) — only when the user is the creator.
-      let pipsHtml = '';
-      if (myUid && String(p.creator_id) === String(myUid) && Array.isArray(p._invitees) && p._invitees.length) {
-        const planMs = p.planned_at ? new Date(p.planned_at).getTime() : null;
-        const fmtArrival = (inv) => {
-          if (!inv.arrival_time || !planMs) return '';
-          const arrMs = new Date(inv.arrival_time).getTime();
-          if (Math.abs(arrMs - planMs) < 5 * 60 * 1000) return '';
-          const a = new Date(arrMs);
-          return (typeof formatHour === 'function')
-            ? formatHour(a.getHours() + a.getMinutes() / 60)
-            : `${a.getHours()}:${String(a.getMinutes()).padStart(2,'0')}`;
-        };
-        pipsHtml = `<div class="plan-invitees">${p._invitees.map(inv => {
-          const u = inv.user || {};
-          const initial = ((u.name || u.email || '?')[0] || '?').toUpperCase();
-          const av = u.avatar_url
-            ? `<img src="${u.avatar_url}" alt="">`
-            : `<div class="pi-init">${esc(initial)}</div>`;
-          const pipCls = inv.status === 'accepted' ? 'pi-pip-accepted'
-                       : inv.status === 'declined' ? 'pi-pip-declined'
-                       : 'pi-pip-pending';
-          const arr = fmtArrival(inv);
-          const arrLabel = arr ? ` — ${arr}` : '';
-          const arrChip = arr ? `<span class="pi-time">${arr}</span>` : '';
-          return `<div class="plan-invitee" title="${esc((u.name || u.email || '') + ' — ' + t('plan_invite_' + inv.status) + arrLabel)}">${av}<span class="pi-pip ${pipCls}"></span>${arrChip}</div>`;
-        }).join('')}</div>`;
-      }
+    const invite = p._invite;
+    const pending = invite && invite.status === 'pending';
+    let actions;
+    if (pending) {
+      actions = `<button class="p-pill dp-plan-join" onclick="respondToPlanInvite('${invite.id}','accepted')">Bli med</button>
+        <button class="dp-plan-maybe" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">Kanskje</button>`;
+    } else if (invite) {
+      actions = `<span class="plan-status plan-status-${invite.status}">${t('plan_invite_' + invite.status)}</span>
+        <button class="dp-plan-maybe" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">${t('preview_plan')}</button>`;
+    } else {
+      actions = `<button class="dp-plan-maybe" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">${t('preview_plan')}</button>`;
+    }
 
-      const previewBtn = `<button class="g-rnd plan-preview-btn" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">
-        ${eyeIcon}<span>${t('preview_plan')}</span>
-      </button>`;
-
-      return `<div class="dp-plan-card${pending ? ' is-pending' : ''}">
-        <div class="dp-plan-top">
-          <div class="dp-plan-when">
-            <span class="dp-plan-day">${esc(dayLabel)}</span>
-            <span class="dp-plan-time">${timeStr}</span>
-          </div>
-          ${sunCtx ? `<span class="dp-plan-sun ${sunCls}">${sunGlyph}<span>${sunCtx}</span></span>` : ''}
-        </div>
-        ${creator ? `<div class="plan-creator">${userIcon}<span>${esc(creator)}</span></div>` : ''}
-        ${p.message ? `<div class="plan-msg">${esc(p.message)}</div>` : ''}
-        ${pipsHtml}
-        <div class="plan-foot">
-          ${previewBtn}
-          ${actions}
-        </div>
-      </div>`;
-  }).join('');
-
-  return `
-    <div class="dp-section dp-plans-block on-light">
-      <div class="dp-section-title">Avtaler</div>
-      ${plansHtml}
+    return `<div class="dp-social-card dp-plan-card${pending ? ' is-pending' : ''}">
+      <div class="dp-plan-top">
+        <div class="dp-plan-when"><span class="dp-plan-day">${esc(dayLabel)}</span> · <span class="dp-plan-time">${timeStr}</span></div>
+        ${goingAv ? `<div class="dp-plan-going-av">${goingAv}</div>` : ''}
+      </div>
+      <div class="dp-plan-going">${goingCount} skal hit</div>
+      ${p.message ? `<div class="plan-msg">${esc(p.message)}</div>` : ''}
+      ${sunMain ? `<div class="dp-plan-sun ${sunCls}">${sunGlyph}<div class="dp-plan-sun-txt"><span class="dp-plan-sun-main">${esc(sunMain)}</span>${sunSub ? `<span class="dp-plan-sun-sub">${esc(sunSub)}</span>` : ''}</div></div>` : ''}
+      <div class="dp-plan-actions">${actions}</div>
     </div>`;
+  }).join('');
 }
 
 /** Friend-add: debounced send + tap-again-to-undo flow.
