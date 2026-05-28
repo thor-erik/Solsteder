@@ -42,6 +42,11 @@ android {
             }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Include native debug symbols in the AAB so Play can symbolicate
+            // crashes/ANRs from the bundled native libs (Capacitor/Capgo .so).
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
         }
     }
 }

@@ -26,6 +26,8 @@ supabase/.temp/
 android/.idea/
 android/local.properties
 
-# Xcode Swift Package Manager resolution state (per-developer)
-ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+# Xcode Swift Package Manager state — ignore everything EXCEPT Package.resolved,
+# which must be committed so Xcode Cloud (auto-resolution disabled) can build.
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
+!ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 data/area-assign-review.json
