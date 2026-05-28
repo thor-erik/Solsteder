@@ -63,6 +63,17 @@ const cache = existsSync(cachePath)
   : { version: 1, venues: {} };
 if (!cache.venues) cache.venues = {};
 
+// A correction polygon may be a single ring [[lat,lng],…] OR a list of rings
+// [[[lat,lng],…],…] (multi-area), disambiguated by nesting depth. Valid when it
+// yields ≥1 ring of ≥3 points. Mirrors asRings() in js/render-helpers.js.
+function ringsOf(value) {
+  if (!Array.isArray(value) || value.length === 0) return [];
+  if (Array.isArray(value[0]) && Array.isArray(value[0][0])) {
+    return value.filter(r => Array.isArray(r) && r.length >= 3);
+  }
+  return value.length >= 3 ? [value] : [];
+}
+
 const corrections = await fetchAll();
 let merged = 0, cleared = 0, skipped = 0;
 
@@ -78,10 +89,10 @@ for (const c of corrections) {
 
   const key = String(c.venue_id);
 
-  if (Array.isArray(polygon) && polygon.length >= 3) {
+  if (ringsOf(polygon).length) {
     const prev = cache.venues[key];
     let originalAi = prev?.originalAi ?? null;
-    if (prev && prev.source === 'ai' && Array.isArray(prev.polygon) && prev.polygon.length >= 3) {
+    if (prev && prev.source === 'ai' && ringsOf(prev.polygon).length) {
       originalAi = {
         polygon:    prev.polygon,
         confidence: prev.confidence,
@@ -93,8 +104,7 @@ for (const c of corrections) {
       };
     }
     const before = c.before ?? {};
-    const beforeHadPoly = Array.isArray(before.seatingPolygonOverride)
-      && before.seatingPolygonOverride.length >= 3;
+    const beforeHadPoly = ringsOf(before.seatingPolygonOverride).length > 0;
     const origin = c.origin ?? (beforeHadPoly ? 'drag-edit' : 'from-scratch');
     cache.venues[key] = {
       ...(prev ?? {}),

@@ -63,30 +63,23 @@ function toggleEditVertexMode(mode) {
  *   key = 'override' (street override), 'ai' (street AI poly visible),
  *         'courtyard', or 'detached'.
  */
-function getActivePolygon(v) {
-  if (!v) return null;
+/** All editable rings for a venue's active type as { rings, key }. rings is a
+ *  list [[ [lat,lng], … ], … ] (multi-area). key ∈ override/ai/derived/courtyard/
+ *  detached/rooftop/null. asRings normalizes single-ring legacy values. */
+function getActivePolygons(v) {
+  if (!v) return { rings: [], key: null };
   const type = v.terraceType ?? 'street';
-  if (type === 'rooftop') return null;
-  if (type === 'courtyard') {
-    return Array.isArray(v.courtyardPolygon) && v.courtyardPolygon.length >= 3
-      ? { latlng: v.courtyardPolygon, key: 'courtyard' } : null;
-  }
-  if (type === 'detached') {
-    return Array.isArray(v.detachedPolygon) && v.detachedPolygon.length >= 3
-      ? { latlng: v.detachedPolygon, key: 'detached' } : null;
-  }
-  // Street: prefer manual override; fall back to AI polygon; finally derive
-  // from selected walls + depth so polygon handles work in wall-mode too.
-  if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) {
-    return { latlng: v.seatingPolygonOverride, key: 'override' };
-  }
-  // Editor opts in to seeing the AI polygon (as a ghost / for drag-handle
-  // editing). Public renderers do not — getSeatingPolygon defaults to
-  // override-only. See data.js for the gate rationale.
-  const sp = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v, { includeAi: true }) : null;
-  if (Array.isArray(sp) && sp.length >= 3) return { latlng: sp, key: 'ai' };
-  // Wall-derived preview polygon (lat/lng). Used for hit-testing handles before
-  // the user has dragged anything (i.e. before bakeStreetPolygon runs).
+  if (type === 'rooftop')   return { rings: [], key: 'rooftop' };
+  if (type === 'courtyard') return { rings: asRings(v.courtyardPolygon), key: 'courtyard' };
+  if (type === 'detached')  return { rings: asRings(v.detachedPolygon),  key: 'detached' };
+  // Street: prefer manual override; fall back to AI proposal; finally derive
+  // from selected walls + depth so the editor seeds something in wall-mode too.
+  const override = asRings(v.seatingPolygonOverride);
+  if (override.length) return { rings: override, key: 'override' };
+  // Editor opts in to seeing the AI polygon(s); public renderers do not.
+  const ai = (typeof getSeatingPolygons === 'function') ? getSeatingPolygons(v, { includeAi: true }) : [];
+  if (ai.length) return { rings: ai, key: 'ai' };
+  // Wall-derived preview (single ring) — seeds the editor before any override.
   if (typeof getTerraceWalls === 'function' && typeof terracePolygons === 'function') {
     const walls = getTerraceWalls(v);
     if (walls.length) {
@@ -95,30 +88,39 @@ function getActivePolygon(v) {
       const trimmed = _applyTrimToWalls(v, walls, pxPerM);
       const polys = terracePolygons(v, trimmed, depthPx);
       if (polys.length) {
-        const polyPx = polys[0];
-        const latlng = polyPx.map(p => {
-          const ll = map.unproject([p.x, p.y]);
-          return [ll.lat, ll.lng];
-        });
-        return { latlng, key: 'derived' };
+        const latlng = polys[0].map(p => { const ll = map.unproject([p.x, p.y]); return [ll.lat, ll.lng]; });
+        return { rings: [latlng], key: 'derived' };
       }
     }
   }
-  return null;
+  return { rings: [], key: null };
 }
 
-function setActivePolygon(v, latlng) {
-  if (!v) return;
-  const type = v.terraceType ?? 'street';
-  if (type === 'courtyard')      v.courtyardPolygon       = latlng;
-  else if (type === 'detached')  v.detachedPolygon        = latlng;
-  else                           v.seatingPolygonOverride = latlng;
+/** Single-ring shim (first ring) for legacy callers. */
+function getActivePolygon(v) {
+  const { rings, key } = getActivePolygons(v);
+  return rings.length ? { latlng: rings[0], key } : null;
+}
 
-  if (Array.isArray(latlng) && latlng.length >= 3
-      && typeof seatingPolygonTestPoints === 'function') {
-    const pts = seatingPolygonTestPoints(latlng);
+/** Write a ring LIST to the active type's field + recompute the union of test
+ *  points across all rings. Empty list → field null. */
+function setActivePolygons(v, rings) {
+  if (!v) return;
+  const list   = asRings(rings);
+  const stored = list.length ? list : null;
+  const type   = v.terraceType ?? 'street';
+  if (type === 'courtyard')      v.courtyardPolygon       = stored;
+  else if (type === 'detached')  v.detachedPolygon        = stored;
+  else                           v.seatingPolygonOverride = stored;
+  if (typeof seatingPolygonsTestPoints === 'function') {
+    const pts = seatingPolygonsTestPoints(list);
     if (pts.length) v.terraceTestPoints = pts;
   }
+}
+
+/** Single-ring shim. */
+function setActivePolygon(v, latlng) {
+  setActivePolygons(v, (Array.isArray(latlng) && latlng.length >= 3) ? [latlng] : []);
 }
 
 // ── Polygon seeders (default shapes when a type is first selected) ───────────

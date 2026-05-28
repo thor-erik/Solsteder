@@ -164,7 +164,8 @@ async function loadSeatingCache() {
     VENUES.forEach(v => {
       const r = records[String(v.id)] ?? records[v.id];
       if (!r) return;
-      v.seatingPolygonAi           = Array.isArray(r.polygon) && r.polygon.length >= 3 ? r.polygon : null;
+      const aiRings                = asRings(r.polygon);   // single ring OR list of rings
+      v.seatingPolygonAi           = aiRings.length ? aiRings : null;
       v.seatingPolygonAiConfidence = typeof r.confidence === 'number' ? r.confidence : null;
       v.seatingNotVisible          = !!r.notVisible;
       applied++;
@@ -189,18 +190,24 @@ async function loadSeatingCache() {
  *
  * Returns an array of [lat, lng] vertices, or null.
  */
+/** All seating rings for a venue (multi-area) as a list [[ [lat,lng], … ], … ],
+ *  or [] if none. Manual override wins; else the AI proposal (opt-in, gated by
+ *  confidence + notVisible). asRings normalizes single-ring legacy values. */
+function getSeatingPolygons(v, opts = {}) {
+  const override = asRings(v.seatingPolygonOverride);
+  if (override.length) return override;
+  if (!opts.includeAi) return [];
+  if (v.seatingNotVisible) return [];
+  if ((v.seatingPolygonAiConfidence ?? 0) >= SEATING_CONFIDENCE_GATE) {
+    const ai = asRings(v.seatingPolygonAi);
+    if (ai.length) return ai;
+  }
+  return [];
+}
+
+/** First seating ring (or null) — presence checks / single-area callers. */
 function getSeatingPolygon(v, opts = {}) {
-  if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) {
-    return v.seatingPolygonOverride;
-  }
-  if (!opts.includeAi) return null;
-  if (v.seatingNotVisible) return null;
-  if (Array.isArray(v.seatingPolygonAi)
-      && v.seatingPolygonAi.length >= 3
-      && (v.seatingPolygonAiConfidence ?? 0) >= SEATING_CONFIDENCE_GATE) {
-    return v.seatingPolygonAi;
-  }
-  return null;
+  return getSeatingPolygons(v, opts)[0] ?? null;
 }
 
 // id → venue lookup. Replaces ~30 VENUES.find(v => v.id === id) calls in

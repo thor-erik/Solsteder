@@ -121,26 +121,26 @@
 <script defer src="js/places.js?v=20260519p"></script>
 <script defer src="js/busyness.js?v=20260411b"></script>
 <script defer src="js/solar.js?v=20260411b"></script>
-<script defer src="js/data.js?v=20260528a"></script>
+<script defer src="js/data.js?v=20260528g"></script>
 <script defer src="js/weather.js?v=20260525m"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260528f"></script>
-<script defer src="js/render-helpers.js?v=20260527a"></script>
-<script defer src="js/render-seating.js?v=20260519b"></script>
-<script defer src="js/render-editor.js?v=20260528d"></script>
+<script defer src="js/app.js?v=20260528g"></script>
+<script defer src="js/render-helpers.js?v=20260528g"></script>
+<script defer src="js/render-seating.js?v=20260528g"></script>
+<script defer src="js/render-editor.js?v=20260528g"></script>
 <script defer src="js/render-pins.js?v=20260528d"></script>
 <script defer src="js/ui-shared.js?v=20260525b"></script>
 <script defer src="js/ui-list.js?v=20260528b"></script>
 <script defer src="js/admin-review.js?v=20260527b"></script>
-<script defer src="js/admin-audit.js?v=20260528b"></script>
-<script defer src="js/audit-store.js?v=20260528b"></script>
+<script defer src="js/admin-audit.js?v=20260528g"></script>
+<script defer src="js/audit-store.js?v=20260528g"></script>
 <script defer src="js/ui-shelter.js?v=20260522zm"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260525l"></script>
 <script defer src="js/ui-plan-preview.js?v=20260525z"></script>
-<script defer src="js/osm.js?v=20260519p"></script>
+<script defer src="js/osm.js?v=20260528g"></script>
 <script defer src="js/notifications.js?v=20260527b"></script>
 <script defer src="js/push.js?v=20260518c"></script>
 <script defer src="js/lens-effects.js?v=20260521e"></script>
@@ -296,7 +296,10 @@
       <button id="edit-redo-btn" class="edit-tool-icon" onclick="editRedo()" aria-label="Gjør om" title="Gjør om (⌘⇧Z)" disabled>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H16"/></svg>
       </button>
-      <button id="edit-del-vertex-btn" class="edit-tool-icon" onclick="editDeleteSelectedVertex()" aria-label="Slett valgt punkt" title="Slett valgt punkt (Delete)" disabled>
+      <button id="edit-add-area-btn" class="edit-tool-icon" onclick="editAddArea()" aria-label="Legg til område" title="Legg til seteområde">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="12" height="12" rx="1.5"/><path d="M19 14.5v6M16 17.5h6"/></svg>
+      </button>
+      <button id="edit-del-vertex-btn" class="edit-tool-icon" onclick="editDeleteSelectedVertex()" aria-label="Slett valgt punkt eller område" title="Slett valgt punkt / område (Delete)" disabled>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8 12h8"/></svg>
       </button>
       <button id="edit-from-wall-btn" class="edit-tool-icon" onclick="reseedStreetFromWall()" aria-label="Utled fra vegg" title="Utled terrasse fra bygningsvegg" hidden>

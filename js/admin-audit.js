@@ -146,13 +146,14 @@ function venueAiConfidence(v) {
   return (v && typeof v.seatingPolygonAiConfidence === 'number') ? v.seatingPolygonAiConfidence : null;
 }
 function venueHasAiProposal(v) {
-  return !!(v && Array.isArray(v.seatingPolygonAi) && v.seatingPolygonAi.length >= 3
+  const aiRings = (v && typeof asRings === 'function') ? asRings(v.seatingPolygonAi) : [];
+  return !!(aiRings.length
     && !v.seatingNotVisible
     && (venueAiConfidence(v) ?? 0) >= 0.5);
 }
 function venueAiReviewStatus(v) {
   if (!v) return 'none';
-  if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) return 'manual';
+  if ((typeof asRings === 'function' ? asRings(v.seatingPolygonOverride).length : 0)) return 'manual';
   if (venueHasAiProposal(v) && !_auditCache.has(v.id) && !v.auditArchived) return 'ai-unreviewed';
   return 'none';
 }
@@ -196,10 +197,10 @@ function markVenueAudited(venueId, via = 'good') {
   if (via === 'good' && typeof VENUES !== 'undefined') {
     const _v = VENUES.find(x => x.id === venueId);
     if (_v && typeof venueAiReviewStatus === 'function' && venueAiReviewStatus(_v) === 'ai-unreviewed') {
-      const poly = _v.seatingPolygonAi;
-      _v.seatingPolygonOverride = poly;
-      if (typeof seatingPolygonTestPoints === 'function') {
-        const pts = seatingPolygonTestPoints(poly);
+      const poly = (typeof asRings === 'function') ? asRings(_v.seatingPolygonAi) : [];
+      _v.seatingPolygonOverride = poly.length ? poly : null;
+      if (typeof seatingPolygonsTestPoints === 'function') {
+        const pts = seatingPolygonsTestPoints(poly);
         if (pts.length) _v.terraceTestPoints = pts;
       }
       if (typeof saveFacingCache === 'function') {

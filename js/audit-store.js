@@ -123,13 +123,14 @@ async function auditStoreHydrate() {
       const seen = new Set();
       for (const c of corrs) {
         if (seen.has(c.venue_id)) continue;
-        seen.add(c.venue_id);
-        if (!Array.isArray(c.polygon) || c.polygon.length < 3) continue;
+        seen.add(c.venue_id);   // latest correction wins, even if it cleared the polygon
+        const rings = (typeof asRings === 'function') ? asRings(c.polygon) : [];
+        if (!rings.length) continue;   // single ring OR list of rings; skip empty/cleared
         const v = VENUES.find(x => String(x.id) === c.venue_id);
         if (!v) continue;
-        v.seatingPolygonOverride = c.polygon;
-        if (typeof seatingPolygonTestPoints === 'function') {
-          const pts = seatingPolygonTestPoints(c.polygon);
+        v.seatingPolygonOverride = rings;
+        if (typeof seatingPolygonsTestPoints === 'function') {
+          const pts = seatingPolygonsTestPoints(rings);
           if (pts.length) v.terraceTestPoints = pts;
         }
       }
