@@ -5563,16 +5563,58 @@
   /* ── Detail pass 2 (Claude-Design mocks, 2026-05-28) ───────────────────────
      Unified cream-frost cards; sun verdict left + extra pills top-right + tight
      timeline; VENNER zone (who's-here + plan cards); cream info rows. */
-  .dp-card .dp-sun-top {
-    display: flex; align-items: flex-start; justify-content: space-between;
+  /* Sun card: big "X igjen" on the left, the day's events as a pill column on
+     the right. Both sides come from one computeSunWindows source so the numbers
+     always agree (fixes the old left/right mismatch). */
+  .dp-card .dp-sun-row {
+    display: flex; align-items: center; justify-content: space-between;
     gap: var(--space-md);
   }
-  .dp-card .dp-sun-head { min-width: 0; }
-  .dp-card .dp-sun-extra {
-    flex-shrink: 0; display: flex; flex-wrap: wrap; justify-content: flex-end;
-    gap: var(--space-xs); margin: 0; max-width: 55%;
+  .dp-card .dp-sun-now { min-width: 0; }
+  .dp-card .dp-sun-now-main {
+    display: flex; align-items: center; gap: var(--space-sm);
+    color: var(--accent-on-light);
   }
-  .dp-card .dp-sun-top + .card-timeline-block { margin-top: var(--space-md); }
+  .dp-card .dp-sun-now-main svg { flex-shrink: 0; }
+  .dp-card .dp-sun-now-val {
+    font-size: var(--text-display); font-weight: var(--fw-display);
+    letter-spacing: var(--tracking-display); line-height: 1; color: var(--text);
+  }
+  .dp-card .dp-sun-now-verdict {
+    font-size: var(--text-title); font-weight: var(--fw-title);
+    letter-spacing: var(--tracking-title); line-height: 1.15; color: var(--text);
+  }
+  .dp-card .dp-sun-now-label {
+    margin-top: var(--space-2xs); font-size: var(--text-label);
+    font-weight: 500; color: var(--ink-muted);
+  }
+  /* Event pills — one column, uniform height + text so it reads as a stack. */
+  .dp-card .dp-sun-events {
+    flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end;
+    gap: var(--space-xs); max-width: 60%;
+  }
+  .dp-card .dp-evt {
+    display: inline-flex; align-items: center; gap: var(--space-2xs);
+    height: 26px; padding: 0 var(--space-md); border-radius: var(--radius-md);
+    font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap;
+  }
+  .dp-card .dp-evt svg { flex-shrink: 0; }
+  /* Shade end — jordy-blue, same recipe as the venue-list .pill-skygge. */
+  .dp-card .dp-evt-shade {
+    background: rgba(156,189,231,0.10); border: 1px solid rgba(156,189,231,0.22);
+    color: var(--muted);
+  }
+  /* Bonus / later sun window — honey, same rim as .pill-overflow; text inks. */
+  .dp-card .dp-evt-bonus {
+    background: var(--accent-dim); border: 1px solid rgba(245,194,94,0.35);
+    color: var(--accent-on-light);
+  }
+  /* Sundown — quiet neutral, the night cap on the column. */
+  .dp-card .dp-evt-moon {
+    background: var(--line-l-faint); border: 1px solid var(--line-l);
+    color: var(--ink-muted);
+  }
+  .dp-card .dp-sun-row + .card-timeline-block { margin-top: var(--space-md); }
 
   /* Section dividers between zones. */
   .dp-divider { height: 1px; background: var(--line-l-faint); margin: var(--space-lg) 0; }
