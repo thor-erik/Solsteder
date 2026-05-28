@@ -1617,10 +1617,16 @@ function _openInviteSheet(venueId) {
           <button type="button" class="dpinvite-back" onclick="_dpinviteGoToWhen()">
             ${chevronLeftSvg}<span>${t('back')}</span>
           </button>`;
+  // "eller" divider only when there ARE friends — it forks the in-app send
+  // (avatars above) from the external share targets (below). In the empty
+  // state there's no fork, so the targets stand alone with no divider.
+  const orDivider = hasFriends ? `
+          <div class="dpinvite-or">${t('invite_or')}</div>` : '';
   const sharePage = `
         <div class="dpinvite-page dpinvite-page-share" data-page="share" aria-hidden="true">
           ${backLink}
           ${friendsBlock}
+          ${orDivider}
           ${bottomSlot}
         </div>`;
   sheet.innerHTML = `

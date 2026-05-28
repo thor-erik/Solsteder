@@ -1150,13 +1150,17 @@
      revealing the share page. The pager's height is JS-driven to follow the
      ACTIVE page so the off-screen page never inflates the sheet. */
   .dpinvite-pager {
-    /* TIGHT clip at the content box — no horizontal gutter. A gutter would let
-       the off-screen page's edge (Neste button + its shadow, or the back link)
-       peek into the visible page (the "bleed" the user flagged). Avatar
-       selection-ring overflow is instead absorbed by the avatar row's own
-       horizontal padding (see .dpinvite-avatar-row). Height is set inline by
-       _dpinviteSyncPagerHeight (locked to the taller page) and transitioned. */
+    /* Full-bleed to the sheet edge: cancel the body's --space-xl horizontal
+       padding with a matching negative margin, then re-inset the SAME amount
+       inside each .dpinvite-page. Net effect — page content still lines up with
+       the header (--space-xl from the sheet edge), but the clip boundary now
+       sits a full --space-xl OUTSIDE the content. So neither the on-screen
+       page's shadows get cut, nor does the off-screen page's edge bleed in:
+       both pages' content is --space-xl clear of the boundary on each side.
+       Height is set inline by _dpinviteSyncPagerHeight (locked to the taller
+       page) and transitioned. */
     overflow: hidden;
+    margin: 0 calc(var(--space-xl) * -1);
     transition: height var(--dur-slow) var(--ease-emphasized);
   }
   .dpinvite-track {
@@ -1176,8 +1180,9 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
-    /* The clip is on .dpinvite-pager; the gutter padding above keeps ring
-       overflow visible inside it. */
+    /* Re-inset the full-bleed pager so content aligns with the header AND
+       stays --space-xl clear of the clip boundary (see .dpinvite-pager). */
+    padding: 0 var(--space-xl);
   }
 
   /* Low-hierarchy back — a muted chevron+label link pinned to the share page's
@@ -1261,10 +1266,9 @@
     justify-content: center;
     justify-content: safe center;
     overflow-x: auto;
-    /* Horizontal padding ≥ the 4px selection ring so the first/last avatar's
-       ring isn't shaved now that the pager clips tight (no gutter). The row's
-       own overflow-x box also keeps that ring out of the adjacent page. */
-    padding: var(--space-xs) var(--space-sm);
+    /* Padding ≥ the selection ring (4.5px) so the first/last avatar's ring
+       isn't shaved by the row's own overflow-x box or the page inset. */
+    padding: var(--space-sm);
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
@@ -1273,9 +1277,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-xs);
+    gap: var(--space-sm);
     flex-shrink: 0;
-    width: 48px;
+    width: 56px;
     background: transparent;
     border: 0;
     padding: 0;
@@ -1286,11 +1290,11 @@
   .dpinvite-avatar[hidden] { display: none; }
   .dpinvite-avatar-img {
     position: relative;
-    width: 40px; height: 40px;
+    width: 48px; height: 48px;
   }
   .dpinvite-avatar-img > img,
   .dpinvite-avatar-init {
-    width: 40px; height: 40px;
+    width: 48px; height: 48px;
     border-radius: 50%;
     display: block;
     object-fit: cover;
@@ -1299,7 +1303,7 @@
   .dpinvite-avatar-init {
     display: flex; align-items: center; justify-content: center;
     color: #fff;
-    font-size: 16px;
+    font-size: 19px;
     font-weight: 700;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.20);
   }
@@ -1313,10 +1317,9 @@
   .dpinvite-avatar-init.init-color-7 { background: #7D8FA0; }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-img > img,
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-init {
-    /* Tighter ring proportions for the smaller avatars — 2 px gap +
-       2 px ring reads cleanly at 40 px. Gap = cream surface (was #111E38 dark,
-       now the sheet is light/frost). */
-    box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--accent);
+    /* 2 px cream gap + 2.5 px honey ring reads cleanly at 48 px. Gap =
+       cream surface (the sheet is light/frost). */
+    box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4.5px var(--accent);
   }
   .dpinvite-avatar-check {
     position: absolute; bottom: -2px; right: -2px;
@@ -1350,7 +1353,7 @@
     font-weight: 500;
     color: var(--ink-muted);
     line-height: 1.2;
-    max-width: 52px;
+    max-width: 56px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1363,6 +1366,28 @@
        so the name just needs to go from muted → strong ink. */
     color: var(--panel-text);
     font-weight: 700;
+  }
+
+  /* "eller" rule — separates SEND-TO-FRIENDS (in-app, above) from the external
+     share targets (below), the way Instagram visually splits its people grid
+     from its app row. A centred hairline label reads as an intentional fork
+     ("message a friend, OR share a link"), not two stranded rows. */
+  .dpinvite-or {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    color: var(--ink-muted);
+    font-size: var(--text-caption);
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .dpinvite-or::before,
+  .dpinvite-or::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line-l-faint);
   }
 
   /* Empty state (no friends) — calm, no card surface, no icon. Just two
@@ -1391,7 +1416,7 @@
     display: flex;
     justify-content: center;
     gap: var(--space-2xl);
-    margin-top: var(--space-xs);
+    margin-top: 0;
   }
   .dpinvite-target {
     display: flex;
@@ -1406,7 +1431,9 @@
     user-select: none;
   }
   .dpinvite-target-circle {
-    width: 48px; height: 48px;
+    /* Secondary to the 48px friend avatars above — share-targets are the
+       external (link) path, so they sit one notch smaller. */
+    width: 44px; height: 44px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
@@ -1440,7 +1467,7 @@
      nothing (the sheet height is stable across selection changes). */
   .dpinvite-share-bottom {
     position: relative;
-    margin-top: var(--space-xs);
+    margin-top: 0;
   }
   .dpinvite-share-bottom .dpinvite-targets-row { margin-top: 0; }
   /* Clean swap (IG): when a friend is picked the targets row fully gives way to
