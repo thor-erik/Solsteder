@@ -1471,17 +1471,13 @@ function _openInviteSheet(venueId) {
           <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
         </div>`);
 
-  // CTA row — single .p-pill that morphs based on selection state, with an
-  // .s-circ link companion that only appears when 1+ friends are picked.
-  // _refreshInvitePrimaryCTA handles the swap. Initial render reflects the
-  // 0-selected state ("Send delingslenke", full-width, link icon).
-  // Inline copy icon — small clipboard glyph, same stroke weight as the
-  // other CTA icons. Reused by the .s-circ Copy companion in both
-  // selection modes so desktop users have a reliable clipboard path
-  // (macOS Safari's native share sheet doesn't include a Copy option).
-  const copySvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  // Share page (IG share-sheet pattern): friend avatars on top, a row of
+  // share-target circles along the bottom, and a honey Send button that
+  // OVERLAPS the targets row once 1+ friends are picked. _refreshInvitePrimaryCTA
+  // toggles the overlap (.has-selection) + the Send label from selection count.
+  // Send paper-plane glyph for the morphing primary CTA. (The copy / share
+  // marks now live inline in the share-targets row below at circle scale.)
   const sendSvg  = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
-  const shareSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg>`;
   // Two-step flow inside ONE sheet (Instagram-style), via an in-place
   // horizontal slide pager (.dpinvite-pager clips, .dpinvite-track slides).
   // Page 1 (WHEN) picks the moment + FTS; "Neste" slides to page 2 (WHO/SHARE)
@@ -1566,25 +1562,66 @@ function _openInviteSheet(venueId) {
             </button>
           </div>
         </div>`;
+  // WhatsApp glyph — single-path Lucide-register mark (phone + speech bubble
+  // tail). Outline, stroke 2, currentColor so it inherits --glassctl-icon like
+  // the copy/share marks. Subset copied in (no runtime icon dependency).
+  const whatsappSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>`;
+  // Larger glyphs for the 48 px share-target circles (the inline copy/share
+  // SVGs above are 18px, sized for the old text-link row — at circle scale
+  // they read small). Rebuilt at 22px to match the WhatsApp + top-bar icons.
+  const copyTargetSvg  = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  const shareTargetSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg>`;
+  // Share-targets row — IG-style labelled circles. FIXED set (web/Capacitor
+  // can't enumerate installed apps): Copy link · More apps (OS share sheet) ·
+  // WhatsApp (wa.me deep-link). These are tertiary glass-control circles; the
+  // single honey CTA (Send) overlays this row when 1+ friends are picked.
+  const targetsRow = `
+          <div class="dpinvite-targets-row" id="dpinvite-targets-row">
+            <button type="button" class="dpinvite-target" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
+              <span class="dpinvite-target-circle">${copyTargetSvg}</span>
+              <span class="dpinvite-target-label">${t('invite_target_copy')}</span>
+            </button>
+            <button type="button" class="dpinvite-target" onclick="_shareInviteLink(${venueId})" aria-label="${t('invite_other_apps')}">
+              <span class="dpinvite-target-circle">${shareTargetSvg}</span>
+              <span class="dpinvite-target-label">${t('invite_target_share')}</span>
+            </button>
+            <button type="button" class="dpinvite-target" onclick="_shareInviteWhatsApp(${venueId})" aria-label="${t('invite_via_whatsapp')}">
+              <span class="dpinvite-target-circle">${whatsappSvg}</span>
+              <span class="dpinvite-target-label">${t('invite_via_whatsapp')}</span>
+            </button>
+          </div>`;
+  // Bottom slot — the targets row and the honey Send button occupy the SAME
+  // box. Default: targets visible, Send overlay hidden (.has-selection toggles
+  // it). The Send overlay is absolutely positioned over the row so it fades /
+  // slides in OVER the targets (IG pattern), and reflows nothing when it
+  // appears. _refreshInvitePrimaryCTA flips .has-selection on this slot.
+  // No bottom slot at all in the empty (no-friends) state — there's nobody to
+  // send to, so the targets row IS the path forward and stands alone.
+  const bottomSlot = hasFriends ? `
+          <div class="dpinvite-share-bottom" id="dpinvite-share-bottom">
+            ${targetsRow}
+            <div class="dpinvite-send-overlay" id="dpinvite-send-overlay" aria-hidden="true">
+              <button class="p-pill" id="invite-primary-btn" data-mode="send" disabled
+                      onclick="_invitePrimaryClick(${venueId})">
+                <span id="invite-primary-icon">${sendSvg}</span>
+                <span id="invite-primary-label">${t('invite_send_pick')}</span>
+              </button>
+            </div>
+          </div>` : targetsRow;
+  // Optional message — feeds into createPlan's `message` arg (read in
+  // _sendInvite). Only when the user has friends (the in-app send path);
+  // share-link / WhatsApp carry their own composed text. Single-line input,
+  // 16px font so iOS doesn't auto-zoom on focus.
+  const messageBlock = hasFriends ? `
+          <input type="text" class="dpinvite-message" id="dpinvite-message"
+                 maxlength="140" autocomplete="off"
+                 placeholder="${t('invite_message_placeholder')}"
+                 aria-label="${t('invite_message_placeholder')}">` : '';
   const sharePage = `
         <div class="dpinvite-page dpinvite-page-share" data-page="share" aria-hidden="true">
           ${friendsBlock}
-          <div class="dpinvite-cta-row">
-            <button class="p-pill" id="invite-primary-btn" data-mode="send" disabled
-                    onclick="_invitePrimaryClick(${venueId})">
-              <span id="invite-primary-icon">${sendSvg}</span>
-              <span id="invite-primary-label">${t('invite_send_pick')}</span>
-            </button>
-          </div>
-          <div class="dprcv-cta-row">
-            <button class="dprcv-cta-link" type="button" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
-              ${copySvg}<span>${t('copy_invite_link')}</span>
-            </button>
-            <span class="dprcv-cta-sep" aria-hidden="true">·</span>
-            <button class="dprcv-cta-link" type="button" onclick="_shareInviteLink(${venueId})">
-              ${shareSvg}<span>${t('invite_other_apps')}</span>
-            </button>
-          </div>
+          ${messageBlock}
+          ${bottomSlot}
           <div class="dpinvite-back-row">
             <button class="dprcv-cta-link" type="button" onclick="_dpinviteGoToWhen()">
               ${chevronLeftSvg}<span>${t('back')}</span>
@@ -2515,7 +2552,15 @@ function _refreshInvitePrimaryCTA() {
   const btn = sheet.querySelector('#invite-primary-btn');
   const label = sheet.querySelector('#invite-primary-label');
   const icon = sheet.querySelector('#invite-primary-icon');
+  // The bottom slot: targets row + Send overlay share one box. .has-selection
+  // fades / slides the honey Send button in OVER the targets (IG pattern);
+  // dropping it returns the share-targets row. Drives the overlap purely from
+  // selection count — no separate toggle path.
+  const bottomSlot = sheet.querySelector('#dpinvite-share-bottom');
+  const sendOverlay = sheet.querySelector('#dpinvite-send-overlay');
 
+  // Empty (no-friends) state has no Send button at all — nothing to send to.
+  // The targets row is the lone path forward; bail before touching the CTA.
   if (!btn || !label) return;
 
   const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
@@ -2524,10 +2569,16 @@ function _refreshInvitePrimaryCTA() {
   if (icon) icon.innerHTML = sendSvg;
 
   if (n === 0) {
-    // No friends picked yet — disable and prompt. The link / other-apps paths
-    // remain available in the sub-row, so the user is never stuck here.
+    // No friends picked yet — hide the Send overlay so the share-targets row
+    // is the bottom. The targets (copy / more apps / WhatsApp) are always
+    // available underneath, so the user is never stuck here.
     btn.disabled = true;
     label.textContent = t('invite_send_pick');
+    if (bottomSlot) bottomSlot.classList.remove('has-selection');
+    if (sendOverlay) sendOverlay.setAttribute('aria-hidden', 'true');
+    if (typeof window._dpinviteSyncPagerHeight === 'function') {
+      window._dpinviteSyncPagerHeight(sheet);
+    }
     return;
   }
 
@@ -2540,6 +2591,12 @@ function _refreshInvitePrimaryCTA() {
     label.textContent = t('invite_send_to_all', { n });
   } else {
     label.textContent = t('invite_send_to_many', { n });
+  }
+  // 1+ selected → reveal the honey Send button over the targets row.
+  if (bottomSlot) bottomSlot.classList.add('has-selection');
+  if (sendOverlay) sendOverlay.setAttribute('aria-hidden', 'false');
+  if (typeof window._dpinviteSyncPagerHeight === 'function') {
+    window._dpinviteSyncPagerHeight(sheet);
   }
 }
 
@@ -2707,6 +2764,10 @@ async function _sendInvite(venueId) {
   // guard defensively in case the handler is invoked some other way.
   if (selectedIds.length === 0) return;
 
+  // Optional free-text message from the share page — threaded into createPlan.
+  const msgEl = document.getElementById('dpinvite-message');
+  const message = msgEl ? (msgEl.value || '').trim() : '';
+
   // Plan-conflict prompt — if the user already created a plan for this venue
   // within ±3h of the new time, ask whether to merge invitees into it,
   // create a separate plan, or cancel. Avoids the "Anna invited me twice
@@ -2724,7 +2785,7 @@ async function _sendInvite(venueId) {
     // 'separate' falls through to createPlan below.
   }
 
-  await createPlan(venueId, isoTime, '', selectedIds);
+  await createPlan(venueId, isoTime, message, selectedIds);
 
   // Now-send → flip pin presence so friends see the user's dot on the venue.
   if (_isNowSend(d, h) && typeof checkIn === 'function') await checkIn(venueId, '');
@@ -3030,6 +3091,21 @@ function _copyInviteLink(venueId, overrides = {}) {
   if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
   if (_isNowSend(d, h)) _deferredCheckInAfterInvite(venueId);
 }
+
+/** WhatsApp deep-link share. Reuses the same composed invite text (URL already
+ *  inlined by _prepareInvitePayload) so the WhatsApp message reads identically
+ *  to the copy / native-share paths. wa.me/?text=<encoded> opens WhatsApp's
+ *  "pick a chat → send this text" sheet on web AND native (the OS resolves the
+ *  wa.me link to the installed app). */
+function _shareInviteWhatsApp(venueId, overrides = {}) {
+  const payload = _prepareInvitePayload(venueId, overrides);
+  if (!payload) return;
+  const { d, h, text } = payload;
+  const waUrl = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(waUrl, '_blank', 'noopener');
+  if (_isNowSend(d, h)) _deferredCheckInAfterInvite(venueId);
+}
+if (typeof window !== 'undefined') window._shareInviteWhatsApp = _shareInviteWhatsApp;
 
 /** Schedule a check-in to fire after a short notification window during
  *  which the user can tap "Don't check in" to cancel. The notification
