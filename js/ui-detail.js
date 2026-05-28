@@ -1608,21 +1608,20 @@ function _openInviteSheet(venueId) {
               </button>
             </div>
           </div>` : targetsRow;
-  // Back lives on the SAME row as the share targets (left of them) — saves the
-  // vertical space a dedicated back-row used to eat, and stays reachable even
-  // when a friend is picked (it sits OUTSIDE the targets↔Send swap slot).
-  const backTarget = `
-            <button type="button" class="dpinvite-target dpinvite-target-back" onclick="_dpinviteGoToWhen()" aria-label="${t('back')}">
-              <span class="dpinvite-target-circle">${chevronLeftSvg}</span>
-              <span class="dpinvite-target-label">${t('back')}</span>
-            </button>`;
+  // Back is a LOW-hierarchy affordance — a muted chevron+label link, not a
+  // glass-circle like the share targets. It's pinned to the share page's
+  // top-left corner (absolute, out of flow) so the friends label, avatar row,
+  // and share-targets row all stay centred on the sheet axis (back doesn't
+  // push them off-centre) and it costs zero vertical space.
+  const backLink = `
+          <button type="button" class="dpinvite-back" onclick="_dpinviteGoToWhen()">
+            ${chevronLeftSvg}<span>${t('back')}</span>
+          </button>`;
   const sharePage = `
         <div class="dpinvite-page dpinvite-page-share" data-page="share" aria-hidden="true">
+          ${backLink}
           ${friendsBlock}
-          <div class="dpinvite-bottom-row">
-            ${backTarget}
-            ${bottomSlot}
-          </div>
+          ${bottomSlot}
         </div>`;
   sheet.innerHTML = `
     <div class="dpinvite-handle" id="dpinvite-handle" aria-label="${t('close') || 'Close'}">
@@ -2246,26 +2245,27 @@ function _dpinviteSyncPagerHeight(sheet, instant) {
   if (!_sheet) return;
   const pager = _sheet.querySelector('#dpinvite-pager');
   if (!pager) return;
-  const step = _sheet._inviteStep || 'when';
-  const active = _sheet.querySelector(
-    step === 'share' ? '.dpinvite-page-share' : '.dpinvite-page-when'
-  );
-  if (!active) return;
+  // Lock the pager to the TALLER of the two pages so the when↔share slide never
+  // changes the sheet height (no jump). Both pages are always laid out (the
+  // off-screen one is just translated), so offsetHeight is valid for each. The
+  // shorter page is top-anchored (.dpinvite-track align-items:flex-start), so it
+  // simply carries empty space below. offsetHeight includes the FTS/ring gutter.
+  const whenPage  = _sheet.querySelector('.dpinvite-page-when');
+  const sharePage = _sheet.querySelector('.dpinvite-page-share');
+  const h = Math.max(whenPage  ? whenPage.offsetHeight  : 0,
+                     sharePage ? sharePage.offsetHeight : 0);
+  if (!h) return;
   if (instant) {
     const prev = pager.style.transition;
     pager.style.transition = 'none';
-    pager.style.height = active.offsetHeight + 'px';
-    // Force the no-transition height to commit before restoring the
-    // transition, so a subsequent slide animates from this exact size.
+    pager.style.height = h + 'px';
+    // Force the no-transition height to commit before restoring the transition.
     // eslint-disable-next-line no-unused-expressions
     pager.offsetHeight;
     pager.style.transition = prev;
     return;
   }
-  // offsetHeight reflects the page's laid-out box (incl. the FTS popup gutter
-  // reserved inside the slot). Set it explicitly so the clip transitions
-  // smoothly between the two differently-sized pages.
-  pager.style.height = active.offsetHeight + 'px';
+  pager.style.height = h + 'px';
 }
 if (typeof window !== 'undefined') window._dpinviteSyncPagerHeight = _dpinviteSyncPagerHeight;
 

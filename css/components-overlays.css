@@ -1150,17 +1150,13 @@
      revealing the share page. The pager's height is JS-driven to follow the
      ACTIVE page so the off-screen page never inflates the sheet. */
   .dpinvite-pager {
-    /* Clips the off-screen page horizontally; height set inline by
-       _dpinviteSyncPagerHeight and transitioned so the sheet grows/shrinks
-       smoothly between the two differently-sized pages. The FTS popup lives
-       inside the when-page's reserved slot padding, so vertical clipping here
-       doesn't cut it off. */
+    /* TIGHT clip at the content box — no horizontal gutter. A gutter would let
+       the off-screen page's edge (Neste button + its shadow, or the back link)
+       peek into the visible page (the "bleed" the user flagged). Avatar
+       selection-ring overflow is instead absorbed by the avatar row's own
+       horizontal padding (see .dpinvite-avatar-row). Height is set inline by
+       _dpinviteSyncPagerHeight (locked to the taller page) and transitioned. */
     overflow: hidden;
-    /* Negative inline margin + matching padding so avatar selection rings
-       (which bleed ~4 px past the tile) aren't shaved by the horizontal clip,
-       while the track still slides on the content box. */
-    margin: 0 calc(var(--space-sm) * -1);
-    padding: 0 var(--space-sm);
     transition: height var(--dur-slow) var(--ease-emphasized);
   }
   .dpinvite-track {
@@ -1184,25 +1180,36 @@
        overflow visible inside it. */
   }
 
-  /* Back + share-targets on ONE row — the back item sits left (fixed width,
-     never shrinks), the targets/Send slot fills the rest. Aligned to the top
-     so the back circle lines up with the target circles; labels hang below.
-     This replaces the old dedicated centred .dpinvite-back-row, reclaiming the
-     vertical space it used to eat. The flex:1 child is .dpinvite-share-bottom
-     when there are friends, or .dpinvite-targets-row directly in the empty
-     state (no Send slot) — :not(.dpinvite-target-back) catches both. */
-  .dpinvite-bottom-row {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-lg);
-    margin-top: var(--space-xs);
+  /* Low-hierarchy back — a muted chevron+label link pinned to the share page's
+     top-left corner. Absolute (out of flow) so the centred friends label,
+     avatar row, and share-targets row stay on the sheet axis, and so it eats
+     zero vertical space. Visually subordinate to the glass-circle targets:
+     no surface, muted ink, caption weight. */
+  .dpinvite-page-share { position: relative; }
+  .dpinvite-back {
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    background: transparent;
+    border: 0;
+    margin: 0;
+    padding: var(--space-2xs) var(--space-md) var(--space-sm) 0;
+    font-family: inherit;
+    font-size: var(--text-caption);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--ink-muted);
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 120ms;
   }
-  .dpinvite-bottom-row .dpinvite-target-back { flex-shrink: 0; }
-  .dpinvite-bottom-row > :not(.dpinvite-target-back) {
-    flex: 1;
-    min-width: 0;
-    margin-top: 0;
-  }
+  .dpinvite-back svg { width: 13px; height: 13px; }
+  .dpinvite-back:hover { color: var(--panel-text); }
+  .dpinvite-back:active { opacity: 0.65; }
   @media (prefers-reduced-motion: reduce) {
     .dpinvite-pager,
     .dpinvite-track { transition: none; }
@@ -1235,6 +1242,7 @@
     letter-spacing: 0.4px;
     text-transform: uppercase;
     line-height: 1;
+    text-align: center;
     margin-top: var(--space-2xs);
     margin-bottom: var(--space-md);
   }
@@ -1247,9 +1255,16 @@
      screen. */
   .dpinvite-avatar-row {
     display: flex; gap: var(--space-lg);
+    /* Centre the avatars when they fit; scroll when they overflow. `safe center`
+       falls back to flex-start on overflow so the first avatars never get
+       cut off + unreachable (the classic flex+scroll centring bug). */
+    justify-content: center;
+    justify-content: safe center;
     overflow-x: auto;
-    padding: var(--space-xs) var(--space-2xs);
-    margin: 0 calc(var(--space-2xs) * -1);
+    /* Horizontal padding ≥ the 4px selection ring so the first/last avatar's
+       ring isn't shaved now that the pager clips tight (no gutter). The row's
+       own overflow-x box also keeps that ring out of the adjacent page. */
+    padding: var(--space-xs) var(--space-sm);
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
