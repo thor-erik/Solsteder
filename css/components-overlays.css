@@ -1098,9 +1098,9 @@
   }
   button.dpinvite-moment-sub:hover svg { opacity: 1; }
   button.dpinvite-moment-sub:active { transform: scale(0.97); }
-  /* Share step: the day-picker slot becomes the "‹ Endre" back button. Same
-     pill, but the down chevron rotates to point left (back direction). */
-  button.dpinvite-moment-sub.is-back svg { transform: rotate(-90deg); }
+  /* Share step: the day-picker slot becomes the "Endre ›" back button. Same
+     pill, but the down chevron rotates to point right. */
+  button.dpinvite-moment-sub.is-back svg { transform: rotate(90deg); }
   /* FTS slot — host for the floating time slider when the invite sheet
      is open. Reparented from <body> on open, restored on close.
      padding-top reserves room the compact FTS popup needs to float
@@ -1197,6 +1197,38 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
+  }
+
+  /* Hairline between the FTS timeline and the Neste footer (when step). Same
+     faint ink line as the "eller" divider; page gap provides the breathing
+     room on both sides. */
+  .dpinvite-rule {
+    height: 1px;
+    background: var(--line-l-faint);
+  }
+
+  /* Rocks-on-ice — when the share step slides in, the avatars (then the share
+     targets) land with a staggered spring, like the accept panel's confirm
+     action cards. backwards fill holds the off-screen start during each item's
+     delay; re-fires every time the share step is entered (.show-share toggles).
+     Reuses @keyframes dprcv-card-in (translateX 40px → 0 + fade). */
+  .dpinvite-track.show-share .dpinvite-avatar,
+  .dpinvite-track.show-share .dpinvite-target {
+    animation: dprcv-card-in var(--dur-slow) var(--ease-spring) backwards;
+  }
+  .dpinvite-track.show-share .dpinvite-avatar:nth-child(1) { animation-delay: 150ms; }
+  .dpinvite-track.show-share .dpinvite-avatar:nth-child(2) { animation-delay: 205ms; }
+  .dpinvite-track.show-share .dpinvite-avatar:nth-child(3) { animation-delay: 260ms; }
+  .dpinvite-track.show-share .dpinvite-avatar:nth-child(4) { animation-delay: 315ms; }
+  .dpinvite-track.show-share .dpinvite-avatar:nth-child(5) { animation-delay: 370ms; }
+  .dpinvite-track.show-share .dpinvite-avatar:nth-child(6) { animation-delay: 425ms; }
+  .dpinvite-track.show-share .dpinvite-avatar:nth-child(n+7) { animation-delay: 480ms; }
+  .dpinvite-track.show-share .dpinvite-target:nth-child(1) { animation-delay: 330ms; }
+  .dpinvite-track.show-share .dpinvite-target:nth-child(2) { animation-delay: 390ms; }
+  .dpinvite-track.show-share .dpinvite-target:nth-child(3) { animation-delay: 450ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .dpinvite-track.show-share .dpinvite-avatar,
+    .dpinvite-track.show-share .dpinvite-target { animation: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .dpinvite-pager,

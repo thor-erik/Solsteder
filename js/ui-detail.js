@@ -1550,6 +1550,7 @@ function _openInviteSheet(venueId) {
             <div class="dpinvite-friends-label">${t('invite_eyebrow_select_time')}</div>
             <div class="dpinvite-fts-slot" id="dpinvite-fts-slot" aria-hidden="false"></div>
           </div>
+          <div class="dpinvite-rule" aria-hidden="true"></div>
           <div class="dpinvite-foot">
             <div class="dpinvite-cta-row">
               <button class="p-pill" type="button" onclick="_dpinviteGoToShare(${venueId})">
@@ -1608,11 +1609,11 @@ function _openInviteSheet(venueId) {
               </button>
             </div>
           </div>` : targetsRow;
-  // Back lives in the persistent header's row 3 (the date-picker slot) — on the
-  // share step that slot becomes a "‹ Endre" button styled like the day picker
-  // (the date is locked there anyway), so going back = "change the moment". See
-  // _dpinviteGoToShare / _dpinviteGoToWhen, which swap #dpinvite-moment-sub
-  // between the day picker and this back affordance. Nothing renders here.
+  // Back lives in the persistent header's row 3 (the date-picker slot). On the
+  // share step that slot keeps showing the day but acts as back (chevron flips
+  // right), so tapping it returns to the time step to change the moment. See
+  // _dpinviteGoToShare / _dpinviteGoToWhen (they toggle .is-back on
+  // #dpinvite-moment-sub) and the click handler's step branch. Nothing here.
   // "Send til" — a centred section label, structurally identical to the "eller"
   // divider below so both sit on the same axis with the same gap to their row.
   const sendLabel = hasFriends ? `
@@ -2289,17 +2290,15 @@ function _dpinviteGoToShare(venueId) {
   if (!track) return;
   sheet._inviteStep = 'share';
   track.classList.add('show-share');
-  // The date is locked on the share step — repurpose the day-picker slot (header
-  // row 3) into a "‹ Endre" back button: same pill style, left chevron, tapping
-  // returns to the time step to change the moment.
+  // The date is locked on the share step — the day-picker slot (header row 3)
+  // keeps showing the day but now ACTS as back: same pill, chevron flips to
+  // point right (.is-back), and tapping it returns to the time step to change
+  // the moment (see the #dpinvite-moment-sub click handler's step branch).
   const daySub = sheet.querySelector('#dpinvite-moment-sub');
   if (daySub) {
     daySub.classList.remove('is-locked');
     daySub.disabled = false;
     daySub.classList.add('is-back');
-    daySub.setAttribute('aria-label', t('invite_change'));
-    const subText = daySub.querySelector('#dpinvite-moment-sub-text');
-    if (subText) subText.textContent = t('invite_change');
   }
   // aria-hidden tracks the visible page for AT + the page-fade CSS rule.
   const whenPage  = sheet.querySelector('.dpinvite-page-when');
@@ -2322,17 +2321,13 @@ function _dpinviteGoToWhen() {
   if (!track) return;
   sheet._inviteStep = 'when';
   track.classList.remove('show-share');
-  // Restore the day picker in header row 3 (it was the "‹ Endre" back button on
-  // the share step) and re-fill its day label.
+  // Restore the day picker in header row 3 (it was the back affordance on the
+  // share step) — drop .is-back so the chevron points down again + taps reopen
+  // the calendar. The day label was never changed, so nothing to re-fill.
   const daySub = sheet.querySelector('#dpinvite-moment-sub');
   if (daySub) {
     daySub.classList.remove('is-back', 'is-locked');
     daySub.disabled = false;
-    daySub.setAttribute('aria-label', t('invite_eyebrow_select_time'));
-  }
-  if (typeof _getInviteDateTime === 'function' && typeof window._updateInviteHeader === 'function') {
-    const { d, h } = _getInviteDateTime();
-    window._updateInviteHeader(sheet._venue, d, h);
   }
   // Reset the friend selection — going back to pick a new time should start the
   // share step fresh (no carried-over picks), and drop the Send overlay so the
@@ -2377,12 +2372,7 @@ function _updateInviteHeader(venue, dateStr, hour) {
   // ("Now / Today" reads cleaner than a blank chip when inviting the
   // current moment). Text goes in a separate span so the chevron isn't
   // overwritten.
-  // On the share step the sub slot is the "‹ Endre" back button — don't clobber
-  // its label with the day reading (a stray resize/time event would otherwise
-  // overwrite "Endre").
-  const subBtn = document.getElementById('dpinvite-moment-sub');
-  const inBackMode = subBtn && subBtn.classList.contains('is-back');
-  if (subTextEl && !inBackMode) {
+  if (subTextEl) {
     const dayPart = (dateStr && typeof _dayLabel === 'function') ? _dayLabel(dateStr) : '';
     subTextEl.textContent = dayPart ? dayPart.charAt(0).toUpperCase() + dayPart.slice(1) : '';
   }
