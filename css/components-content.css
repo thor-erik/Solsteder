@@ -5263,22 +5263,104 @@
     margin-bottom: var(--space-md);
   }
 
-  /* ── Plans block — lives below the social card ────────────────────────── */
+  /* ── Plans block — cream tile on the frost sheet (redesign 2026-05-28) ────
+     Surface (cream bg + border + shadow) + ink text tokens come from the
+     #detail-panel .dp-plans-block rule above; here we own only the layout +
+     padding + radius. */
   .dp-plans-block {
     padding: var(--space-lg) var(--space-lg);
-    background: var(--surface-content);
-    border: 1px solid var(--line-d);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-1);
   }
+  /* Plans stack vertically; each non-first plan gets a hairline ink divider. */
   .dp-plans-block .detail-plan-item:not(:first-of-type) {
-    margin-top: var(--space-md);
-    padding-top: var(--space-md);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
     border-top: 1px solid var(--line-l-faint);  /* ink divider on the cream plans tile */
   }
+  /* WHEN row: calendar glyph + strong-ink date + a honey-dim time chip. */
+  .dp-plans-block .plan-when-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+  .dp-plans-block .plan-when-ico {
+    display: inline-flex;
+    color: var(--ink-muted);
+    flex-shrink: 0;
+  }
+  .dp-plans-block .plan-when-date {
+    font-size: var(--text-body);
+    font-weight: 700;
+    color: var(--text);              /* strong ink — the date reads first */
+    letter-spacing: -0.005em;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* Time = the sun-adjacent reading → a honey-dim chip (deep amber on dim
+     honey + honey border), like the list card's sun chip. Honey TEXT alone
+     would wash out on cream, so it lives inside a chip. */
+  .dp-plans-block .plan-when-chip {
+    flex-shrink: 0;
+    padding: var(--space-2xs) var(--space-sm);
+    border-radius: var(--radius-pill);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    color: var(--accent-on-light);   /* deeper amber — legible honey on cream */
+    font-size: var(--text-label);
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Creator line — muted ink with a small user glyph. */
+  .dp-plans-block .plan-creator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    color: var(--text-secondary);    /* ink @ 0.64 in this scope */
+    font-size: var(--text-label);
+    font-weight: 500;
+  }
+  .dp-plans-block .plan-creator svg { color: var(--ink-muted); flex-shrink: 0; }
+  .dp-plans-block .plan-creator span {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* Optional plan message — quoted, secondary ink. */
+  .dp-plans-block .plan-msg {
+    margin-top: var(--space-sm);
+    padding-left: var(--space-md);
+    border-left: 2px solid var(--line-l);
+    color: var(--text-secondary);
+    font-size: var(--text-label);
+    font-style: italic;
+    line-height: 1.4;
+  }
+  .dp-plans-block .plan-invitees { margin-top: var(--space-md); }
+  /* Foot row — Preview ghost on the left, status / RSVP actions on the right. */
+  .dp-plans-block .plan-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+  }
+  .dp-plans-block .plan-actions { gap: var(--space-md); }
+  /* Status chip (answered invitee) — neutral ink, success/error tinted. */
+  .dp-plans-block .plan-status {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-2xs) var(--space-md);
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-l);
+    color: var(--ink-muted);
+    font-size: var(--text-label);
+    font-weight: 600;
+  }
+  .dp-plans-block .plan-status-accepted { color: var(--color-success); border-color: var(--color-success); }
+  .dp-plans-block .plan-status-declined { color: var(--color-error);   border-color: var(--color-error); }
   /* No yellow fonts on the cream tiles — honey TEXT goes ink; the sun signal
      stays in the fills (honey-dim pill bg/border, the timeline bar). */
-  #detail-panel .dp-plans-block .plan-when,
   #detail-panel .dp-card .card-pill.pill-sol,
   #detail-panel .dp-card .card-pill.pill-overflow {
     color: var(--text);

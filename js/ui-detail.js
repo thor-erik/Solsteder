@@ -380,16 +380,40 @@ function _renderSocialSection(v) {
 }
 
 /** Plans block — own section below the social card. Empty string when no
- *  plans for this venue, so the section disappears cleanly. */
+ *  plans for this venue, so the section disappears cleanly.
+ *
+ *  Cream-frost redesign (2026-05-28): the block is a cream tile on the frost
+ *  sheet (#detail-panel scope flips its text tokens to ink — see
+ *  components-content.css). Each plan is a tidy vertical row:
+ *    · WHEN  — a calendar-clock glyph + strong-ink date + a honey-dim time chip
+ *              (deep amber on dim honey — honey TEXT would wash out on cream).
+ *    · WHO   — "from {creator}" muted-ink, with an optional quoted message.
+ *    · GUESTS— (creator only) avatars + per-person status pip + arrival chip.
+ *    · ACTIONS — Accept (the ONE honey .p-pill, only when a pending invite is
+ *              the user's), Decline (.d-pill destructive), Preview (.g-rnd ghost,
+ *              ink via .on-light). Non-pending invitees see a status chip.
+ *  All data/logic (getPlansForVenue, creator check, _invitees, arrival_time,
+ *  message) is unchanged — markup + CSS only. */
 function _renderPlansBlock(v) {
   const plans = typeof getPlansForVenue === 'function' ? getPlansForVenue(v.id) : [];
   if (!plans.length) return '';
 
+  // Lucide glyphs (stroke 2, currentColor) — no emoji.
+  const calIcon  = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 14v2.2l1.5 1.3"/><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h6.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/><circle cx="16" cy="16" r="5.5"/></svg>`;
+  const userIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+  const eyeIcon  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z"/></svg>`;
+
   const myUid = (typeof authCurrentUser === 'function' && authCurrentUser()) ? authCurrentUser().id : null;
   const plansHtml = plans.map(p => {
-      const when = new Date(p.planned_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const d = new Date(p.planned_at);
+      const dateStr = d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+      const timeStr = (typeof formatHour === 'function')
+        ? formatHour(d.getHours() + d.getMinutes() / 60)
+        : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const creator = p.creator?.name || p.creator?.email || '';
       const invite = p._invite;
+
+      // Actions: pending → honey Accept + red Decline; answered → status chip.
       let actions = '';
       if (invite && invite.status === 'pending') {
         actions = `<div class="plan-actions">
@@ -397,10 +421,10 @@ function _renderPlansBlock(v) {
           <button class="d-pill" onclick="respondToPlanInvite('${invite.id}','declined')">${t('plan_decline')}</button>
         </div>`;
       } else if (invite) {
-        actions = `<span class="plan-status">${t('plan_invite_' + invite.status)}</span>`;
+        actions = `<span class="plan-status plan-status-${invite.status}">${t('plan_invite_' + invite.status)}</span>`;
       }
 
-      // Status pips: only meaningful when current user is the plan creator
+      // Guests row (avatars + status pips) — only when the user is the creator.
       let pipsHtml = '';
       if (myUid && String(p.creator_id) === String(myUid) && Array.isArray(p._invitees) && p._invitees.length) {
         const planMs = p.planned_at ? new Date(p.planned_at).getTime() : null;
@@ -408,10 +432,10 @@ function _renderPlansBlock(v) {
           if (!inv.arrival_time || !planMs) return '';
           const arrMs = new Date(inv.arrival_time).getTime();
           if (Math.abs(arrMs - planMs) < 5 * 60 * 1000) return '';
-          const d = new Date(arrMs);
+          const a = new Date(arrMs);
           return (typeof formatHour === 'function')
-            ? formatHour(d.getHours() + d.getMinutes() / 60)
-            : `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+            ? formatHour(a.getHours() + a.getMinutes() / 60)
+            : `${a.getHours()}:${String(a.getMinutes()).padStart(2,'0')}`;
         };
         pipsHtml = `<div class="plan-invitees">${p._invitees.map(inv => {
           const u = inv.user || {};
@@ -429,21 +453,28 @@ function _renderPlansBlock(v) {
         }).join('')}</div>`;
       }
 
-      const previewBtn = `<button class="plan-preview-btn" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z"/></svg>
-        ${t('preview_plan')}
+      const previewBtn = `<button class="g-rnd plan-preview-btn" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">
+        ${eyeIcon}<span>${t('preview_plan')}</span>
       </button>`;
 
       return `<div class="detail-plan-item">
-        <div class="plan-info"><span class="plan-when">${when}</span><span class="plan-creator">${creator}</span>${p.message ? `<span class="plan-msg">${p.message}</span>` : ''}</div>
+        <div class="plan-when-row">
+          <span class="plan-when-ico">${calIcon}</span>
+          <span class="plan-when-date">${dateStr}</span>
+          <span class="plan-when-chip">${timeStr}</span>
+        </div>
+        ${creator ? `<div class="plan-creator">${userIcon}<span>${creator}</span></div>` : ''}
+        ${p.message ? `<div class="plan-msg">${p.message}</div>` : ''}
         ${pipsHtml}
-        ${actions}
-        ${previewBtn}
+        <div class="plan-foot">
+          ${previewBtn}
+          ${actions}
+        </div>
       </div>`;
   }).join('');
 
   return `
-    <div class="dp-section dp-plans-block">
+    <div class="dp-section dp-plans-block on-light">
       <div class="dp-section-title">Avtaler</div>
       ${plansHtml}
     </div>`;
