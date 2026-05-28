@@ -1608,24 +1608,20 @@ function _openInviteSheet(venueId) {
               </button>
             </div>
           </div>` : targetsRow;
-  // Optional message — feeds into createPlan's `message` arg (read in
-  // _sendInvite). Only when the user has friends (the in-app send path);
-  // share-link / WhatsApp carry their own composed text. Single-line input,
-  // 16px font so iOS doesn't auto-zoom on focus.
-  const messageBlock = hasFriends ? `
-          <input type="text" class="dpinvite-message" id="dpinvite-message"
-                 maxlength="140" autocomplete="off"
-                 placeholder="${t('invite_message_placeholder')}"
-                 aria-label="${t('invite_message_placeholder')}">` : '';
+  // Back lives on the SAME row as the share targets (left of them) — saves the
+  // vertical space a dedicated back-row used to eat, and stays reachable even
+  // when a friend is picked (it sits OUTSIDE the targets↔Send swap slot).
+  const backTarget = `
+            <button type="button" class="dpinvite-target dpinvite-target-back" onclick="_dpinviteGoToWhen()" aria-label="${t('back')}">
+              <span class="dpinvite-target-circle">${chevronLeftSvg}</span>
+              <span class="dpinvite-target-label">${t('back')}</span>
+            </button>`;
   const sharePage = `
         <div class="dpinvite-page dpinvite-page-share" data-page="share" aria-hidden="true">
           ${friendsBlock}
-          ${messageBlock}
-          ${bottomSlot}
-          <div class="dpinvite-back-row">
-            <button class="dprcv-cta-link" type="button" onclick="_dpinviteGoToWhen()">
-              ${chevronLeftSvg}<span>${t('back')}</span>
-            </button>
+          <div class="dpinvite-bottom-row">
+            ${backTarget}
+            ${bottomSlot}
           </div>
         </div>`;
   sheet.innerHTML = `
@@ -2764,9 +2760,7 @@ async function _sendInvite(venueId) {
   // guard defensively in case the handler is invoked some other way.
   if (selectedIds.length === 0) return;
 
-  // Optional free-text message from the share page — threaded into createPlan.
-  const msgEl = document.getElementById('dpinvite-message');
-  const message = msgEl ? (msgEl.value || '').trim() : '';
+  const message = '';
 
   // Plan-conflict prompt — if the user already created a plan for this venue
   // within ±3h of the new time, ask whether to merge invitees into it,
