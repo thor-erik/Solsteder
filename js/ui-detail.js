@@ -1452,18 +1452,24 @@ function _openInviteSheet(venueId) {
   sheet.id = 'invite-sheet';
   sheet.className = 'dpinvite-sheet';
 
-  // Friends body — just the avatar row (hasFriends) or the empty-state card.
-  // The "Send til" label now lives in a balanced head row alongside Back
-  // (built below), so it's split out from the avatars here.
+  // Friends body — the avatar row (hasFriends) or the empty-state card. The
+  // empty state now carries a direct "Legg til venn" CTA (opens the friends
+  // modal, the in-app add-by-email / share-link flow) so there's a quick path
+  // to build the friend list, with the share-targets row below as the "or share
+  // a link to anyone" alternative (see the "eller" divider, now shown in both
+  // states). The "Send til" label is split out into sendLabel (hasFriends only).
+  const userPlusSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>`;
+  const addFriendCta = `<button type="button" class="p-pill dpinvite-empty-cta" onclick="openFriendsModal()">${userPlusSvg}<span>${t('add_friend')}</span></button>`;
   const friendsBlock = hasFriends ? `
         <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
           ${avatarsHtml}
         </div>` : (typeof emptyState === 'function'
-        ? emptyState({ glyph: 'user-plus', title: t('invite_no_friends_title'), sub: t('invite_no_friends_sub'), ink: true })
+        ? emptyState({ glyph: 'user-plus', title: t('invite_no_friends_title'), sub: t('invite_no_friends_sub'), ink: true, ctaHtml: addFriendCta })
         : `
         <div class="dpinvite-empty-card">
           <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
           <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
+          <div class="es-cta-slot">${addFriendCta}</div>
         </div>`);
 
   // Share page (IG share-sheet pattern): friend avatars on top, a row of
@@ -1618,11 +1624,11 @@ function _openInviteSheet(venueId) {
   // divider below so both sit on the same axis with the same gap to their row.
   const sendLabel = hasFriends ? `
           <div class="dpinvite-friends-label">${t('invite_friends_label')}</div>` : '';
-  // "eller" divider only when there ARE friends — it forks the in-app send
-  // (avatars above) from the external share targets (below). In the empty
-  // state there's no fork, so the targets stand alone with no divider.
-  const orDivider = hasFriends ? `
-          <div class="dpinvite-or">${t('invite_or')}</div>` : '';
+  // "eller" divider — forks the in-app path (send to friends / add a friend,
+  // above) from the external share targets (below). Shown in both states:
+  // populated = avatars · eller · targets; empty = add-friend CTA · eller · targets.
+  const orDivider = `
+          <div class="dpinvite-or">${t('invite_or')}</div>`;
   const sharePage = `
         <div class="dpinvite-page dpinvite-page-share" data-page="share" aria-hidden="true">
           ${sendLabel}
@@ -1938,7 +1944,16 @@ function _openInviteSheet(venueId) {
   // The FTS just landed in the when-page slot (which was display:none while
   // empty), growing the page. Re-size the pager instantly so the sheet opens
   // at the correct height instead of growing into it after the first frame.
-  requestAnimationFrame(() => _dpinviteSyncPagerHeight(sheet, true));
+  // Also force a direct FTS repaint: the canvas just changed width (card slot →
+  // invite slot), but the invite sheet opens FROM the detail panel, so
+  // `body.panel-transitioning` is set and the FTS ResizeObserver SKIPS its
+  // redraw during exactly this window — leaving a stale/blank bitmap until the
+  // flag clears. drawFtsCanvas() has no such guard, so calling it directly here
+  // (after a frame, so clientWidth is the new slot width) paints it correctly.
+  requestAnimationFrame(() => {
+    _dpinviteSyncPagerHeight(sheet, true);
+    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  });
 
   document.body.classList.add('invite-sheet-open');
   // Stash the venue id so _closeInviteSheet's recovery path knows which
@@ -2340,6 +2355,9 @@ function _dpinviteGoToWhen() {
   if (sharePage) sharePage.setAttribute('aria-hidden', 'true');
   if (whenPage)  whenPage.removeAttribute('aria-hidden');
   _dpinviteSyncPagerHeight(sheet);
+  // Force a clean FTS repaint as the time step comes back into view — covers any
+  // stale frame left while it was the off-screen page (see the open path note).
+  requestAnimationFrame(() => { if (typeof drawFtsCanvas === 'function') drawFtsCanvas(); });
 }
 if (typeof window !== 'undefined') window._dpinviteGoToWhen = _dpinviteGoToWhen;
 
