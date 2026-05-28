@@ -1550,11 +1550,16 @@ function _openInviteSheet(venueId) {
             <div class="dpinvite-friends-label">${t('invite_eyebrow_select_time')}</div>
             <div class="dpinvite-fts-slot" id="dpinvite-fts-slot" aria-hidden="false"></div>
           </div>
-          <div class="dpinvite-cta-row">
-            <button class="p-pill" type="button" onclick="_dpinviteGoToShare(${venueId})">
-              <span>${t('invite_next')}</span>
-              ${chevronRightSvg}
-            </button>
+          <div class="dpinvite-foot">
+            <div class="dpinvite-cta-row">
+              <button class="p-pill" type="button" onclick="_dpinviteGoToShare(${venueId})">
+                <span>${t('invite_next')}</span>
+                ${chevronRightSvg}
+              </button>
+            </div>
+            <div class="dprcv-cta-row">
+              <button class="dprcv-cta-link" type="button" onclick="_closeInviteSheet()"><span>${t('invite_cancel')}</span></button>
+            </div>
           </div>
         </div>`;
   // WhatsApp glyph — single-path Lucide-register mark (phone + speech bubble
@@ -1603,13 +1608,15 @@ function _openInviteSheet(venueId) {
               </button>
             </div>
           </div>` : targetsRow;
-  // Back — a small chevron+label PILL matching the app's standard back
-  // affordance (#dp-close-btn): subtle ink fill + border, radius-sm. Absolutely
-  // pinned to the share page's top-left so the centred "Send til" label,
-  // avatars, and targets all stay on the sheet axis (the pill doesn't shove
-  // them off-centre) and it costs no vertical space.
-  const backBtn = `
-            <button type="button" class="dpinvite-back" onclick="_dpinviteGoToWhen()">${chevronLeftSvg}<span>${t('back')}</span></button>`;
+  // Back is a centred secondary text-link at the BOTTOM of the share step —
+  // the same place + style as the accept panel's secondary link under "I'm in"
+  // (.dprcv-cta-row / .dprcv-cta-link). No more corner pill: back now lives
+  // where the eye already expects a secondary/escape action, mirroring step 1's
+  // Cancel link. Chevron signals the leftward "previous step" direction.
+  const backLink = `
+          <div class="dprcv-cta-row">
+            <button class="dprcv-cta-link" type="button" onclick="_dpinviteGoToWhen()">${chevronLeftSvg}<span>${t('back')}</span></button>
+          </div>`;
   // "Send til" — a centred section label, structurally identical to the "eller"
   // divider below so both sit on the same axis with the same gap to their row.
   const sendLabel = hasFriends ? `
@@ -1621,11 +1628,11 @@ function _openInviteSheet(venueId) {
           <div class="dpinvite-or">${t('invite_or')}</div>` : '';
   const sharePage = `
         <div class="dpinvite-page dpinvite-page-share" data-page="share" aria-hidden="true">
-          ${backBtn}
           ${sendLabel}
           ${friendsBlock}
           ${orDivider}
           ${bottomSlot}
+          ${backLink}
         </div>`;
   sheet.innerHTML = `
     <div class="dpinvite-handle" id="dpinvite-handle" aria-label="${t('close') || 'Close'}">
@@ -2310,6 +2317,12 @@ function _dpinviteGoToWhen() {
   track.classList.remove('show-share');
   const daySub = sheet.querySelector('#dpinvite-moment-sub');
   if (daySub) { daySub.disabled = false; daySub.classList.remove('is-locked'); }
+  // Reset the friend selection — going back to pick a new time should start the
+  // share step fresh (no carried-over picks), and drop the Send overlay so the
+  // share-targets row is the bottom again.
+  sheet.querySelectorAll('.dpinvite-avatar[aria-checked="true"]')
+    .forEach(a => a.setAttribute('aria-checked', 'false'));
+  _refreshInvitePrimaryCTA();
   const whenPage  = sheet.querySelector('.dpinvite-page-when');
   const sharePage = sheet.querySelector('.dpinvite-page-share');
   if (sharePage) sharePage.setAttribute('aria-hidden', 'true');
@@ -2336,8 +2349,10 @@ function _updateInviteHeader(venue, dateStr, hour) {
   // (per _isNowSend's threshold), swap to a short "Now" label.
   const isNow = (typeof _isNowSend === 'function') ? _isNowSend(dateStr, hour) : false;
   if (timeEl) timeEl.textContent = isNow ? t('invite_when_at_now') : fmt(hour);
-  // "Klokken" label is meaningless above a "Now" reading — hide it when now.
-  if (labelEl) labelEl.style.display = isNow ? 'none' : '';
+  // "Klokken" label is meaningless above a "Now" reading — hide it when now,
+  // but with visibility (not display) so it keeps its row: otherwise the big
+  // time jumps up to row 1 instead of staying aligned with the venue name.
+  if (labelEl) labelEl.style.visibility = isNow ? 'hidden' : '';
 
   // Sub — day label. _dayLabel returns "i dag" / "i morgen" / "tirsdag" /
   // "12. mai" depending on how far the picked date is from today. Always

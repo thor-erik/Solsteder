@@ -1185,34 +1185,16 @@
     padding: 0 var(--space-xl);
   }
 
-  /* Back — a chevron+label pill matching the app's standard back affordance
-     (#dp-close-btn): subtle ink fill + border, radius-sm, muted ink. Absolutely
-     pinned to the share page's top-left so it never pushes the centred "Send
-     til" label, avatars, or targets off the sheet axis, and costs no vertical
-     space. Reads as a real control (has a surface), not a tacked-on chevron. */
-  .dpinvite-page-share { position: relative; }
-  .dpinvite-back {
-    position: absolute;
-    top: 0; left: 0;
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2xs);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink-muted);
-    background: var(--line-l-faint);
-    border: 1px solid var(--line-l);
-    border-radius: var(--radius-sm);
-    margin: 0;
-    padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-sm);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: color 120ms, background 120ms, transform 120ms;
+  /* Step footer — stacks the primary CTA (Neste) above a centred secondary
+     text-link (Cancel / Back), matching the accept panel's footer rhythm
+     (.dprcv-footer gap + .dprcv-cta-row margin). Back + Cancel both ride the
+     shared .dprcv-cta-row / .dprcv-cta-link classes so spacing + padding are
+     identical to the accept sheet's "below the I'm in button" links. */
+  .dpinvite-foot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
   }
-  .dpinvite-back svg { width: 13px; height: 13px; }
-  .dpinvite-back:hover { color: var(--panel-text); background: var(--line-l); }
-  .dpinvite-back:active { transform: scale(0.97); }
   @media (prefers-reduced-motion: reduce) {
     .dpinvite-pager,
     .dpinvite-track { transition: none; }
