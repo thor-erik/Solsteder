@@ -2148,6 +2148,24 @@
      control container renders empty — hide the stray box in edit mode. */
   body.edit-mode .mapboxgl-ctrl-group:empty { display: none; }
 
+  /* Desktop: lay the tool stack out HORIZONTALLY, centred and hovering just
+     above the bottom edit panel. (Mobile keeps the vertical stack on the right,
+     flush above the zoom jog.) --edit-zoom-bottom = panel top + gap, set by the
+     edit-banner ResizeObserver. */
+  @media (min-width: 640px) {
+    body.edit-mode #edit-tools-float {
+      flex-direction: row;
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(var(--edit-zoom-bottom, 240px) + var(--space-sm));
+      width: auto;
+      padding: var(--space-xs) var(--space-sm);
+      gap: var(--space-xs);
+    }
+    body.edit-mode .edit-tool-icon { width: 32px; height: 32px; }
+  }
+
   /* Tools row: AI helper chips + vertex tools. Lives IN-FLOW inside the edit
      sheet (no longer floats over the map work area). Hidden until the edit
      chips are populated; shown when any chip is visible. */

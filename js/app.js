@@ -4990,67 +4990,83 @@ function editRedo() {
   _applyRingsToEditor(v, _editRedoStack.pop());
 }
 
-/** "+ område": draw a new seating area for this venue. */
+/** "+ område": drop a default ~6 m square at the current map centre as a new
+ *  seating area, then enter direct_select on it so it's immediately editable.
+ *  (No draw mode → nothing to cancel; the user drags/resizes the square.) */
 function editAddArea() {
   if (!editDraw || !_editDrawAdded || !editingVenueId) return;
-  try { editDraw.changeMode('draw_polygon'); } catch (_) {}
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  if ((v.terraceType ?? 'street') === 'rooftop') return;
+  if (typeof _seedSquarePolygon !== 'function') return;
+  const c = map.getCenter();
+  const sq = _seedSquarePolygon(c.lat, c.lng, 6);   // [lat,lng][]
+  let current = []; try { current = getActivePolygons(v).rings; } catch (_) {}
+  _editUndoStack.push(_cloneRings(current)); if (_editUndoStack.length > 50) _editUndoStack.shift();
+  _editRedoStack = [];
+  _applyRingsToEditor(v, current.concat([sq]));
+  // Focus the just-added area (last feature) for immediate vertex editing.
+  try {
+    const feats = editDraw.getAll().features;
+    const last = feats[feats.length - 1];
+    if (last) editDraw.changeMode('direct_select', { featureId: last.id });
+  } catch (_) {}
 }
 
-/** Delete: a selected VERTEX (or vertices) first; else a whole selected AREA
- *  when more than one area exists. Vertex delete keeps each ring ≥3; area delete
- *  keeps ≥1 area. Wired to the delete button + Delete/Backspace. */
+/** Delete the currently-selected vertex (or vertices). Vertex-only — keeps each
+ *  ring ≥3. Whole-area deletion is the dedicated trash button (editDeleteArea),
+ *  so Delete/Backspace can't accidentally nuke an area you're editing. */
 function editDeleteSelectedVertex() {
   if (!editDraw || !_editDrawAdded || !editingVenueId) return;
   const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
   let rings = []; try { rings = getActivePolygons(v).rings; } catch (_) {}
   if (!rings.length) return;
-
   // getSelectedPoints() returns features with ONLY geometry.coordinates ([lng,lat])
   // — no coord_path. Match those coords against the rings to find which to drop.
   let sel = null; try { sel = editDraw.getSelectedPoints(); } catch (_) {}
   const selCoords = (sel?.features || [])
     .map(f => f.geometry && f.geometry.coordinates)
     .filter(c => Array.isArray(c) && c.length >= 2);
-
-  if (selCoords.length) {
-    const EPS = 1e-6;
-    const next = rings.map(ring => {
-      const drop = new Set();
-      for (const c of selCoords) {
-        const lng = c[0], lat = c[1];
-        for (let i = 0; i < ring.length; i++) {
-          if (drop.has(i)) continue;
-          if (Math.abs(ring[i][0] - lat) < EPS && Math.abs(ring[i][1] - lng) < EPS) { drop.add(i); break; }
-        }
+  if (!selCoords.length) return;
+  const EPS = 1e-6;
+  const next = rings.map(ring => {
+    const drop = new Set();
+    for (const c of selCoords) {
+      const lng = c[0], lat = c[1];
+      for (let i = 0; i < ring.length; i++) {
+        if (drop.has(i)) continue;
+        if (Math.abs(ring[i][0] - lat) < EPS && Math.abs(ring[i][1] - lng) < EPS) { drop.add(i); break; }
       }
-      return (drop.size && ring.length - drop.size >= 3) ? ring.filter((_, i) => !drop.has(i)) : ring;
-    });
-    if (JSON.stringify(next) === JSON.stringify(rings)) return;   // nothing deletable (would break ≥3)
-    _editUndoStack.push(_cloneRings(rings)); if (_editUndoStack.length > 50) _editUndoStack.shift();
-    _editRedoStack = [];
-    _applyRingsToEditor(v, next);
-    return;
-  }
+    }
+    return (drop.size && ring.length - drop.size >= 3) ? ring.filter((_, i) => !drop.has(i)) : ring;
+  });
+  if (JSON.stringify(next) === JSON.stringify(rings)) return;   // nothing deletable (would break ≥3)
+  _editUndoStack.push(_cloneRings(rings)); if (_editUndoStack.length > 50) _editUndoStack.shift();
+  _editRedoStack = [];
+  _applyRingsToEditor(v, next);
+}
 
-  // No vertex selected → delete the whole selected AREA (if more than one area).
-  if (rings.length > 1) {
-    let ids = []; try { ids = editDraw.getSelectedIds() || []; } catch (_) {}
-    if (!ids.length) return;
-    _editUndoStack.push(_cloneRings(rings)); if (_editUndoStack.length > 50) _editUndoStack.shift();
-    _editRedoStack = [];
-    try { editDraw.delete(ids); } catch (_) {}      // suppressed → no draw.delete
-    const remaining = _drawRings();
-    if (!remaining.length) { _editUndoStack.pop(); _reseedDrawGeometry(rings); return; }  // never empty
-    setActivePolygons(v, remaining);
-    saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
-      null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
-      v.seatingPolygonOverride);
-    _setEditChanged();
-    sunWindowCache.clear();
-    dispatchToWorker(datePicker.value);
-    _updateEditToolButtons();
-    draw();
-  }
+/** Delete the whole selected/active AREA (trash button). Keeps ≥1 area. */
+function editDeleteArea() {
+  if (!editDraw || !_editDrawAdded || !editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId); if (!v) return;
+  let rings = []; try { rings = getActivePolygons(v).rings; } catch (_) {}
+  if (rings.length <= 1) return;                 // keep at least one area
+  let ids = []; try { ids = editDraw.getSelectedIds() || []; } catch (_) {}
+  if (!ids.length) return;                        // tap an area first
+  _editUndoStack.push(_cloneRings(rings)); if (_editUndoStack.length > 50) _editUndoStack.shift();
+  _editRedoStack = [];
+  try { editDraw.delete(ids); } catch (_) {}      // suppressed → no draw.delete
+  const remaining = _drawRings();
+  if (!remaining.length) { _editUndoStack.pop(); _reseedDrawGeometry(rings); return; }  // never empty
+  setActivePolygons(v, remaining);
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  _setEditChanged();
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _updateEditToolButtons();
+  draw();
 }
 
 /** Selection changed. In simple_select, tapping a single area enters
@@ -5076,12 +5092,11 @@ function _updateUndoRedoButtons() {
   const r = document.getElementById('edit-redo-btn');
   if (u) u.disabled = _editUndoStack.length === 0;
   if (r) r.disabled = _editRedoStack.length === 0;
-  const d = document.getElementById('edit-del-vertex-btn');
-  if (d) {
-    const rings = _drawRings();
-    const canDelete = rings.some(r2 => r2.length > 3) || rings.length > 1;
-    d.disabled = !(editingVenueId && canDelete);
-  }
+  const rings = _drawRings();
+  const dv = document.getElementById('edit-del-vertex-btn');   // delete a vertex
+  if (dv) dv.disabled = !(editingVenueId && rings.some(r2 => r2.length > 3));
+  const da = document.getElementById('edit-del-area-btn');     // delete whole area
+  if (da) da.disabled = !(editingVenueId && rings.length > 1);
 }
 
 /** Keyboard: Delete/Backspace removes the selected vertex/area; Cmd/Ctrl+Z undo,
