@@ -327,8 +327,8 @@ function computeTerraceTestPoints(venue, osmElement) {
   // computed against the actual seating area instead of a wall projection.
   if (typeof getSeatingPolygons === 'function') {
     const rings = getSeatingPolygons(venue);
-    if (rings.length && typeof seatingPolygonsTestPoints === 'function') {
-      const pts = seatingPolygonsTestPoints(rings);   // union across all areas
+    if (rings.length && typeof seatingTestPointsForVenue === 'function') {
+      const pts = seatingTestPointsForVenue(venue, rings);   // union, building-clipped points dropped
       if (pts.length) return pts;
     }
   }
@@ -710,8 +710,8 @@ function _applyCompactGeometry(data) {
     let aiPts = null;
     if (typeof getSeatingPolygons === 'function') {
       const rings = getSeatingPolygons(v);
-      if (rings.length && typeof seatingPolygonsTestPoints === 'function') {
-        aiPts = seatingPolygonsTestPoints(rings);   // union across all areas
+      if (rings.length && typeof seatingTestPointsForVenue === 'function') {
+        aiPts = seatingTestPointsForVenue(v, rings);   // union, building-clipped points dropped
         if (!aiPts.length) aiPts = null;
       }
     }

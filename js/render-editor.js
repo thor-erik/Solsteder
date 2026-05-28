@@ -103,7 +103,8 @@ function getActivePolygon(v) {
 }
 
 /** Write a ring LIST to the active type's field + recompute the union of test
- *  points across all rings. Empty list → field null. */
+ *  points across all rings (building-clipped points dropped for street/detached;
+ *  see seatingTestPointsForVenue). Empty list → field null. */
 function setActivePolygons(v, rings) {
   if (!v) return;
   const list   = asRings(rings);
@@ -112,7 +113,10 @@ function setActivePolygons(v, rings) {
   if (type === 'courtyard')      v.courtyardPolygon       = stored;
   else if (type === 'detached')  v.detachedPolygon        = stored;
   else                           v.seatingPolygonOverride = stored;
-  if (typeof seatingPolygonsTestPoints === 'function') {
+  if (typeof seatingTestPointsForVenue === 'function') {
+    const pts = seatingTestPointsForVenue(v, list);
+    if (pts.length) v.terraceTestPoints = pts;
+  } else if (typeof seatingPolygonsTestPoints === 'function') {
     const pts = seatingPolygonsTestPoints(list);
     if (pts.length) v.terraceTestPoints = pts;
   }
@@ -121,6 +125,49 @@ function setActivePolygons(v, rings) {
 /** Single-ring shim. */
 function setActivePolygon(v, latlng) {
   setActivePolygons(v, (Array.isArray(latlng) && latlng.length >= 3) ? [latlng] : []);
+}
+
+/** Best-effort terrace-type classification from polygon placement (auto-type):
+ *  detached (no/away-from building) → street (hugs a precomputed street-facing
+ *  wall, per autoTerraceWallIndices) → courtyard (hugs another building wall).
+ *  Never returns 'rooftop' (that stays a manual choice). */
+function classifyTerraceType(v, rings) {
+  const list = asRings(rings);
+  if (!list.length) return null;
+  const bld = v && v.buildingGeometry;
+  if (!Array.isArray(bld) || bld.length < 3) return 'detached';
+  const bldNodes = bld.map(n => ({ lat: n.lat, lon: n.lon }));
+  const walls = Array.isArray(v.wallNormals) ? v.wallNormals : [];
+  const TOUCH_M = 4;
+  let touches = false, nearestWallIdx = -1, nearestD = Infinity;
+  for (const ring of list) {
+    for (const [lat, lng] of ring) {
+      if (typeof pointInPolygon === 'function' && pointInPolygon(lat, lng, bldNodes)) touches = true;
+      for (let wi = 0; wi < walls.length; wi++) {
+        const d = _distPointToWallM(lat, lng, walls[wi]);
+        if (d < nearestD) { nearestD = d; nearestWallIdx = wi; }
+      }
+    }
+  }
+  if (nearestD <= TOUCH_M) touches = true;
+  if (!touches) return 'detached';
+  const streetWalls = Array.isArray(v.autoTerraceWallIndices) ? v.autoTerraceWallIndices : [];
+  return streetWalls.includes(nearestWallIdx) ? 'street' : 'courtyard';
+}
+
+/** Distance in metres from (lat,lng) to a wall segment (equirectangular approx). */
+function _distPointToWallM(lat, lng, w) {
+  if (!w) return Infinity;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+  const ax = w.aLng * cosLat, ay = w.aLat;
+  const bx = w.bLng * cosLat, by = w.bLat;
+  const px = lng * cosLat,    py = lat;
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1e-12;
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * dx, cy = ay + t * dy;
+  return Math.hypot(py - cy, px - cx) * 111320;
 }
 
 // ── Polygon seeders (default shapes when a type is first selected) ───────────

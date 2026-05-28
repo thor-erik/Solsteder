@@ -566,3 +566,31 @@ function seatingPolygonsTestPoints(rings) {
   }
   return pts;
 }
+
+/** Sun test points for a venue's seating polygon(s), with under-roof points
+ *  removed. For 'street'/'detached' types, drops grid points that fall inside the
+ *  venue's own building or any nearby building (under-roof = not sun, e.g. a
+ *  terrace polygon clipped into the wall). SKIPS the filter for 'rooftop' (the
+ *  building IS the area) and 'courtyard' (its polygon legitimately sits inside the
+ *  footprint — OSM rarely models the courtyard hole). Falls back to the first
+ *  ring's centroid if filtering removes everything, so the venue still scores. */
+function seatingTestPointsForVenue(v, rings) {
+  const pts = seatingPolygonsTestPoints(rings);
+  if (!pts.length || typeof pointInPolygon !== 'function') return pts;
+  const type = (v && v.terraceType) || 'street';
+  if (type === 'rooftop' || type === 'courtyard') return pts;
+  const bldgs = [];
+  if (v && Array.isArray(v.buildingGeometry) && v.buildingGeometry.length >= 3) bldgs.push(v.buildingGeometry);
+  if (v && Array.isArray(v.nearbyBuildings)) {
+    for (const b of v.nearbyBuildings) {
+      if (b && Array.isArray(b.geometry) && b.geometry.length >= 3) bldgs.push(b.geometry);
+    }
+  }
+  if (!bldgs.length) return pts;
+  const insideAny = (lat, lng) => bldgs.some(g => pointInPolygon(lat, lng, g));
+  const kept = pts.filter(p => !insideAny(p.lat, p.lng));
+  if (kept.length) return kept;
+  const list = asRings(rings);
+  const c = list.length ? seatingPolygonCentroid(list[0]) : null;
+  return c ? [{ lat: c.lat, lng: c.lng }] : pts;
+}

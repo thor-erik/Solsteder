@@ -4462,6 +4462,7 @@ function enterEditMode(venueId) {
   if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
+  _auditHistory = [];   // fresh audit walk (Back-to-redo history)
 
   _navPush('edit');
 
@@ -4522,6 +4523,7 @@ function _loadVenueIntoEditor(venueId) {
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
   if (_bldgPickActive) _editPickBuildingStop();   // don't carry a pick session across venues
+  _editTypeManual    = false;                     // fresh venue → auto-type allowed again
   editingVenueId     = venueId;
   editHoveredWallIdx = null;
   if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
@@ -4628,7 +4630,6 @@ function _prevVenueId(beforeId) {
 /** Editor "back": jump to the previous venue without marking the current one. */
 function editGoBack() {
   if (!editingVenueId) return;
-  const prevId = _prevVenueId(editingVenueId);
   // Discard any in-progress changes on the current venue before leaving.
   if (_editBeforeSnapshot) {
     const v = VENUES.find(x => x.id === editingVenueId);
@@ -4636,7 +4637,22 @@ function editGoBack() {
     sunWindowCache.clear();
     dispatchToWorker(datePicker.value);
   }
-  if (prevId != null) _loadVenueIntoEditor(prevId);
+  // Prefer the audit-walk history: return to the venue we just acted on and
+  // CLEAR its verdict (good/unsure/archive) so it can be re-reviewed — this is
+  // the "oops, undo that good·next" path. Fall back to previous-in-list order.
+  let targetId = null;
+  if (_auditHistory.length) {
+    targetId = _auditHistory.pop();
+    if (typeof unmarkVenueAudited === 'function') unmarkVenueAudited(targetId);
+    const tv = VENUES.find(x => x.id === targetId);
+    if (tv && typeof isVenueArchived === 'function' && isVenueArchived(tv)
+        && typeof unarchiveVenue === 'function') {
+      unarchiveVenue(targetId);
+    }
+  } else {
+    targetId = _prevVenueId(editingVenueId);
+  }
+  if (targetId != null) _loadVenueIntoEditor(targetId);
 }
 
 /** Editor "skip": advance to the next unreviewed venue without marking current.
@@ -4745,6 +4761,8 @@ let _editPriorCanvasPE = '';     // #canvas-overlay pointer-events to restore on
 let _editUndoStack     = [];     // [lat,lng][] snapshots taken BEFORE each edit
 let _editRedoStack     = [];     // undone snapshots, for redo
 let _editKeysBound     = false;  // document keydown listener bound once
+let _editTypeManual    = false;  // admin picked the type via dropdown → don't auto-type
+let _auditHistory      = [];     // venue ids acted on in the audit walk (for Back-to-redo)
 
 // Geometry conversion. Our polygons are [lat,lng][]; GL Draw uses GeoJSON rings
 // [[ [lng,lat] … closingPoint ]].
@@ -4947,6 +4965,20 @@ function _onDrawChange() {
       }
     }
     rings.push(ring);
+  }
+
+  // Auto-type from placement (best-effort) — unless the admin picked a type this
+  // session or it's rooftop. Runs per drag-commit so the label follows where the
+  // polygon sits (street ↔ courtyard ↔ detached). Dropdown choice always wins.
+  if (!_editTypeManual && (v.terraceType ?? 'street') !== 'rooftop' && typeof classifyTerraceType === 'function') {
+    const at = classifyTerraceType(v, rings);
+    if (at && at !== (v.terraceType ?? 'street')) {
+      v.terraceType = at;
+      if (at !== 'courtyard') v.courtyardPolygon       = null;   // keep only the active field populated
+      if (at !== 'detached')  v.detachedPolygon        = null;
+      if (at !== 'street')    v.seatingPolygonOverride = null;
+      if (typeof _syncTerraceTypeUI === 'function') _syncTerraceTypeUI(at);
+    }
   }
 
   setActivePolygons(v, rings);
@@ -5419,6 +5451,8 @@ function onEditActionBtn() {
  *  action, "Usikker", and "Arkivér". Clears the snapshot so exit won't re-commit. */
 function _auditAdvanceFromEditor() {
   const currentId = editingVenueId;
+  // Remember the venue we just acted on so Back can return + undo its verdict.
+  if (currentId != null) { _auditHistory.push(currentId); if (_auditHistory.length > 50) _auditHistory.shift(); }
   _editBeforeSnapshot = null;
   _editHasChanges = false;
   const nextId = (typeof _nextUnreviewedVenueId === 'function') ? _nextUnreviewedVenueId(currentId) : null;
@@ -5467,7 +5501,16 @@ function openStreetView() {
   if (!editingVenueId) return;
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v) return;
-  const url = 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + v.lat + ',' + v.lng;
+  // Google's venue point usually sits INSIDE the building, so a bare viewpoint
+  // snaps to whatever pano is nearest (sometimes an interior 360). Offset ~22 m
+  // outward along the terrace facing (toward the street) and aim the camera back
+  // at the building, so it opens on a street-level pano looking at the venue.
+  const d = 22;
+  const br = (v.facing ?? 0) * Math.PI / 180;
+  const lat2 = v.lat + Math.cos(br) * d / 111320;
+  const lng2 = v.lng + Math.sin(br) * d / (111320 * Math.cos(v.lat * Math.PI / 180));
+  const heading = (((v.facing ?? 0) + 180) % 360 + 360) % 360;
+  const url = 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat2 + ',' + lng2 + '&heading=' + heading;
   try {
     if (window.Capacitor?.isNativePlatform?.() && window.Capacitor?.Plugins?.Browser?.open) {
       window.Capacitor.Plugins.Browser.open({ url });
@@ -5744,7 +5787,7 @@ function _wireTypeDropdown() {
     li.addEventListener('click', e => {
       e.stopPropagation();
       const v = li.dataset.value;
-      if (v) setTerraceType(v);
+      if (v) { _editTypeManual = true; setTerraceType(v); }   // manual pick wins over auto-type
       _toggleTypeDropdown(false);
     });
   });
