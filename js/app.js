@@ -4488,14 +4488,24 @@ function enterEditMode(venueId) {
   // ON the satellite tiles rather than after them.)
   editSatelliteActive = true;
   _syncMapToggleSwitch();
+  // Canvas overlay goes non-interactive so GL Draw (map-layer handles) owns
+  // every gesture. Stash the prior value to restore on exit.
+  const _coEnter = document.getElementById('canvas-overlay');
+  if (_coEnter) { _editPriorCanvasPE = _coEnter.style.pointerEvents; _coEnter.style.pointerEvents = 'none'; }
   map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
   _syncFtsPosition();
 
   if (popup) { popup.remove(); popup = null; }
   tooltip.classList.remove('visible');
 
-  // Per-venue setup (also re-run on auto-advance to the next venue).
-  _loadVenueIntoEditor(venueId);
+  // GL Draw must be (re)added AFTER the satellite style finishes loading —
+  // setStyle wipes custom sources/layers. _loadVenueIntoEditor then seeds the
+  // draw feature. (Also re-run directly on auto-advance, where no style swap
+  // happens and GL Draw is already present.)
+  map.once('style.load', () => {
+    _initEditDraw();
+    _loadVenueIntoEditor(venueId);
+  });
 }
 
 /** Load a venue into the (already-open) editor: snapshot, labels, camera,
@@ -4544,6 +4554,9 @@ function _loadVenueIntoEditor(venueId) {
       card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, 200);
+
+  // Seed GL Draw with this venue's editable polygon (direct_select).
+  _syncDrawFromVenue(v);
 
   draw();
 }
@@ -4711,14 +4724,144 @@ function _resetAuditSatellite() {
 
 let editSatelliteActive = false;
 
+// ── Mapbox GL Draw editor engine (admin polygon audit) ──────────────────────
+// GL Draw owns ALL polygon editing: drag a vertex to move it, drag a midpoint
+// to add one, select a vertex + Delete/Backspace to remove it. The canvas
+// overlay goes pointer-events:none in edit mode so GL Draw's map-layer handles
+// receive every gesture; the canvas then only renders the building/wall
+// reference + shade. Edited geometry syncs back to the venue on draw.update.
+let editDraw           = null;   // MapboxDraw singleton (created lazily)
+let _editDrawAdded     = false;  // is the control currently added to the map?
+let _editDrawFeatureId = null;   // id of the polygon feature being edited
+let _editPriorCanvasPE = '';     // #canvas-overlay pointer-events to restore on exit
+
+// Geometry conversion. Our polygons are [lat,lng][]; GL Draw uses GeoJSON rings
+// [[ [lng,lat] … closingPoint ]].
+function _drawRingFromLatLng(poly) {
+  const r = poly.map(([lat, lng]) => [lng, lat]);
+  if (r.length) r.push(r[0]);                 // close the ring
+  return r;
+}
+function _latLngFromDrawFeature(feat) {
+  const ring = feat?.geometry?.coordinates?.[0];
+  if (!Array.isArray(ring)) return [];
+  return ring.slice(0, -1).map(([lng, lat]) => [lat, lng]);   // drop closing dup
+}
+
+// Honey/ink/cream mirror the :root tokens (--accent / --bg / --text). Raw hex is
+// fine here: this is a vendor (GL Draw) style spec and validate-tokens.mjs scans
+// only css/ + index.html <style>, never js/. Keep these in sync with tokens.js.
+const EDIT_DRAW_STYLES = [
+  { id: 'gl-draw-polygon-fill', type: 'fill',
+    filter: ['all', ['==', '$type', 'Polygon']],
+    paint: { 'fill-color': '#F5C25E', 'fill-opacity': 0.06 } },
+  // Dark under-stroke (wider) first, so the honey outline reads over bright imagery.
+  { id: 'gl-draw-polygon-stroke-under', type: 'line',
+    filter: ['all', ['==', '$type', 'Polygon']],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': '#0A0E1C', 'line-width': 4.5, 'line-opacity': 0.55 } },
+  { id: 'gl-draw-polygon-stroke', type: 'line',
+    filter: ['all', ['==', '$type', 'Polygon']],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': '#F5C25E', 'line-width': 2 } },
+  // Midpoints: cream bead with dark stroke.
+  { id: 'gl-draw-midpoint', type: 'circle',
+    filter: ['all', ['==', 'meta', 'midpoint'], ['==', '$type', 'Point']],
+    paint: { 'circle-radius': 4, 'circle-color': '#FFF4E0',
+             'circle-stroke-color': '#0A0E1C', 'circle-stroke-width': 1.25 } },
+  // Vertex halo (dark) under the vertex (honey with cream ring).
+  { id: 'gl-draw-vertex-halo', type: 'circle',
+    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
+    paint: { 'circle-radius': 8, 'circle-color': '#0A0E1C', 'circle-opacity': 0.45 } },
+  { id: 'gl-draw-vertex', type: 'circle',
+    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
+    paint: { 'circle-radius': 5.5, 'circle-color': '#F5C25E',
+             'circle-stroke-color': '#FFF4E0', 'circle-stroke-width': 1.25 } },
+];
+
+function _initEditDraw() {
+  if (typeof MapboxDraw === 'undefined') { console.warn('[edit] MapboxDraw unavailable'); return; }
+  if (!editDraw) {
+    editDraw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {},
+      touchEnabled: true,
+      touchBuffer: 25,
+      styles: EDIT_DRAW_STYLES,
+    });
+  }
+  if (!_editDrawAdded) { map.addControl(editDraw); _editDrawAdded = true; }
+  // Re-bind defensively (style swaps re-run _initEditDraw).
+  map.off('draw.update', _onDrawUpdate); map.on('draw.update', _onDrawUpdate);
+  map.off('draw.create', _onDrawUpdate); map.on('draw.create', _onDrawUpdate);
+}
+
+function _teardownEditDraw() {
+  if (editDraw) {
+    map.off('draw.update', _onDrawUpdate);
+    map.off('draw.create', _onDrawUpdate);
+    if (_editDrawAdded) { try { map.removeControl(editDraw); } catch (_) {} _editDrawAdded = false; }
+  }
+  _editDrawFeatureId = null;
+}
+
+/** Seed GL Draw with the venue's current editable polygon and enter
+ *  direct_select. No editable polygon (rooftop, or street with no walls) → clear
+ *  so only the canvas building reference shows. */
+function _syncDrawFromVenue(v) {
+  if (!editDraw || !_editDrawAdded || !v) return;
+  let ap = null;
+  try { ap = getActivePolygon(v); } catch (_) {}
+  editDraw.deleteAll();
+  _editDrawFeatureId = null;
+  if (!ap || !Array.isArray(ap.latlng) || ap.latlng.length < 3) return;
+  const ring = _drawRingFromLatLng(ap.latlng);
+  if (ring.length < 4) return;
+  try {
+    const ids = editDraw.add({ type: 'Feature', properties: {},
+      geometry: { type: 'Polygon', coordinates: [ring] } });
+    _editDrawFeatureId = ids && ids[0];
+    if (_editDrawFeatureId) editDraw.changeMode('direct_select', { featureId: _editDrawFeatureId });
+  } catch (e) { console.warn('[edit] GL Draw seed failed', e); }
+}
+
+/** GL Draw committed an edit (vertex move, midpoint→add, vertex delete). Write
+ *  the geometry back to the venue's per-type polygon field + recompute shadows. */
+function _onDrawUpdate(e) {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  const feat = (e && e.features && e.features[0]) || (editDraw && editDraw.get(_editDrawFeatureId));
+  if (!feat || !feat.geometry || feat.geometry.type !== 'Polygon') return;
+  const latlng = _latLngFromDrawFeature(feat);
+  if (latlng.length < 3) return;
+  setActivePolygon(v, latlng);   // routes to override/courtyard/detached + recomputes test points
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  _setEditChanged();
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _updateEditToolButtons();
+  draw();
+}
+
 function toggleEditSatellite() {
   editSatelliteActive = !editSatelliteActive;
   document.body.classList.toggle('edit-satellite', editSatelliteActive);
   _syncMapToggleSwitch();
+  // setStyle wipes GL Draw's sources/layers — remove the control, swap the
+  // style, then re-add and re-seed the current venue once the new style is live.
+  _teardownEditDraw();
   map.setStyle(editSatelliteActive
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
     : buildShadeStyle()
   );
+  map.once('style.load', () => {
+    _initEditDraw();
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) _syncDrawFromVenue(v);
+  });
 }
 
 /** Sync the segmented map-mode switch (Satellitt ↔ 3D-kart) with the active state.
@@ -4898,6 +5041,14 @@ function exitEditMode() {
   // Reset vertex-tool state so the next edit session starts fresh.
   if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
+  // Tear down GL Draw before swapping styles (setStyle would orphan its layers)
+  // and restore the canvas overlay's interactive default so pin hit-testing works.
+  _teardownEditDraw();
+  const _coExit = document.getElementById('canvas-overlay');
+  if (_coExit) {
+    const _touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    _coExit.style.pointerEvents = _editPriorCanvasPE || (_touch ? 'none' : 'auto');
+  }
   if (editSatelliteActive) {
     editSatelliteActive = false;
     map.setStyle(buildShadeStyle());
@@ -5011,40 +5162,42 @@ function _updateEditToolButtons() {
   if (!editingVenueId) return;
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v) return;
+  const type = v.terraceType ?? 'street';
 
-  // Tilbakestill: visible when there's an override that differs from the AI / wall-derived default.
+  // Tilbakestill: visible when a manual override exists (something to reset).
   const resetBtn = document.getElementById('edit-reset-ai-btn');
   if (resetBtn) {
-    const hasOverride = !!v.seatingPolygonOverride
-      || !!v.courtyardPolygon
-      || !!v.detachedPolygon;
+    const hasOverride = !!v.seatingPolygonOverride || !!v.courtyardPolygon || !!v.detachedPolygon;
     resetBtn.hidden = !hasOverride;
   }
 
-  // Slå sammen: visible when the wall-derived preview yields ≥ 2 chains
-  // (i.e. user selected non-adjacent walls). Once a polygon override exists
-  // there's only one polygon, so the button hides automatically.
-  const mergeBtn = document.getElementById('edit-merge-btn');
-  if (mergeBtn) {
-    let chains = 0;
-    if ((v.terraceType ?? 'street') === 'street' && !v.seatingPolygonOverride
-        && typeof getTerraceWalls === 'function'
-        && typeof terracePolygons === 'function') {
-      const walls = getTerraceWalls(v);
-      if (walls.length) {
-        const depthPx = getEffectiveDepth(v) * pxPerMetre(v);
-        chains = terracePolygons(v, walls, depthPx).length;
-      }
-    }
-    mergeBtn.hidden = chains < 2;
-  }
+  // "Fra vegg": re-derive the terrace polygon from the building walls + depth.
+  // Street only — courtyard/detached/rooftop have no wall model.
+  const wallBtn = document.getElementById('edit-from-wall-btn');
+  if (wallBtn) wallBtn.hidden = (type !== 'street');
+}
 
-  // Hjørne add/del chips: only meaningful for editable polygon types
-  const type = v.terraceType ?? 'street';
-  const polyEditable = type === 'street' || type === 'courtyard' || type === 'detached';
-  ['edit-add-vertex-btn', 'edit-del-vertex-btn'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.hidden = !polyEditable;
-  });
+/** "Fra vegg" button: re-derive a street terrace from its building wall(s) +
+ *  depth, baking the result into seatingPolygonOverride, then re-seed GL Draw.
+ *  This is the escape hatch back to the wall-derived shape after free editing. */
+function reseedStreetFromWall() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v || (v.terraceType ?? 'street') !== 'street') return;
+  v.seatingPolygonOverride = null;
+  const baked = (typeof bakeStreetPolygon === 'function') ? bakeStreetPolygon(v) : false;
+  if (!baked && typeof computeTerraceTestPoints === 'function') {
+    v.terraceTestPoints = computeTerraceTestPoints(v, null);
+  }
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _setEditChanged();
+  _syncDrawFromVenue(v);
+  _updateEditToolButtons();
+  draw();
 }
 
 function selectWallByIdx(idx) {
@@ -5175,6 +5328,8 @@ function setTerraceType(type) {
     v.terraceWallIndices, v.terraceDepth, v.noiseScore, type, v.terraceDetachedLocation);
   sunWindowCache.clear();
   dispatchToWorker(datePicker.value);
+  // Re-seed GL Draw from the (re-)derived polygon for the new type.
+  _syncDrawFromVenue(v);
   draw();
   renderList();
 }

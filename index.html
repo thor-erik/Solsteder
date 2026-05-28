@@ -40,10 +40,14 @@
 <link rel="preconnect" href="https://api.mapbox.com" crossorigin>
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css"></noscript>
+<!-- Mapbox GL Draw — admin polygon editor only; controls hidden, geometry styled via EDIT_DRAW_STYLES (app.js). -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.5.1/dist/mapbox-gl-draw.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.5.1/dist/mapbox-gl-draw.css"></noscript>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" href="https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2" as="font" type="font/woff2" crossorigin>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script defer src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.5.1/dist/mapbox-gl-draw.js"></script>
 <script>
   // Invite-loading gate: when the URL is an invite link (/i/<token>, /s/<id>,
   // or #invite/<token>), hide the map's first paint so the receiver doesn't
@@ -122,11 +126,11 @@
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260528c"></script>
+<script defer src="js/app.js?v=20260528d"></script>
 <script defer src="js/render-helpers.js?v=20260527a"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
-<script defer src="js/render-editor.js?v=20260528c"></script>
-<script defer src="js/render-pins.js?v=20260528c"></script>
+<script defer src="js/render-editor.js?v=20260528d"></script>
+<script defer src="js/render-pins.js?v=20260528d"></script>
 <script defer src="js/ui-shared.js?v=20260525b"></script>
 <script defer src="js/ui-list.js?v=20260528b"></script>
 <script defer src="js/admin-review.js?v=20260527b"></script>
@@ -182,7 +186,7 @@
 <link rel="stylesheet" href="css/tokens.css?v=20260526s">
 <link rel="stylesheet" href="css/base.css?v=20260526q">
 <link rel="stylesheet" href="css/components-chrome.css?v=20260527e">
-<link rel="stylesheet" href="css/components-content.css?v=20260528b">
+<link rel="stylesheet" href="css/components-content.css?v=20260528d">
 <link rel="stylesheet" href="css/components-overlays.css?v=20260527a">
 
 <script type="application/ld+json">
@@ -283,19 +287,14 @@
     <!-- EDIT FACING OVERLAY — all controls live inside the bottom sheet so
          nothing floats over the polygon work area. -->
     <!-- Floating polygon-tool stack — vertical, like the zoom jog (cream-frost).
-         Add angle / remove angle / reset. -->
+         GL Draw owns vertex add (drag a midpoint) / remove (select + Delete), so
+         only re-seed actions live here: reset to AI, derive-from-wall (street). -->
     <div id="edit-tools-float">
-      <button id="edit-add-vertex-btn" class="edit-tool-icon" onclick="toggleEditVertexMode('add')" aria-label="Legg til vinkel" title="Legg til vinkel">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-      <button id="edit-del-vertex-btn" class="edit-tool-icon" onclick="toggleEditVertexMode('del')" aria-label="Fjern vinkel" title="Fjern vinkel">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
       <button id="edit-reset-ai-btn" class="edit-tool-icon" onclick="resetEditPolygonToAI()" aria-label="Tilbakestill polygon" title="Tilbakestill til AI-detektert polygon" hidden>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><path d="M3 3v5h5"/></svg>
       </button>
-      <button id="edit-merge-btn" class="edit-tool-icon" onclick="mergeEditPolygons()" aria-label="Slå sammen polygoner" title="Slå sammen polygoner" hidden>
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v6a5 5 0 0 0 5 5 5 5 0 0 0 5-5V3"/><line x1="12" y1="14" x2="12" y2="21"/></svg>
+      <button id="edit-from-wall-btn" class="edit-tool-icon" onclick="reseedStreetFromWall()" aria-label="Utled fra vegg" title="Utled terrasse fra bygningsvegg" hidden>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
       </button>
     </div>
 

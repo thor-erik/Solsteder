@@ -2950,6 +2950,9 @@ if (_isTouchDevice) {
     if (!t) return;
     _touchStartX = t.clientX; _touchStartY = t.clientY;
 
+    // GL Draw owns all edit-mode polygon gestures now; the old canvas/document
+    // cascade below stays dormant in edit mode (and is non-edit-only anyway).
+    if (editingVenueId) return;
     if (!editingVenueId) return;
     _polyDragMoved = false;     // fresh gesture — no movement yet
     const rect = canvas.getBoundingClientRect();
@@ -3009,6 +3012,7 @@ if (_isTouchDevice) {
   }, { passive: false });
 
   document.addEventListener('touchmove', e => {
+    if (editingVenueId) return;   // GL Draw owns edit-mode gestures
     if (!editingVenueId) return;
     const t = Array.from(e.touches).find(tt => tt.identifier === _editTouchId) ?? e.touches[0];
     if (!t) return;
@@ -3047,6 +3051,9 @@ if (_isTouchDevice) {
   }, { passive: false });
 
   document.addEventListener('touchend', e => {
+    // GL Draw owns edit-mode gestures; only the non-edit venue tap-select tail
+    // (below) runs now. The edit branches stay dormant in edit mode.
+    if (editingVenueId) return;
     if (editingVenueId && (editDraggingDepth || editDraggingPolyVertex
                         || editDraggingPolyEdge || editDraggingPolyTranslate)) {
       const v = venueById(editingVenueId);

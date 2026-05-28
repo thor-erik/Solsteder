@@ -2138,6 +2138,14 @@
   .edit-tool-icon:active { transform: scale(0.9); }
   .edit-tool-icon.active { color: var(--accent); }
   .edit-tool-icon[hidden] { display: none; }
+  /* Hide the whole float stack when neither tool is visible (e.g. courtyard
+     with no override) so no empty frosted box floats over the work area. */
+  body.edit-mode #edit-tools-float:not(:has(.edit-tool-icon:not([hidden]))) {
+    display: none;
+  }
+  /* GL Draw is added with controls:{} (custom chrome drives editing), so its
+     control container renders empty — hide the stray box in edit mode. */
+  body.edit-mode .mapboxgl-ctrl-group:empty { display: none; }
 
   /* Tools row: AI helper chips + vertex tools. Lives IN-FLOW inside the edit
      sheet (no longer floats over the map work area). Hidden until the edit

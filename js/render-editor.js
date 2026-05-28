@@ -505,45 +505,13 @@ function drawBuildingEditor() {
       }
     });
 
-    // Wall-derived polygon preview (with corner + edge handles) — shown until a
-    // manual override exists. Grabbing a handle bakes it into an override; once
-    // baked, the override polygon is drawn below instead (but the wall arrows
-    // above stay live, so a wall toggle re-derives — see selectWallByIdx).
-    if (!v.seatingPolygonOverride) {
-      const currentWalls = getTerraceWalls(v);
-      if (currentWalls.length > 0) {
-        const pxPerM  = pxPerMetre(v);
-        const depthPx = getEffectiveDepth(v) * pxPerM;
-        const trimmed = _applyTrimToWalls(v, currentWalls, pxPerM);
-        const polys = terracePolygons(v, trimmed, depthPx);
-        polys.forEach((poly, polyIdx) => {
-          ctx.beginPath();
-          poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-          ctx.closePath();
-          ctx.strokeStyle = 'rgba(10,14,28,0.55)'; ctx.lineWidth = 4; ctx.stroke();
-          ctx.strokeStyle = 'rgba(245,194,94,0.95)'; ctx.lineWidth = 2; ctx.stroke();
-          if (polyIdx === 0) _drawPolygonHandlesPx(poly, /*activeKey*/ 'street-preview');
-        });
-        return;       // skip override drawing — preview owns this state
-      }
-    }
+    // The editable terrace polygon (wall-derived, or any override) is rendered
+    // by Mapbox GL Draw now — not on this canvas. The wall arrows above remain
+    // as a static reference of which building side(s) the terrace derives from.
   }
 
-  // Active-polygon mode: courtyard, detached, or street with override.
-  // Drop the legacy crosshair pin for detached.
-  const ap = getActivePolygon(v);
-  if (ap) {
-    const px = ap.latlng.map(([lat, lng]) => map.project([lng, lat]));
-    _drawPolygonOutlinePx(px, ap.key);
-    _drawPolygonHandlesPx(px, ap.key);
-  } else if (terrType === 'detached') {
-    // No polygon yet (shouldn't happen normally — setTerraceType seeds one)
-    const loc = v.terraceDetachedLocation ?? { lat: v.lat, lng: v.lng };
-    const pt  = map.project([loc.lng, loc.lat]);
-    ctx.beginPath(); ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(245,194,94,0.18)'; ctx.fill();
-    ctx.strokeStyle = TOKENS.accent; ctx.lineWidth = 2.5; ctx.stroke();
-  }
+  // Courtyard / detached / street-override polygons are all rendered by Mapbox
+  // GL Draw (map layers), so nothing further is drawn on this canvas here.
 }
 
 // ── Polygon outline + handle drawing ─────────────────────────────────────────
