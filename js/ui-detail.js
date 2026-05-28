@@ -1449,15 +1449,16 @@ function _openInviteSheet(venueId) {
   // selection modes so desktop users have a reliable clipboard path
   // (macOS Safari's native share sheet doesn't include a Copy option).
   const copySvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
-  // Social friend-picker removed from this panel for now — it returns in the
-  // dedicated two-step share panel (see plan). The interim invite/time-select
-  // sheet shares by link only: one static full-width "Del lenke" CTA (native
-  // share = other apps) with copy · cancel in the sub-row below.
+  // Step 1 of the two-step (Instagram-style) share flow: this sheet picks the
+  // WHEN (moment + FTS). The single full-width honey CTA advances to step 2 —
+  // the dedicated share panel (_openSharePanel) where friends / link / other
+  // apps live. Friend-picker + copy-link moved off this panel into step 2.
+  const chevronRightSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
   const ctaRow = `
         <div class="dpinvite-cta-row">
-          <button class="p-pill" onclick="_shareInviteLink(${venueId})">
-            ${linkSvg}
-            <span>${t('share_link')}</span>
+          <button class="p-pill" onclick="_openSharePanel(${venueId})">
+            <span>${t('invite_next')}</span>
+            ${chevronRightSvg}
           </button>
         </div>`;
 
@@ -1532,10 +1533,6 @@ function _openInviteSheet(venueId) {
       </div>
       ${ctaRow}
       <div class="dprcv-cta-row">
-        <button class="dprcv-cta-link" type="button" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
-          ${copySvg}<span>${t('copy_invite_link')}</span>
-        </button>
-        <span class="dprcv-cta-sep" aria-hidden="true">·</span>
         <button class="dprcv-cta-link" type="button" onclick="_closeInviteSheet()">${t('invite_cancel')}</button>
       </div>
     </div>`;
@@ -2124,7 +2121,9 @@ function _toggleInviteFriend(row) {
 
 /** Select-all / clear toggle. Operates on visible (non-filtered) tiles only. */
 function _toggleAllInviteFriends() {
-  const sheet = document.getElementById('invite-sheet');
+  // Avatars live on the share panel (step 2); fall back to the invite sheet
+  // for any legacy caller path.
+  const sheet = document.getElementById('invite-share-panel') || document.getElementById('invite-sheet');
   if (!sheet) return;
   const visibleRows = Array.from(sheet.querySelectorAll('.dpinvite-avatar')).filter(r => !r.hidden);
   if (!visibleRows.length) return;
@@ -2157,18 +2156,16 @@ function _invitePrimaryClick(venueId) {
   return _shareInviteLink(venueId);
 }
 
-/** Update the primary CTA based on current selection.
- *  - 0 selected → primary becomes the link CTA: "Send delingslenke",
- *    full-width, link icon. The companion .s-circ hides (sharing the link
- *    IS the action when no friends are picked, so a duplicate icon button
- *    next to it would be redundant).
- *  - 1+ selected → split button: primary morphs to "Send til {name}" with
- *    the send icon; companion .s-circ link button reappears alongside. */
+/** Update the primary Send CTA on the share panel (step 2) based on selection.
+ *  - 0 selected → DISABLED, label "Velg venner" (the user must pick at least
+ *    one friend; the open-link paths live in the sub-row below).
+ *  - 1+ selected → enabled "Send til {name}" / "{n} venner" / "alle ({n})". */
 function _refreshInvitePrimaryCTA() {
-  const sheet = document.getElementById('invite-sheet');
+  // Avatars + the morphing CTA live on the share panel now. Fall back to the
+  // invite sheet for any legacy caller path.
+  const sheet = document.getElementById('invite-share-panel') || document.getElementById('invite-sheet');
   if (!sheet) return;
   const total = sheet._friendCount || 0;
-  if (total === 0) return; // empty state — single full-width link CTA, no morph
 
   const allRows = Array.from(sheet.querySelectorAll('.dpinvite-avatar'));
   const selectedRows = allRows.filter(r => r.getAttribute('aria-checked') === 'true');
@@ -2177,47 +2174,31 @@ function _refreshInvitePrimaryCTA() {
   const btn = sheet.querySelector('#invite-primary-btn');
   const label = sheet.querySelector('#invite-primary-label');
   const icon = sheet.querySelector('#invite-primary-icon');
-  const companion = sheet.querySelector('#invite-secondary-btn');
 
   if (!btn || !label) return;
 
-  // SVG icons inlined here (same set used at sheet construction).
-  const linkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
   const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
 
-  // Mutate primary instantly. The companion's CSS transition (width,
-  // margin-left, opacity, transform) handles the entrance/exit animation
-  // — and because the row is flex with primary at flex:1, the primary's
-  // width reflows in lockstep with the companion's width, so the primary
-  // appears to shrink/grow alongside the companion without any explicit
-  // animation needed here.
-  btn.disabled = false;
+  btn.setAttribute('data-mode', 'send');
+  if (icon) icon.innerHTML = sendSvg;
+
   if (n === 0) {
-    btn.setAttribute('data-mode', 'share');
-    if (icon) icon.innerHTML = linkSvg;
-    label.textContent = t('share_link');
-  } else {
-    btn.setAttribute('data-mode', 'send');
-    if (icon) icon.innerHTML = sendSvg;
-    if (n === 1) {
-      const name = selectedRows[0].getAttribute('data-friend-name') || '';
-      const firstName = name.split(/\s+/)[0] || name;
-      label.textContent = t('invite_send_to_one', { name: firstName });
-    } else if (n === total) {
-      label.textContent = t('invite_send_to_all', { n });
-    } else {
-      label.textContent = t('invite_send_to_many', { n });
-    }
+    // No friends picked yet — disable and prompt. The link / other-apps paths
+    // remain available in the sub-row, so the user is never stuck here.
+    btn.disabled = true;
+    label.textContent = t('invite_send_pick');
+    return;
   }
 
-  // The companion is now a Copy button, useful in every state — no need
-  // to hide it when 0 friends are selected. (Previously it was a redundant
-  // duplicate Share button, hidden in the 0-state to avoid two identical
-  // CTAs side-by-side.)
-  if (companion) {
-    companion.classList.add('is-visible');
-    companion.setAttribute('aria-hidden', 'false');
-    companion.tabIndex = 0;
+  btn.disabled = false;
+  if (n === 1) {
+    const name = selectedRows[0].getAttribute('data-friend-name') || '';
+    const firstName = name.split(/\s+/)[0] || name;
+    label.textContent = t('invite_send_to_one', { name: firstName });
+  } else if (n === total) {
+    label.textContent = t('invite_send_to_all', { n });
+  } else {
+    label.textContent = t('invite_send_to_many', { n });
   }
 }
 
@@ -2350,6 +2331,166 @@ function _closeInviteSheet() {
   }, 280);
 }
 
+// ── Share panel (step 2 of the two-step invite/share flow) ───────────────────
+//
+// Step 1 (_openInviteSheet) picks the WHEN. "Neste" advances to this panel,
+// which picks WHO: friend avatars (in-app send) + Kopier lenke / Del til andre
+// apper (open share). Models its lifecycle on _openInviteSheet/_closeInviteSheet:
+// backdrop (#invite-share-backdrop) + sheet (#invite-share-panel), same
+// .dpinvite-backdrop / .dpinvite-sheet cream-frost material, .open slide-up,
+// backdrop-click + Esc + handle-tap to close.
+
+/** Open the share panel (step 2). Built on top of the still-open invite sheet —
+ *  the invite sheet stays mounted underneath so the user can step back. */
+function _openSharePanel(venueId) {
+  // Toggle off if already open.
+  const existing = document.getElementById('invite-share-panel');
+  if (existing) { _closeSharePanel(); return; }
+
+  const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
+  const venueName = v ? v.name : '';
+
+  const friends = typeof _friends !== 'undefined' ? _friends : [];
+  const hasFriends = friends.length > 0;
+
+  // Same stable colour hash as the invite sheet so a friend keeps their
+  // initials-circle colour across both steps.
+  const _hashColor = (s) => {
+    s = String(s || '');
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % 8;
+  };
+
+  const checkSvgSm = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+  const sendSvg    = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
+  const copySvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  const shareSvg   = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg>`;
+
+  const avatarsHtml = _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm);
+
+  // Compact recap line — venue · day · "kl HH:MM" (read live from the pickers).
+  const { d: recapD, h: recapH } = (typeof _getInviteDateTime === 'function')
+    ? _getInviteDateTime() : { d: null, h: null };
+  const recapDay = (recapD && typeof _dayLabel === 'function') ? _dayLabel(recapD) : '';
+  const recapDayCap = recapDay ? recapDay.charAt(0).toUpperCase() + recapDay.slice(1) : '';
+  const isNow = (recapD != null && typeof _isNowSend === 'function') ? _isNowSend(recapD, recapH) : false;
+  const recapTime = isNow
+    ? t('invite_when_at_now')
+    : (typeof formatHour === 'function' ? `kl ${formatHour(recapH)}` : '');
+  const recapParts = [
+    String(venueName).replace(/</g, '&lt;'),
+    recapDayCap,
+    recapTime,
+  ].filter(Boolean);
+  const recapHtml = recapParts
+    .map((p, i) => (i > 0 ? '<span class="dpshare-recap-dot" aria-hidden="true">·</span>' : '') + `<span>${p}</span>`)
+    .join('');
+
+  // Friends block — same compact "Send til" eyebrow + avatar carousel as the
+  // invite sheet. Empty state reuses the canonical .empty-state component.
+  const friendsBlock = hasFriends ? `
+        <div>
+          <div class="dpinvite-friends-label">${t('invite_friends_label')}</div>
+          <div class="dpinvite-avatar-row no-scrollbar" id="dpshare-avatar-row">
+            ${avatarsHtml}
+          </div>
+        </div>` : (typeof emptyState === 'function'
+        ? emptyState({ glyph: 'user-plus', title: t('invite_no_friends_title'), sub: t('invite_no_friends_sub'), ink: true })
+        : `
+        <div class="dpinvite-empty-card">
+          <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
+          <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
+        </div>`);
+
+  // Primary CTA — full-width honey Send, morphed by _refreshInvitePrimaryCTA
+  // (disabled + "Velg venner" at 0 selected; "Send til {name}" / "{n}" at 1+).
+  // Initial render reflects the 0-selected disabled state.
+  const ctaRow = `
+        <div class="dpinvite-cta-row">
+          <button class="p-pill" id="invite-primary-btn" data-mode="send" disabled
+                  onclick="_invitePrimaryClick(${venueId})">
+            <span id="invite-primary-icon">${sendSvg}</span>
+            <span id="invite-primary-label">${t('invite_send_pick')}</span>
+          </button>
+        </div>`;
+
+  // Build overlay + sheet.
+  const overlay = document.createElement('div');
+  overlay.id = 'invite-share-backdrop';
+  overlay.className = 'dpinvite-backdrop';
+  overlay.onclick = e => { if (e.target === overlay) _closeSharePanel(); };
+
+  const sheet = document.createElement('div');
+  sheet.id = 'invite-share-panel';
+  sheet.className = 'dpinvite-sheet';
+
+  sheet.innerHTML = `
+    <div class="dpinvite-handle" id="dpshare-handle" aria-label="${t('close') || 'Close'}">
+      <div class="dpinvite-grabber" aria-hidden="true"></div>
+    </div>
+    <div class="dpinvite-body">
+      ${recapHtml ? `<div class="dpshare-recap">${recapHtml}</div>` : ''}
+      ${friendsBlock}
+      ${ctaRow}
+      <div class="dprcv-cta-row">
+        <button class="dprcv-cta-link" type="button" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
+          ${copySvg}<span>${t('copy_invite_link')}</span>
+        </button>
+        <span class="dprcv-cta-sep" aria-hidden="true">·</span>
+        <button class="dprcv-cta-link" type="button" onclick="_shareInviteLink(${venueId})">
+          ${shareSvg}<span>${t('invite_other_apps')}</span>
+        </button>
+      </div>
+    </div>`;
+
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+
+  sheet._venueName = venueName;
+  sheet._venueId = venueId;
+  sheet._venue = v;
+  sheet._friendCount = friends.length;
+
+  // Morph the primary CTA off the current (empty) selection.
+  _refreshInvitePrimaryCTA();
+
+  // Esc closes the panel.
+  const onEsc = (e) => { if (e.key === 'Escape') _closeSharePanel(); };
+  document.addEventListener('keydown', onEsc);
+  sheet._cleanup = () => { document.removeEventListener('keydown', onEsc); };
+
+  // Handle tap closes the panel.
+  const _handleEl = sheet.querySelector('#dpshare-handle');
+  if (_handleEl) _handleEl.addEventListener('click', () => _closeSharePanel());
+
+  // Slide up after layout so the transform animates from translateY(100%).
+  requestAnimationFrame(() => {
+    overlay.classList.add('open');
+    sheet.classList.add('open');
+  });
+}
+
+/** Close the share panel (step 2). Leaves the invite sheet (step 1) mounted
+ *  beneath it so closing returns to the WHEN picker. */
+function _closeSharePanel() {
+  const overlay = document.getElementById('invite-share-backdrop');
+  const sheet = document.getElementById('invite-share-panel');
+  if (sheet) {
+    if (sheet._cleanup) { try { sheet._cleanup(); } catch {} }
+    sheet.classList.remove('open');
+  }
+  if (overlay) {
+    overlay.classList.remove('open');
+    setTimeout(() => overlay.remove(), 300);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window._openSharePanel = _openSharePanel;
+  window._closeSharePanel = _closeSharePanel;
+}
+
 /** Send invite to selected friends (or broadcast to all if none selected). */
 /** Read date/time from the main pickers — invite sheet no longer duplicates controls. */
 function _getInviteDateTime() {
@@ -2378,7 +2519,7 @@ async function _sendInvite(venueId) {
   const isoTime = new Date(`${d}T${hh}:${mm}:00`).toISOString();
 
   const selectedIds = Array.from(
-    document.querySelectorAll('#invite-sheet .dpinvite-avatar[aria-checked="true"]')
+    document.querySelectorAll('#invite-share-panel .dpinvite-avatar[aria-checked="true"]')
   ).map(r => r.getAttribute('data-friend-id'));
 
   // No silent broadcast — the primary CTA is disabled in this state, but
@@ -2396,6 +2537,7 @@ async function _sendInvite(venueId) {
     if (choice === 'update') {
       await addInviteesToExistingPlan(conflict.id, selectedIds);
       if (_isNowSend(d, h) && typeof checkIn === 'function') await checkIn(venueId, '');
+      _closeSharePanel();
       _closeInviteSheet();
       return;
     }
@@ -2407,6 +2549,9 @@ async function _sendInvite(venueId) {
   // Now-send → flip pin presence so friends see the user's dot on the venue.
   if (_isNowSend(d, h) && typeof checkIn === 'function') await checkIn(venueId, '');
 
+  // Close step 2 (share panel) AND step 1 (invite sheet) — the whole flow is
+  // done once the invite is sent.
+  _closeSharePanel();
   _closeInviteSheet();
 }
 
