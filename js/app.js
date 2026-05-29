@@ -4197,6 +4197,12 @@ function _startWindForVenue(v) {
 }
 
 function closeDetailPanel(expandList = true) {
+  // If the inline share zone is open, drop share-mode so the next panel open
+  // (any venue) doesn't render the pager in fill-available size before the
+  // user has even tapped Send. _dpShareClose is the canonical drop.
+  if (document.body.classList.contains('share-mode') && typeof _dpShareClose === 'function') {
+    _dpShareClose();
+  }
   // If the NÅR picker is open, tear it down first (returns the FTS home + drops
   // nar-mode) so it doesn't leak the reparented slider or the body class.
   if (document.body.classList.contains('nar-mode') && typeof _closeNarPanel === 'function') {
@@ -4325,6 +4331,11 @@ function updateDetailPanel() {
     const scroll = document.getElementById('dp-scroll');
     const savedScroll = scroll ? scroll.scrollTop : 0;
     _teardownDpScrubber(); // drop old scrubber listeners before the wipe
+    // Clear any stale share/nar mode from a previous open or venue (e.g.
+    // user swiped the panel down mid-picker without going through Cancel).
+    // Otherwise the pager would re-render in Active/Share size and push the
+    // Directions section far down the panel — the "big gap" caught in review.
+    document.body.classList.remove('share-mode', 'nar-mode');
     content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
     _dpRenderedVid = v.id;
     const scroll2 = document.getElementById('dp-scroll');

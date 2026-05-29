@@ -842,58 +842,42 @@ function _dpShareClose() {
 function _dpPagerResize() {
   const pager = document.getElementById('dp-action-pager');
   if (!pager) return;
-  const composePage = pager.querySelector('.dp-action-page-compose');
-  const sharePage   = pager.querySelector('.dp-action-page-share');
   const isShare = document.body.classList.contains('share-mode');
   const isNar   = document.body.classList.contains('nar-mode');
-  const target = isShare ? sharePage : composePage;
-  if (!target) return;
 
   let h;
-  if (!isShare && isNar) {
-    // Compose page with the picker mounted. Lift max-height + flex so we can
-    // read the picker's natural content height (without the growth animation
-    // constraint, and without its `flex:1` height:0 stretch).
-    const picker = composePage.querySelector('.nar-picker');
-    if (picker) {
-      const prevMaxH = picker.style.maxHeight;
-      const prevFlex = picker.style.flex;
-      picker.style.maxHeight = 'none';
-      picker.style.flex = '0 0 auto';
-      h = composePage.scrollHeight;
-      picker.style.maxHeight = prevMaxH;
-      picker.style.flex = prevFlex;
-    } else {
-      h = composePage.scrollHeight;
-    }
+  if (!isShare && !isNar) {
+    // Resting — compact pager sized to the Send button + hint natural height.
+    // Measure the .dp-action-resting inner element (NOT the page); the page
+    // has height:100% + flex children, so its scrollHeight reads back the
+    // current pager height and would compound on every toggle (the "grows
+    // each time" bug). The inner resting element has no flex stretch and
+    // returns a stable natural height.
+    const resting = pager.querySelector('.dp-action-resting');
+    const inner = resting ? resting.scrollHeight : 80;
+    h = inner + 16; // + pager's vertical padding & breathing room
   } else {
-    h = target.scrollHeight;
-  }
-
-  // In share-mode AND nar-mode we want the page tall enough for cancel-row's
-  // margin-top:auto to push it to the panel bottom — so both pages anchor
-  // their cancel rows at the same screen y. Compute the available height
-  // under the composer card and use max(natural, available).
-  if (isShare || isNar) {
+    // Active or Share — both fill the available panel space so the cancel
+    // rows on each page bottom-anchor at the same screen y. Deterministic
+    // panel-geometry math; do NOT read the page's scrollHeight (it would
+    // compound the previously-set height).
     const scroll = document.getElementById('dp-scroll');
     const composer = document.querySelector('#detail-panel .dp-composer');
     if (scroll && composer) {
       const scrollRect = scroll.getBoundingClientRect();
       const composerRect = composer.getBoundingClientRect();
-      // composer card sits just above the pager; .dp-social-zone gaps the two
-      // by --space-md. Take the space from the composer's bottom down to the
-      // scroll container's bottom, minus the gap + a small bottom safe-area.
-      const gap = 12; // --space-md
-      const tail = 12; // breathing room above the safe-area
-      const avail = Math.max(0, scrollRect.bottom - composerRect.bottom - gap - tail);
-      if (avail > h) h = avail;
+      const gap = 12;  // .dp-social-zone gap between composer + pager
+      const tail = 12; // breathing room above the panel safe-area
+      h = scrollRect.bottom - composerRect.bottom - gap - tail;
+    } else {
+      h = 0; // fall through to the safety floor below
     }
   }
 
-  // Safety: if the page is currently hidden (scrollHeight returned 0), fall
-  // back to a Resting-sized minimum so the Send button doesn't vanish. The
-  // CSS rule `min-height: 96px` covers this too, but setting the var keeps
-  // the height transition snappy when the panel becomes visible again.
+  // Safety floor — never collapse below 96 px (the Resting minimum). CSS
+  // `min-height: 96px` covers the hidden-panel case too, but keeping the var
+  // ≥ 96 keeps the height transition snappy when the panel becomes visible
+  // again.
   if (!Number.isFinite(h) || h < 96) h = 96;
 
   pager.style.setProperty('--dp-pager-h', `${Math.round(h)}px`);
