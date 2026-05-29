@@ -483,8 +483,10 @@ function _renderSocialComposer(v) {
         ${meAv ? `<div class="dp-composer-msg-av">${meAv}</div>` : ''}
         <div class="dp-composer-bubble">${esc(msg)}</div>
       </div>
-      <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
-      <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
+      <div class="dp-composer-action-slot">
+        <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
+        <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
+      </div>
     </div>
     <div class="dp-action-pager" id="dp-action-pager">
       <div class="dp-action-page dp-action-page-compose" id="dp-action-page-compose">
@@ -578,20 +580,35 @@ function _renderShareContent(v) {
       </div>
     </div>` : targetsRow;
 
+  // The send-success overlay's big check — 28px lucide-check on a 96px
+  // honey disc that springs in after the honey gleam sweep.
+  const bigCheckSvg = `<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
   // Inner content of the share page. The outer .dp-action-page-share wrapper
-  // (id #dp-share-zone) is rendered in _renderSocialComposer.
-  // Layout: friends card (cream-frost, owns its eyebrow + grid + internal
-  // scroll) → bottom group (eller + targets + honey Send overlay) → cancel
-  // row (margin-top:auto → pinned to page bottom with constant padding,
-  // identical to the picker page's cancel row so both pages match heights).
+  // (id #dp-share-zone) is rendered in _renderSocialComposer. Layout:
+  //   .dp-share-content  → friends card + bottom group + cancel row (flex
+  //                        column, height:100% so cancel bottom-anchors).
+  //                        Dissolves (opacity 0 + scale 0.92) on send.
+  //   .dp-share-success  → absolute overlay (centered check + "Sent" + names).
+  //                        Hidden by default; .is-confirming fades it in
+  //                        after the dissolve so the user gets a real
+  //                        "you made it" beat (honey gleam → check pop →
+  //                        names fade → auto-close).
   return `
-    ${friendsBlock}
-    <div class="dp-share-bottom-group">
-      ${orDivider}
-      ${bottomSlot}
+    <div class="dp-share-content">
+      ${friendsBlock}
+      <div class="dp-share-bottom-group">
+        ${orDivider}
+        ${bottomSlot}
+      </div>
+      <div class="dprcv-cta-row dp-share-cancel-row">
+        <button type="button" class="dprcv-cta-link" onclick="_dpShareClose()"><span>${t('invite_cancel')}</span></button>
+      </div>
     </div>
-    <div class="dprcv-cta-row dp-share-cancel-row">
-      <button type="button" class="dprcv-cta-link" onclick="_dpShareClose()"><span>${t('invite_cancel')}</span></button>
+    <div class="dp-share-success" aria-hidden="true">
+      <div class="dp-share-success-check" aria-hidden="true">${bigCheckSvg}</div>
+      <div class="dp-share-success-title">${t('invite_sent_title')}</div>
+      <div class="dp-share-success-sub" id="dp-share-success-sub"></div>
     </div>`;
 }
 
@@ -3412,17 +3429,25 @@ function _inviteShowSent(names) {
   if (!sheet) {
     const zone = document.getElementById('dp-share-zone');
     if (zone) {
+      // Populate the names caption ("Anna, Bob +2") before the overlay
+      // fades in — escaped to keep user-controlled name strings safe.
+      const subEl = document.getElementById('dp-share-success-sub');
+      if (subEl) {
+        const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const list = (Array.isArray(names) ? names.filter(Boolean) : []);
+        subEl.textContent = list.length
+          ? (list.slice(0, 2).map(esc).join(', ') + (list.length > 2 ? ` +${list.length - 2}` : ''))
+          : '';
+      }
+      // Re-trigger by toggling the class off→on so the animations fire on
+      // every send (otherwise nth send is a no-op).
       zone.classList.remove('is-confirming');
       void zone.offsetWidth;
       zone.classList.add('is-confirming');
       try { if (navigator.vibrate) navigator.vibrate(12); } catch {}
-      if (typeof showToast === 'function') {
-        const list = (Array.isArray(names) ? names.filter(Boolean) : []);
-        const sub = list.length
-          ? (list.slice(0, 2).join(', ') + (list.length > 2 ? ` +${list.length - 2}` : ''))
-          : '';
-        showToast(sub ? `${t('invite_sent_title')} — ${sub}` : t('invite_sent_title'));
-      }
+      // Hold long enough to read the title + names after the check pops in,
+      // then close. Animation timeline: gleam 0–720, check pop 320–920,
+      // title 500–920, sub 620–1040; hold 360 ms after sub finishes.
       setTimeout(() => {
         zone.classList.remove('is-confirming');
         _dpShareClose();
@@ -3432,7 +3457,7 @@ function _inviteShowSent(names) {
             && typeof _closeNarPanel === 'function') {
           _closeNarPanel();
         }
-      }, 1100);
+      }, 1400);
     } else {
       _closeInviteSheet();
     }

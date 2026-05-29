@@ -5584,7 +5584,9 @@
   /* "[sun] 5h 35m left" — number big (display), "left" the lighter trailing
      word (inline, never a stacked sub-label). */
   .dp-card .dp-sun-now-main {
-    display: flex; align-items: baseline; gap: var(--space-2xs); flex-wrap: nowrap;
+    /* Bumped gap from --space-2xs (no visible space — "7tigjen") to --space-xs
+       so "igjen" breathes off the value. */
+    display: flex; align-items: baseline; gap: var(--space-xs); flex-wrap: nowrap;
     color: var(--accent-on-light);
   }
   .dp-card .dp-sun-now-main svg { flex-shrink: 0; align-self: center; }
@@ -5593,10 +5595,12 @@
     letter-spacing: var(--tracking-display); line-height: 1; color: var(--text);
     white-space: nowrap;
   }
-  /* Keep "igjen/left" tight on the value's baseline so it reads as one phrase
-     (was wrapping to its own line → looked disconnected). */
+  /* "igjen / left" — muted suffix on the value's baseline. Stepped down to
+     --text-body + weight 600 (was --text-subtitle / 500) so it homogenizes
+     with the rest of the card's body type while staying clearly secondary
+     to the big value. Still muted. */
   .dp-card .dp-sun-now-word {
-    font-size: var(--text-subtitle); font-weight: 500; white-space: nowrap;
+    font-size: var(--text-body); font-weight: 600; white-space: nowrap;
     line-height: 1.1; color: var(--ink-muted);
   }
   .dp-card .dp-sun-now-verdict {
@@ -5717,27 +5721,54 @@
     padding: var(--space-sm) var(--space-md);
     font-size: var(--text-label); line-height: 1.4;
   }
-  /* Honey "Send til venner" — the plan card's one CTA (Directions steps down to
-     cream-frost). Hidden in Active (the hint replaces it). */
+  /* Shared slot for the composer's CTA + hint — both absolute-positioned in
+     the same 48px box, cross-fading via opacity. Keeps the composer card
+     height stable across Resting / Active / Share so the card doesn't jump
+     when state toggles. */
+  .dp-composer-action-slot {
+    position: relative;
+    height: 48px;
+  }
+  .dp-composer-send,
+  .dp-composer-hint {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    transition: opacity 280ms var(--ease-decelerate),
+                transform 280ms var(--ease-decelerate);
+  }
+  /* Honey "Send til venner" — the composer's one CTA. */
   .dp-composer-send {
     display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
-    width: 100%; height: 48px;
+    height: 48px;
     border: none; border-radius: var(--radius-pill);
     background: var(--accent); color: var(--accent-on);
     font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
     cursor: pointer; box-shadow: var(--shadow-1);
-    transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
+    opacity: 1; transform: translateY(0);
   }
   .dp-composer-send svg { flex-shrink: 0; }
   .dp-composer-send:hover { box-shadow: var(--shadow-2); }
-  /* "Juster dag og tid i dokken under ↓" — Active-state hint, replaces Send. */
-  .dp-composer-hint { display: none; }
-  body.nar-mode .dp-composer-hint {
+  .dp-composer-send:active { transform: translateY(1px); box-shadow: none;
+                             transition: transform 60ms ease-out, box-shadow 60ms ease-out; }
+  /* "Juster dag og tid..." — Active-state hint, cross-fades over Send. */
+  .dp-composer-hint {
     display: flex; align-items: center; justify-content: center; gap: var(--space-2xs);
     font-size: var(--text-label); color: var(--ink-muted);
+    opacity: 0; transform: translateY(6px);
+    pointer-events: none;
   }
   .dp-composer-hint svg { flex-shrink: 0; }
-  .dp-composer-send:active { transform: translateY(1px); box-shadow: none; }
+  /* Active: hint visible, Send hidden. Share: both hidden (share page owns
+     the Send overlay). */
+  body.nar-mode .dp-composer-send {
+    opacity: 0; transform: translateY(-6px); pointer-events: none;
+  }
+  body.nar-mode .dp-composer-hint {
+    opacity: 1; transform: translateY(0); pointer-events: auto;
+  }
+  body.share-mode .dp-composer-send,
+  body.share-mode .dp-composer-hint {
+    opacity: 0; pointer-events: none;
+  }
   /* Native button chrome reset that doesn't fight the chip styling above. */
   .dp-composer-when { margin: 0; font-family: 'Inter', sans-serif; }
 
@@ -5779,19 +5810,22 @@
     position: absolute;
     top: 0; left: 0;
     width: 100%;
-    /* Slide horizontally — page A from translateX(0) → -100%, page B from
-       translateX(100%) → 0. Opacity damps the cross-fade so the user reads
-       the slide as "out then in" rather than two stacked sheets. */
-    transition: transform 360ms var(--ease-decelerate),
-                opacity   360ms var(--ease-decelerate);
+    /* Slide horizontally with iOS-style depth: the outgoing page also
+       scales down slightly + dims (reads as receding), and the incoming
+       scales up from 0.95 + opacity (reads as advancing). Avoids the flat
+       "two sheets side by side" feel of a pure translate. */
+    transition: transform 380ms var(--ease-decelerate),
+                opacity   320ms var(--ease-decelerate);
+    transform-origin: center center;
+    will-change: transform, opacity;
   }
-  .dp-action-page-compose { transform: translateX(0);    opacity: 1; }
-  .dp-action-page-share   { transform: translateX(100%); opacity: 0; pointer-events: none; }
+  .dp-action-page-compose { transform: translateX(0) scale(1); opacity: 1; }
+  .dp-action-page-share   { transform: translateX(100%) scale(0.95); opacity: 0; pointer-events: none; }
   body.share-mode .dp-action-page-compose {
-    transform: translateX(-100%); opacity: 0; pointer-events: none;
+    transform: translateX(-100%) scale(0.95); opacity: 0; pointer-events: none;
   }
   body.share-mode .dp-action-page-share {
-    transform: translateX(0); opacity: 1; pointer-events: auto;
+    transform: translateX(0) scale(1); opacity: 1; pointer-events: auto;
   }
 
   /* Both pages flex-fill the pager so cancel rows on each can bottom-anchor
@@ -5807,12 +5841,9 @@
     display: flex; flex-direction: column; gap: var(--space-md);
     flex: 1; min-height: 0;
   }
-  /* The composer's own Send + hint only show in Resting. nar-mode swaps Send
-     for the hint ("Juster dag og tid..."); share-mode hides both (user is
-     past the compose step and the share page has its own honey Send). */
-  body.nar-mode .dp-composer-send,
-  body.share-mode .dp-composer-send,
-  body.share-mode .dp-composer-hint { display: none; }
+  /* (composer Send/hint visibility now handled by the .dp-composer-action-slot
+     cross-fade above — opacity/transform, no display:none, so the card height
+     stays stable across state changes.) */
 
   /* Picker becomes a flex column inside the slot. The NÅR card takes the
      natural space; the Send + Cancel bottom-anchor via margin-top:auto on
@@ -5901,13 +5932,89 @@
     body.share-mode .dp-action-page-share { transition: none; }
   }
 
-  /* Honey gleam after the user taps Send — same beat as the sheet's confirm
-     animation (reuses @keyframes dprcv-panel-sheen) but scoped to this page. */
+  /* Send confirmation beat — replaces the gleam-then-close of v1 with a
+     proper "you made it" moment:
+       0 ms    user taps honey Send → .is-confirming flips on, content
+                dissolves (opacity 0 + scale 0.92).
+       0–720ms honey gleam sweeps the page (dprcv-panel-sheen).
+       320 ms  big check pops in center (dprcv-confirm-pop, spring).
+       500 ms  "Invitasjon sendt" title fades in.
+       620 ms  "Anna, Bob +2" caption fades in.
+       1400 ms _inviteShowSent timer closes the page (pager collapses,
+                composer Send cross-fades back in). */
   .dp-action-page-share.is-confirming::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
     background: linear-gradient(115deg, transparent 32%, var(--accent) 50%, transparent 68%);
     transform: translateX(-120%); opacity: 0; mix-blend-mode: screen;
     animation: dprcv-panel-sheen 720ms var(--ease-decelerate) forwards;
+    z-index: 1;
+  }
+  /* Share-content dissolve — fades + scales out to clear the stage for the
+     success overlay. */
+  .dp-share-content {
+    display: flex; flex-direction: column; gap: var(--space-md);
+    height: 100%;
+    transform-origin: center 30%;
+    transition: opacity 200ms ease, transform 360ms var(--ease-decelerate);
+  }
+  .dp-action-page-share.is-confirming .dp-share-content {
+    opacity: 0; transform: scale(0.94);
+    pointer-events: none;
+  }
+  /* Success overlay — absolute over the share page, hidden by default.
+     .is-confirming reveals after the content dissolve. */
+  .dp-share-success {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    opacity: 0; pointer-events: none;
+    z-index: 2;
+  }
+  .dp-action-page-share.is-confirming .dp-share-success {
+    opacity: 1; pointer-events: auto;
+    transition: opacity 240ms ease 200ms;
+  }
+  /* Big honey check disc — springs in via dprcv-confirm-pop. */
+  .dp-share-success-check {
+    width: 96px; height: 96px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-on);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-2);
+    transform: scale(0);
+  }
+  .dp-action-page-share.is-confirming .dp-share-success-check {
+    animation: dprcv-confirm-pop 600ms var(--ease-spring) 320ms both;
+  }
+  .dp-share-success-title {
+    font-size: var(--text-title); font-weight: 700;
+    color: var(--panel-text); text-align: center;
+    opacity: 0; transform: translateY(8px);
+  }
+  .dp-action-page-share.is-confirming .dp-share-success-title {
+    animation: dp-share-success-fade 420ms var(--ease-decelerate) 500ms forwards;
+  }
+  .dp-share-success-sub {
+    font-size: var(--text-body); color: var(--ink-muted);
+    text-align: center; min-height: 1.2em;
+    opacity: 0; transform: translateY(8px);
+  }
+  .dp-action-page-share.is-confirming .dp-share-success-sub {
+    animation: dp-share-success-fade 420ms var(--ease-decelerate) 620ms forwards;
+  }
+  @keyframes dp-share-success-fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dp-share-content,
+    .dp-share-success,
+    .dp-share-success-check,
+    .dp-share-success-title,
+    .dp-share-success-sub { transition: none; animation: none; }
+    .dp-action-page-share.is-confirming .dp-share-success-check { transform: scale(1); }
+    .dp-action-page-share.is-confirming .dp-share-success-title,
+    .dp-action-page-share.is-confirming .dp-share-success-sub { opacity: 1; transform: none; }
   }
 
   /* Honey Send overlay button — match the accent CTA in the rest of the app
@@ -5933,9 +6040,17 @@
   .nar-picker {
     display: flex; flex-direction: column; gap: var(--space-md);
     max-height: 0; opacity: 0; overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.28s ease;
+    /* Slight lift-in beat: rise 12px while the max-height + opacity transition
+       fires so the picker feels like it floats up into place rather than
+       sliding in flat. */
+    transform: translateY(12px);
+    transition: max-height 0.4s cubic-bezier(0.22, 0.61, 0.36, 1),
+                opacity 0.28s ease,
+                transform 0.36s var(--ease-decelerate);
   }
-  body.nar-mode .nar-picker { max-height: 680px; opacity: 1; }
+  body.nar-mode .nar-picker {
+    max-height: 680px; opacity: 1; transform: translateY(0);
+  }
 
   /* Date/time picker card — a cream-frost box with a sentence-case title.
      overflow:visible so the FTS scrub popup can pop up over the day tiles. */

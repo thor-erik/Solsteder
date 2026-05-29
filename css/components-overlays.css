@@ -1315,7 +1315,12 @@
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    /* Tap spring — the whole tile compresses a touch on press, then
+       releases with a slight overshoot. Combines with the checkmark pop on
+       selection so the tap reads as "I picked them" rather than a flat toggle. */
+    transition: transform 220ms var(--ease-spring);
   }
+  .dpinvite-avatar:active { transform: scale(0.93); }
   .dpinvite-avatar[hidden] { display: none; }
   .dpinvite-avatar-img {
     position: relative;
@@ -1359,13 +1364,14 @@
     display: flex; align-items: center; justify-content: center;
     border: 2px solid var(--surface-raised);
     opacity: 0;
-    transform: scale(0.6);
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transform: scale(0);
+    transition: opacity 160ms ease, transform 280ms var(--ease-spring);
     pointer-events: none;
   }
   .dpinvite-avatar-check svg { width: 9px; height: 9px; }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-check {
     opacity: 1;
+    /* var(--ease-spring) overshoots to 1.05 then settles — reads as a real pop */
     transform: scale(1);
   }
   .dpinvite-online-dot {
