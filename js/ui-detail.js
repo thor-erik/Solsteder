@@ -411,59 +411,64 @@ function _renderSocialSection(v) {
  *  ("Tomorrow · 15:30" — STATIC for now, editing is being reworked), your
  *  avatar, a Jordy-blue share-text preview bubble, and one navy "Send to
  *  friends" button that opens the invite sheet. */
-function _renderSocialComposer(v) {
+/** Plan moment display parts, computed from the GLOBAL date/time (the When
+ *  picker drives datePicker + timeFromEl). Shared by the render + live-sync so
+ *  the chip + share bubble update as you pick. */
+function _planMomentParts(v) {
   const cap = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const now  = new Date();
-  const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const pad  = (n) => String(n).padStart(2, '0');
-  const tmrwStr  = `${tmrw.getFullYear()}-${pad(tmrw.getMonth() + 1)}-${pad(tmrw.getDate())}`;
-  const planHour = 15.5;
-  const dayHeader = (typeof _dayLabel === 'function') ? cap(_dayLabel(tmrwStr)) : 'Tomorrow';
-  const dayInline = (typeof _dayLabel === 'function') ? _dayLabel(tmrwStr) : 'tomorrow';
-  const timeStr   = (typeof formatHour === 'function') ? formatHour(planHour) : '15:30';
-
-  // Sun at the planned moment (its own date) → the share-text context.
+  const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : '';
+  const hour = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 12;
+  const dayHeader = (typeof _dayLabel === 'function' && dateStr) ? cap(_dayLabel(dateStr)) : '';
+  const dayInline = (typeof _dayLabel === 'function' && dateStr) ? _dayLabel(dateStr) : '';
+  const timeStr   = (typeof formatHour === 'function') ? formatHour(hour) : `${Math.floor(hour)}:00`;
   let sunUntil = null;
   try {
-    const { windows } = computeSunWindows(v, tmrwStr);
-    const cur = (windows || []).find(w => planHour >= w.start && planHour < w.end);
+    const { windows } = computeSunWindows(v, dateStr);
+    const cur = (windows || []).find(w => hour >= w.start && hour < w.end);
     if (cur) sunUntil = formatHour(cur.end);
   } catch (e) { /* no sun data */ }
-
   const msg = sunUntil
     ? t('composer_preview_sun', { venue: v.name, day: dayInline, time: timeStr, sunUntil })
     : t('composer_preview',     { venue: v.name, day: dayInline, time: timeStr });
+  return { dayHeader, timeStr, msg };
+}
 
-  // Your avatar (right side) — reuse the friend-avatar renderer with one slot.
-  const me = (typeof _currentUser !== 'undefined' && _currentUser)
-    ? _currentUser
-    : (typeof window !== 'undefined' ? window._currentUser : null);
-  const meAv = me
-    ? _renderFriendAvatarsHtml([{ user: {
-        id: me.id, name: me.user_metadata?.name, email: me.email,
-        avatar_url: me.user_metadata?.avatar_url,
-      } }], 1, 34)
-    : '';
+function _renderSocialComposer(v) {
+  const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const { dayHeader, timeStr, msg } = _planMomentParts(v);
 
-  const chev  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
-  const plane = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`;
+  const pencil = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+  const plane  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`;
 
+  // Mock (2026-05-29): "DEL PLAN" eyebrow + a date chip with a pencil affordance
+  // on one row, the share-text bubble, then the honey Send. No avatar. The Send
+  // is hidden in the Active (picker-open) state via body.nar-mode CSS.
   return `
     <div class="dp-social-card dp-composer">
       <div class="dp-composer-titlerow">
-        <div class="dp-composer-title">${t('invite_friends')}</div>
-        ${meAv ? `<div class="dp-composer-me">${meAv}</div>` : ''}
+        <div class="dp-composer-title">${t('share_plan')}</div>
+        <button type="button" class="dp-composer-when" onclick="_openNarPanel(${v.id})" aria-label="${t('nar_card_title')}">
+          <span class="dp-composer-day">${esc(dayHeader)}</span>
+          <span class="dp-composer-sep">·</span>
+          <span class="dp-composer-time">${timeStr}</span>
+          <span class="dp-composer-chev" aria-hidden="true">${pencil}</span>
+        </button>
       </div>
-      <button type="button" class="dp-composer-when" onclick="_openNarPanel(${v.id})" aria-label="${t('nar_card_title')}">
-        <span class="dp-composer-day">${esc(dayHeader)}</span>
-        <span class="dp-composer-sep">·</span>
-        <span class="dp-composer-time">${timeStr}</span>
-        <span class="dp-composer-chev" aria-hidden="true">${chev}</span>
-      </button>
       <div class="dp-composer-bubble">${esc(msg)}</div>
-      <button class="dp-composer-send" onclick="_openInviteSheet(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
+      <button class="dp-composer-send" onclick="_narGoToShare(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
     </div>`;
+}
+
+// Live-update the plan card's chip + share bubble from the global moment
+// (called while the When picker is open — see _openNarPanel).
+function _narSyncPlanCard() {
+  const card = document.querySelector('#detail-panel .dp-composer');
+  const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === _narVenueId) : null;
+  if (!card || !v) return;
+  const { dayHeader, timeStr, msg } = _planMomentParts(v);
+  const dayEl = card.querySelector('.dp-composer-day');   if (dayEl)  dayEl.textContent  = dayHeader;
+  const timeEl = card.querySelector('.dp-composer-time'); if (timeEl) timeEl.textContent = timeStr;
+  const msgEl = card.querySelector('.dp-composer-bubble'); if (msgEl) msgEl.textContent  = msg;
 }
 
 // ── NÅR picker — combined date + time picker (replaces invite stage 1) ───────
@@ -549,6 +554,13 @@ function _openNarPanel(venueId) {
   };
   setTimeout(() => document.addEventListener('pointerdown', picker._onDocDown), 0);
 
+  // Live-update the plan card's date chip + share bubble as the picker moves
+  // the moment (FTS scrub fires timeFromEl 'input'; day tap fires datePicker
+  // 'change').
+  picker._onMoment = () => _narSyncPlanCard();
+  if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', picker._onMoment);
+  if (typeof datePicker !== 'undefined' && datePicker) datePicker.addEventListener('change', picker._onMoment);
+
   // Collapse the panel to handle + plan card, then grow the picker up.
   void picker.offsetWidth; // commit max-height:0 before the grow
   document.body.classList.add('nar-mode');
@@ -565,8 +577,9 @@ function _closeNarPanel() {
     fts.style.cssText = '';
     picker._ftsHome.appendChild(fts);
   }
-  if (picker._onTime && typeof timeFromEl !== 'undefined' && timeFromEl) {
-    timeFromEl.removeEventListener('input', picker._onTime);
+  if (picker._onMoment) {
+    if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', picker._onMoment);
+    if (typeof datePicker !== 'undefined' && datePicker) datePicker.removeEventListener('change', picker._onMoment);
   }
   if (picker._onDocDown) document.removeEventListener('pointerdown', picker._onDocDown);
   if (picker._overflowTimer) clearTimeout(picker._overflowTimer);
