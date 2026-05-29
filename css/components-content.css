@@ -5684,11 +5684,22 @@
     display: flex; align-items: flex-start; justify-content: space-between;
     gap: var(--space-md);
   }
+  /* "I morgen · 15:30 ⌄" reads as a tappable chip: glass-control pill (the
+     app's text+chevron button idiom) with a down-chevron affordance. */
   .dp-composer-when {
     align-self: flex-start;
-    display: inline-flex; align-items: center; gap: var(--space-2xs); min-width: 0;
+    display: inline-flex; align-items: center; gap: var(--space-xs); min-width: 0;
+    padding: var(--space-2xs) var(--space-md);
+    border-radius: var(--radius-pill);
+    background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
     font-size: var(--text-subtitle); font-weight: 700; color: var(--text);
+    cursor: pointer; text-align: left;
   }
+  .dp-composer-when:active { transform: translateY(1px); }
+  .dp-composer-chev { display: inline-flex; color: var(--ink-muted); }
+  /* Inside the open picker the chevron is meaningless — the editor is already
+     showing below — so drop it there (but keep it in the detail panel). */
+  body.nar-mode .dp-composer-chev { display: none; }
   .dp-composer-sep { color: var(--ink-muted); font-weight: 400; }
   .dp-composer-me { flex-shrink: 0; display: flex; }
   .dp-composer-me .avatar { border-radius: 50%; }
@@ -5714,11 +5725,8 @@
   .dp-composer-send svg { flex-shrink: 0; }
   .dp-composer-send:hover { box-shadow: var(--shadow-2); }
   .dp-composer-send:active { transform: translateY(1px); box-shadow: none; }
-  /* Composer "when" is a button — strip native chrome, keep the inline look. */
-  .dp-composer-when {
-    background: none; border: 0; margin: 0; padding: 0; font: inherit;
-    color: inherit; cursor: pointer; text-align: left;
-  }
+  /* Native button chrome reset that doesn't fight the chip styling above. */
+  .dp-composer-when { margin: 0; font-family: 'Inter', sans-serif; }
 
   /* ── NÅR picker — collapse the detail panel to handle + plan card, then grow
      the date/time picker UP from the bottom. The plan card stays in place; no
@@ -5738,12 +5746,13 @@
      spacing, so zero the divider's own margin. */
   .nar-picker > .dp-divider { margin: 0; }
 
-  /* Date/time picker card — a cream-frost box with a sentence-case title. */
+  /* Date/time picker card — a cream-frost box with a sentence-case title.
+     overflow:visible so the FTS scrub popup can pop up over the day tiles. */
   .nar-card {
     display: flex; flex-direction: column; gap: var(--space-md);
     padding: var(--space-lg); border-radius: var(--radius-lg);
     background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
-    box-shadow: var(--card-cream-shadow);
+    box-shadow: var(--card-cream-shadow); overflow: visible;
   }
   .nar-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
   .nar-card-title { font-size: var(--text-label); font-weight: 600; color: var(--ink-muted); }
@@ -5762,14 +5771,30 @@
   .nar-strip .dc-tile .dc-day  { font-size: var(--text-caption); color: var(--ink-muted); }
   .nar-strip .dc-tile .dc-num  { font-size: var(--text-subtitle); color: var(--panel-text); }
   .nar-strip .dc-tile .dc-temp { font-size: var(--text-caption); color: var(--ink-muted); }
-  .nar-strip .dc-tile .dc-icon .wx-sky-icon { width: 18px; height: 18px; }
-  /* Host the reparented FTS: neutralise its fixed/floating positioning and
-     force it visible (we don't flip the global body.fts state). */
-  .nar-fts-slot { position: relative; }
+  /* Weather glyph matches the top bar: ink fill, no cream halo. */
+  .nar-strip .dc-tile .dc-icon .wx-sky-icon { width: 18px; height: 18px; color: var(--panel-text); filter: none; }
+  /* No honey/yellow outlines on the tiles. Today + sun-tier borders go cream;
+     the SELECTED day uses a Delft ring (selected = Delft, never honey). */
+  .nar-strip .dc-tile.today,
+  .nar-strip .dc-tile.sun-high,
+  .nar-strip .dc-tile.sun-mid,
+  .nar-strip .dc-tile.sun-low { border-color: var(--card-cream-border) !important; opacity: 1; }
+  .nar-strip .dc-tile.today .dc-day { color: var(--ink-muted); }
+  .nar-strip .dc-tile.selected {
+    box-shadow: inset 0 0 0 2px var(--bg) !important; border-color: transparent !important;
+  }
+  .nar-strip .dc-tile.selected .dc-num { color: var(--panel-text); }
+  /* Host the reparented FTS: neutralise its fixed/floating positioning + force
+     it visible (we don't flip the global body.fts state). Zero the LEFT/RIGHT
+     margin (the body.fts rule adds a side inset) so the bar lines up with the
+     day-strip edges; keep vertical room for the scrub popup. overflow:visible
+     lets the expanded popup overlap the tiles above. */
+  .nar-fts-slot { position: relative; overflow: visible; }
   .nar-fts-slot #fts {
     display: flex !important; position: relative;
     top: auto; bottom: auto; left: auto; right: auto;
-    width: 100%; margin: 0; transform: none; opacity: 1;
+    width: 100%; margin-left: 0 !important; margin-right: 0 !important;
+    transform: none; opacity: 1;
   }
   /* Primary + cancel — identical layout to the invite panel (.dpinvite-cta-row
      + .dprcv-cta-row/.dprcv-cta-link), just a navy "Send til venner" in place

@@ -459,6 +459,7 @@ function _renderSocialComposer(v) {
         <span class="dp-composer-day">${esc(dayHeader)}</span>
         <span class="dp-composer-sep">·</span>
         <span class="dp-composer-time">${timeStr}</span>
+        <span class="dp-composer-chev" aria-hidden="true">${chev}</span>
       </button>
       <div class="dp-composer-bubble">${esc(msg)}</div>
       <button class="dp-composer-send" onclick="_openInviteSheet(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
