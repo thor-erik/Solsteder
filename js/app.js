@@ -4343,7 +4343,16 @@ function _updateFriendsCanvasPin() {
   const isOpen = dp && dp.classList.contains('open') && selectedId != null;
   const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
   let next = null;
-  if (isOpen && dateStr && typeof getPlansForVenue === 'function') {
+  // While composing a plan (When picker open), pin the CURRENT USER on the
+  // venue — "you're planning to go here" — even though no plan exists yet.
+  const _narActive = isOpen && document.body.classList.contains('nar-mode');
+  if (_narActive && typeof authCurrentUser === 'function' && authCurrentUser()) {
+    const meU = authCurrentUser();
+    const meName = (meU.user_metadata?.name || meU.email || '').split('@')[0]
+                || (typeof t === 'function' ? t('attendee_someone') : 'Me');
+    const fromHour = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 12;
+    next = { venueId: selectedId, meetHour: fromHour, attendees: [{ id: meU.id || 'me', name: meName, offsetMin: 0 }], declined: [] };
+  } else if (isOpen && dateStr && typeof getPlansForVenue === 'function') {
     const plans = getPlansForVenue(selectedId) || [];
     // Pick the plan on the selected date — if multiple, prefer the one
     // closest to the slider's current hour so the meet-time bubble lines

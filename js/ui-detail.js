@@ -587,6 +587,8 @@ function _openNarPanel(venueId) {
   // Collapse the panel to handle + plan card, then grow the picker up.
   void picker.offsetWidth; // commit max-height:0 before the grow
   document.body.classList.add('nar-mode');
+  // Swap the venue's map pin to the friend/going pin showing YOU (#4).
+  if (typeof _updateFriendsCanvasPin === 'function') _updateFriendsCanvasPin();
   // Un-clip once grown so the FTS scrub popup isn't cut off by overflow:hidden.
   picker._overflowTimer = setTimeout(() => { picker.style.overflow = 'visible'; }, 440);
 }
@@ -618,6 +620,8 @@ function _closeNarPanel() {
   if (picker._overflowTimer) clearTimeout(picker._overflowTimer);
   picker.style.overflow = 'hidden';        // re-clip for the collapse
   document.body.classList.remove('nar-mode'); // siblings reappear, picker collapses
+  // Recompute the map pin now that we're no longer composing (#4).
+  if (typeof _updateFriendsCanvasPin === 'function') _updateFriendsCanvasPin();
   setTimeout(() => { try { picker.remove(); } catch (e) {} }, 420);
 }
 
