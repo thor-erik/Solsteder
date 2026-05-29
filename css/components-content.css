@@ -5720,24 +5720,30 @@
     display: flex; flex-direction: column; gap: var(--space-md);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
-    /* OPAQUE cream frost — this sheet stacks OVER the detail panel (not the
-       map), so a 0%-fill frost would let the venue card bleed through. The
-       bright cream fill + blur fully covers what's behind. */
-    background: var(--card-cream-bg-hover);
-    -webkit-backdrop-filter: var(--card-cream-blur);
-    backdrop-filter: var(--card-cream-blur);
+    /* SOLID cream — this sheet stacks OVER the detail panel (not the map), so
+       a translucent/blurred fill let the venue card bleed through AND a
+       backdrop-filter stacked on the detail panel's own frost froze the
+       slide-up animation (nested backdrop-filters are very expensive). A flat
+       opaque fill renders cheaply and covers cleanly. */
+    background: var(--paper-cream);
     border: 1px solid var(--card-cream-border);
     box-shadow: var(--panel-shadow);
     color: var(--panel-text);
     transform: translateY(calc(100% + 24px)); opacity: 0;
+    will-change: transform, opacity;
     transition: transform 0.34s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.26s ease;
   }
   .nar-panel.open { transform: translateY(0); opacity: 1; }
   .nar-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
   .nar-title { font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
   .nar-date { font-size: var(--text-label); color: var(--ink-muted); }
-  /* The reparented QC strip drags in its "Vis full kalender" expander — not
-     wanted in the compact picker. */
+  /* Day-strip: one horizontal scrolling row (the QC strip is a 5×2 grid by
+     default — wraps in this narrow panel). Hide its "Vis full kalender". */
+  .nar-strip .dc-grid {
+    display: flex; flex-wrap: nowrap; gap: var(--space-xs);
+    overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+  }
+  .nar-strip .dc-grid > * { flex: 0 0 auto; }
   .nar-strip .dc-expand-btn-wide { display: none; }
   /* Host the reparented FTS: neutralise its fixed/floating positioning and
      force it visible (we don't flip the global body.fts state). */
