@@ -455,24 +455,19 @@ function _renderSocialComposer(v) {
     ? _renderFriendAvatarsHtml([{ user: { id: me.id, name: me.user_metadata?.name, email: me.email, avatar_url: me.user_metadata?.avatar_url } }], 1, 28)
     : '';
 
-  // FEATURE #11 v2 (2026-05-29): horizontal pager.
-  // The composer card (title row + chat bubble — cream-frost) STAYS visible
-  // at the top as ONE card. The pager is a SIBLING below it, NOT a child —
-  // otherwise the picker's own .nar-card chrome ends up rendered inside the
-  // composer's cream chrome (card-in-card, caught in v2.0 review).
-  // Pager pages:
-  //   Page A (.dp-action-page-compose): Resting = bare Send button + hint
-  //     (no card chrome); Active = the NÅR picker (its .nar-card brings the
-  //     cream chrome). Picker is appended into #dp-action-active-slot by
-  //     _openNarPanel.
-  //   Page B (.dp-action-page-share): friends label + 4-col avatar grid +
-  //     "eller" + share targets + honey Send overlay + cancel row. Bottom-
-  //     anchored via flex column + margin-top:auto on the cancel row so the
-  //     cancel sits a constant padding from the panel bottom regardless of
-  //     friend count.
-  // body.share-mode → track translates -50%; page A slides left, page B
-  // slides in from the right. Pager height is JS-managed via --dp-pager-h
-  // so the transition between compose / picker / share heights is smooth.
+  // FEATURE #11 v4 (2026-05-30, per user feedback): nest the Resting Send
+  // button INSIDE the composer card. That way Resting state is just ONE
+  // self-contained card with no separate pager surface below — fixes the
+  // big-gap-below-Send + shadow-clipped issues (the pager-based Resting CTA
+  // left an empty pager footprint in compose, and its overflow:hidden
+  // clipped the honey shadow).
+  //
+  // The pager survives below the card for the slide animation, but it's
+  // height:0 in Resting (invisible). It only grows when nar-mode (picker
+  // mounted in active-slot) or share-mode (share page slides in from
+  // right). The composer's own Send + hint are hidden in those modes via
+  // body.nar-mode / body.share-mode CSS so they don't compete with the
+  // picker's own Send or the share page's honey overlay.
   return `
     <div class="dp-social-card dp-composer">
       <div class="dp-composer-titlerow">
@@ -488,13 +483,11 @@ function _renderSocialComposer(v) {
         ${meAv ? `<div class="dp-composer-msg-av">${meAv}</div>` : ''}
         <div class="dp-composer-bubble">${esc(msg)}</div>
       </div>
+      <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
+      <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
     </div>
     <div class="dp-action-pager" id="dp-action-pager">
       <div class="dp-action-page dp-action-page-compose" id="dp-action-page-compose">
-        <div class="dp-action-resting">
-          <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
-          <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
-        </div>
         <div class="dp-action-active-slot" id="dp-action-active-slot"></div>
       </div>
       <div class="dp-action-page dp-action-page-share" id="dp-share-zone" data-venue-id="${v.id}">
@@ -845,40 +838,50 @@ function _dpPagerResize() {
   const isShare = document.body.classList.contains('share-mode');
   const isNar   = document.body.classList.contains('nar-mode');
 
-  let h;
+  // Resting — CSS hides the pager entirely (display:none). Clear the var
+  // so the height transition starts from 0 on the next reveal.
   if (!isShare && !isNar) {
-    // Resting — compact pager sized to the Send button + hint natural height.
-    // Measure the .dp-action-resting inner element (NOT the page); the page
-    // has height:100% + flex children, so its scrollHeight reads back the
-    // current pager height and would compound on every toggle (the "grows
-    // each time" bug). The inner resting element has no flex stretch and
-    // returns a stable natural height.
-    const resting = pager.querySelector('.dp-action-resting');
-    const inner = resting ? resting.scrollHeight : 80;
-    h = inner + 16; // + pager's vertical padding & breathing room
-  } else {
-    // Active or Share — both fill the available panel space so the cancel
-    // rows on each page bottom-anchor at the same screen y. Deterministic
-    // panel-geometry math; do NOT read the page's scrollHeight (it would
-    // compound the previously-set height).
+    pager.style.removeProperty('--dp-pager-h');
+    return;
+  }
+
+  let h = 0;
+
+  // Active (picker mounted) — measure the picker's natural content height.
+  // Reading scroll.bottom is circular in nar-mode (the panel auto-sizes
+  // around the picker via the existing CSS rule, so scroll.bottom =
+  // composer.bottom + pager.height). We lift max-height + flex on the picker
+  // synchronously to read the un-constrained content size, then restore.
+  if (isNar) {
+    const picker = pager.querySelector('.nar-picker');
+    if (picker) {
+      const prevMaxH = picker.style.maxHeight;
+      const prevFlex = picker.style.flex;
+      picker.style.maxHeight = 'none';
+      picker.style.flex = '0 0 auto';
+      h = picker.scrollHeight;
+      picker.style.maxHeight = prevMaxH;
+      picker.style.flex = prevFlex;
+    }
+  }
+
+  // Share-from-Resting (no picker) — use panel-geometry avail. (Panel is NOT
+  // auto-sized in share-only mode, so scroll.bottom is stable here.)
+  if (!h && isShare) {
     const scroll = document.getElementById('dp-scroll');
     const composer = document.querySelector('#detail-panel .dp-composer');
     if (scroll && composer) {
       const scrollRect = scroll.getBoundingClientRect();
       const composerRect = composer.getBoundingClientRect();
-      const gap = 12;  // .dp-social-zone gap between composer + pager
-      const tail = 12; // breathing room above the panel safe-area
+      const gap = 12;
+      const tail = 12;
       h = scrollRect.bottom - composerRect.bottom - gap - tail;
-    } else {
-      h = 0; // fall through to the safety floor below
     }
   }
 
-  // Safety floor — never collapse below 96 px (the Resting minimum). CSS
-  // `min-height: 96px` covers the hidden-panel case too, but keeping the var
-  // ≥ 96 keeps the height transition snappy when the panel becomes visible
-  // again.
-  if (!Number.isFinite(h) || h < 96) h = 96;
+  // Safety floor — 400 px is enough to show the picker's day strip + FTS
+  // or the share page's grid + targets without crowding.
+  if (!Number.isFinite(h) || h < 200) h = 400;
 
   pager.style.setProperty('--dp-pager-h', `${Math.round(h)}px`);
 }

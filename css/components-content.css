@@ -5761,19 +5761,16 @@
   .dp-action-pager {
     position: relative;
     overflow: hidden;
-    /* JS sets --dp-pager-h on state changes so the height between Resting
-       (small) / Active (picker height) / share (~panel content height)
-       transitions smoothly instead of snapping. Min-height guard so the
-       Resting Send button stays visible even if a measure briefly returned 0
-       (e.g. detail panel hidden when the rAF fired). */
-    height: var(--dp-pager-h, 96px);
-    min-height: 96px;
+    /* Resting: pager is invisible (Send button lives inside .dp-composer).
+       nar-mode / share-mode set --dp-pager-h so the pager grows to the
+       active page's content height. */
+    height: var(--dp-pager-h, 0);
     transition: height 360ms var(--ease-decelerate);
-    /* Side padding so the Send button's box-shadow renders inside the pager
-       (overflow:hidden clips it otherwise — left a hard-edge look on the
-       Resting honey button, the "weird shadow" caught in user review). */
-    padding: var(--space-2xs) 0;
   }
+  /* Hide the pager entirely in Resting so it doesn't even contribute its
+     .dp-social-zone flex gap below the composer card (no empty footprint,
+     no big gap between composer and Directions). */
+  body:not(.nar-mode):not(.share-mode) .dp-action-pager { display: none; }
 
   .dp-action-page {
     /* Pages are absolutely positioned so only the "active" page contributes
@@ -5804,18 +5801,18 @@
     display: flex; flex-direction: column; gap: var(--space-md);
     height: 100%;
   }
-  .dp-action-resting {
-    display: flex; flex-direction: column; gap: var(--space-md);
-    flex-shrink: 0;
-  }
-  body.nar-mode .dp-action-resting { display: none; }
   /* The active slot fills the compose page so the picker inside it can also
      fill the height — its cancel row then bottom-anchors like the share page's. */
-  .dp-action-active-slot:empty { display: none; }
   .dp-action-active-slot {
     display: flex; flex-direction: column; gap: var(--space-md);
     flex: 1; min-height: 0;
   }
+  /* The composer's own Send + hint only show in Resting. nar-mode swaps Send
+     for the hint ("Juster dag og tid..."); share-mode hides both (user is
+     past the compose step and the share page has its own honey Send). */
+  body.nar-mode .dp-composer-send,
+  body.share-mode .dp-composer-send,
+  body.share-mode .dp-composer-hint { display: none; }
 
   /* Picker becomes a flex column inside the slot. The NÅR card takes the
      natural space; the Send + Cancel bottom-anchor via margin-top:auto on
