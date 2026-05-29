@@ -4185,6 +4185,11 @@ function _startWindForVenue(v) {
 }
 
 function closeDetailPanel(expandList = true) {
+  // If the NÅR picker is open, tear it down first (returns the FTS home + drops
+  // nar-mode) so it doesn't leak the reparented slider or the body class.
+  if (document.body.classList.contains('nar-mode') && typeof _closeNarPanel === 'function') {
+    _closeNarPanel();
+  }
   if (selectedId != null) {
     const dwell = _aDetailOpenTs ? Date.now() - _aDetailOpenTs : null;
     _aTrack('detail_close', { venue_id: selectedId, dwell_ms: dwell });

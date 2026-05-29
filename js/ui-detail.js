@@ -466,11 +466,12 @@ function _renderSocialComposer(v) {
     </div>`;
 }
 
-// ── NÅR panel — combined date + time picker (replaces invite stage 1) ────────
-// Slides up from the composer's "when" tap. Reparents the global day-strip
-// (via _renderQcCalendarStrip) + the FTS (#fts) in; recedes the detail panel
-// behind it (body.nar-open). "Velg venner / Del" hands off to the invite
-// sheet's select-friends page (the WHEN→WHO animation comes later).
+// ── NÅR picker — combined date + time picker (replaces invite stage 1) ───────
+// Opens from the composer's "when" tap. body.nar-mode collapses the detail
+// panel to handle + plan card, then the picker (inside #dp-scroll, after the
+// plan card) grows up from max-height:0 — reusing the global day-strip
+// (_renderQcCalendarStrip) + the reparented FTS (#fts). "Velg venner / Del"
+// hands off to the invite sheet's select-friends page (transition comes later).
 let _narVenueId = null;
 
 function _narDateLabel(dateStr) {
@@ -484,7 +485,7 @@ function _narDateLabel(dateStr) {
 // Keep the date label + time pill + sun line in sync with the global moment
 // (the reparented day-strip + FTS drive datePicker / timeFromEl).
 function _narSyncStatus() {
-  const panel = document.getElementById('nar-panel');
+  const panel = document.querySelector('.nar-picker');
   if (!panel) return;
   const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : '';
   const h = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : NaN;
@@ -514,65 +515,39 @@ function _narSyncStatus() {
 }
 
 function _openNarPanel(venueId) {
-  if (document.getElementById('nar-wrap')) return; // already open
+  if (document.querySelector('.nar-picker')) return; // already open
+  const scroll = document.getElementById('dp-scroll');
+  const social = scroll && scroll.querySelector('.dp-social-zone');
+  if (!scroll || !social) return;
   _narVenueId = venueId;
-  const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === venueId) : null;
-
-  // Plan moment — static "tomorrow 15:30" for now (mirrors the composer; the
-  // picker editing it is the deferred wiring). Drives the lifted plan card.
-  const cap = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const now = new Date();
-  const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const pad = (n) => String(n).padStart(2, '0');
-  const tmrwStr = `${tmrw.getFullYear()}-${pad(tmrw.getMonth() + 1)}-${pad(tmrw.getDate())}`;
-  const planHour = 15.5;
-  const dayHeader = (typeof _dayLabel === 'function') ? cap(_dayLabel(tmrwStr)) : 'Tomorrow';
-  const dayInline = (typeof _dayLabel === 'function') ? _dayLabel(tmrwStr) : 'tomorrow';
-  const timeStr = (typeof formatHour === 'function') ? formatHour(planHour) : '15:30';
-  let sunUntil = null;
-  try { const { windows } = computeSunWindows(v, tmrwStr); const cur = (windows || []).find(w => planHour >= w.start && planHour < w.end); if (cur) sunUntil = formatHour(cur.end); } catch (e) { /* no sun */ }
-  const msg = sunUntil
-    ? t('composer_preview_sun', { venue: (v && v.name) || '', day: dayInline, time: timeStr, sunUntil })
-    : t('composer_preview', { venue: (v && v.name) || '', day: dayInline, time: timeStr });
-  const me = (typeof _currentUser !== 'undefined' && _currentUser) ? _currentUser : (typeof window !== 'undefined' ? window._currentUser : null);
-  const meAv = me ? _renderFriendAvatarsHtml([{ user: { id: me.id, name: me.user_metadata && me.user_metadata.name, email: me.email, avatar_url: me.user_metadata && me.user_metadata.avatar_url } }], 1, 34) : '';
 
   const usersSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
 
-  // Wrap = [lifted plan card] + [picker sheet], sliding up as one. The detail
-  // panel fades fully out behind it (see body.nar-open CSS).
-  const wrap = document.createElement('div');
-  wrap.id = 'nar-wrap';
-  wrap.className = 'nar-wrap';
-  wrap.innerHTML = `
-    <div class="nar-plan">
-      <div class="nar-plan-top">
-        <div class="nar-plan-when"><span class="nar-plan-day">${esc(dayHeader)}</span> · <span class="nar-plan-time">${timeStr}</span></div>
-        ${meAv ? `<div class="nar-plan-av">${meAv}</div>` : ''}
-      </div>
-      <div class="nar-plan-bubble">${esc(msg)}</div>
+  // The picker lives INSIDE the detail panel, right after the plan card. CSS
+  // (body.nar-mode) hides every other #dp-scroll child, leaving handle + plan
+  // card, then grows the picker up (max-height) — pushing the plan card up as
+  // the bottom-anchored panel expands. No reparenting, no full-panel recede
+  // (that froze on the panel's backdrop-filter).
+  const picker = document.createElement('div');
+  picker.className = 'nar-picker';
+  picker.innerHTML = `
+    <div class="nar-head">
+      <span class="nar-title">${t('nar_title')}</span>
+      <span class="nar-date" id="nar-date"></span>
     </div>
-    <div class="nar-panel" id="nar-panel">
-      <div class="nar-head">
-        <span class="nar-title">${t('nar_title')}</span>
-        <span class="nar-date" id="nar-date"></span>
-      </div>
-      <div class="nar-strip" id="nar-strip"></div>
-      <div class="nar-fts-slot" id="nar-fts-slot"></div>
-      <div class="nar-status-row">
-        <span class="nar-sun" id="nar-sun"></span>
-        <span class="nar-time-pill" id="nar-time-pill"></span>
-      </div>
-      <button type="button" class="nar-cta p-pill" onclick="_narGoToShare(${venueId})">
-        ${usersSvg}<span>${t('nar_cta')}</span>
-      </button>
-    </div>`;
-  document.body.appendChild(wrap);
-  const panel = wrap.querySelector('#nar-panel');
+    <div class="nar-strip" id="nar-strip"></div>
+    <div class="nar-fts-slot" id="nar-fts-slot"></div>
+    <div class="nar-status-row">
+      <span class="nar-sun" id="nar-sun"></span>
+      <span class="nar-time-pill" id="nar-time-pill"></span>
+    </div>
+    <button type="button" class="nar-cta p-pill" onclick="_narGoToShare(${venueId})">
+      ${usersSvg}<span>${t('nar_cta')}</span>
+    </button>`;
+  social.insertAdjacentElement('afterend', picker);
 
   // Day-strip — reuse the global QC strip renderer (its day taps set the date).
-  const strip = panel.querySelector('#nar-strip');
+  const strip = picker.querySelector('#nar-strip');
   if (strip && typeof _renderQcCalendarStrip === 'function') {
     try { _renderQcCalendarStrip(strip); } catch (e) { /* strip optional */ }
   }
@@ -580,48 +555,49 @@ function _openNarPanel(venueId) {
   // Reparent the FTS in (proven pattern — see the invite sheet). Remember its
   // home so _closeNarPanel can put it back exactly where it was.
   const fts = document.getElementById('fts');
-  const slot = panel.querySelector('#nar-fts-slot');
+  const slot = picker.querySelector('#nar-fts-slot');
   if (fts && slot) {
-    wrap._ftsHome = fts.parentNode;
-    // The slot force-shows the FTS (CSS) so we don't toggle the global
-    // body.fts state (which would leak the slider into the list on close).
+    picker._ftsHome = fts.parentNode;
     if (fts.parentNode !== slot) slot.appendChild(fts);
   }
 
   // Sync the status row on every scrub / day change.
   if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-    wrap._onTime = () => _narSyncStatus();
-    timeFromEl.addEventListener('input', wrap._onTime);
+    picker._onTime = () => _narSyncStatus();
+    timeFromEl.addEventListener('input', picker._onTime);
   }
-  // Tap outside the wrap (on the faded detail panel / map) closes it.
-  wrap._onDocDown = (ev) => {
-    if (!wrap.contains(ev.target)) _closeNarPanel();
+  // Tap outside the detail panel (map) closes the picker back to the full card.
+  picker._onDocDown = (ev) => {
+    const dp = document.getElementById('detail-panel');
+    if (dp && !dp.contains(ev.target)) _closeNarPanel();
   };
-  setTimeout(() => document.addEventListener('pointerdown', wrap._onDocDown), 0);
+  setTimeout(() => document.addEventListener('pointerdown', picker._onDocDown), 0);
 
-  // Fade the detail panel away + slide the wrap up.
-  document.body.classList.add('nar-open');
-  void wrap.offsetWidth; // commit the pre-open transform before animating
-  wrap.classList.add('open');
+  // Collapse the panel to handle + plan card, then grow the picker up.
+  void picker.offsetWidth; // commit max-height:0 before the grow
+  document.body.classList.add('nar-mode');
   _narSyncStatus();
+  // Un-clip once grown so the FTS scrub popup isn't cut off by overflow:hidden.
+  picker._overflowTimer = setTimeout(() => { picker.style.overflow = 'visible'; }, 440);
 }
 
 function _closeNarPanel() {
-  const panel = document.getElementById('nar-wrap');
-  if (!panel) return;
+  const picker = document.querySelector('.nar-picker');
+  if (!picker) return;
   // Return the FTS to its home parent.
   const fts = document.getElementById('fts');
-  if (fts && panel._ftsHome && fts.parentNode !== panel._ftsHome) {
+  if (fts && picker._ftsHome && fts.parentNode !== picker._ftsHome) {
     fts.style.cssText = '';
-    panel._ftsHome.appendChild(fts);
+    picker._ftsHome.appendChild(fts);
   }
-  if (panel._onTime && typeof timeFromEl !== 'undefined' && timeFromEl) {
-    timeFromEl.removeEventListener('input', panel._onTime);
+  if (picker._onTime && typeof timeFromEl !== 'undefined' && timeFromEl) {
+    timeFromEl.removeEventListener('input', picker._onTime);
   }
-  if (panel._onDocDown) document.removeEventListener('pointerdown', panel._onDocDown);
-  document.body.classList.remove('nar-open');
-  panel.classList.remove('open');
-  setTimeout(() => { try { panel.remove(); } catch (e) {} }, 340);
+  if (picker._onDocDown) document.removeEventListener('pointerdown', picker._onDocDown);
+  if (picker._overflowTimer) clearTimeout(picker._overflowTimer);
+  picker.style.overflow = 'hidden';        // re-clip for the collapse
+  document.body.classList.remove('nar-mode'); // siblings reappear, picker collapses
+  setTimeout(() => { try { picker.remove(); } catch (e) {} }, 420);
 }
 
 // Hand off to the invite sheet's select-friends (share) page. The polished
