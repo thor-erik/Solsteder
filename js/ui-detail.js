@@ -439,6 +439,7 @@ function _renderSocialComposer(v) {
 
   const pencil = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
   const plane  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`;
+  const dnChev = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
 
   // Mock (2026-05-29): "DEL PLAN" eyebrow + a date chip with a pencil affordance
   // on one row, the share-text bubble, then the honey Send. No avatar. The Send
@@ -456,6 +457,7 @@ function _renderSocialComposer(v) {
       </div>
       <div class="dp-composer-bubble">${esc(msg)}</div>
       <button class="dp-composer-send" onclick="_narGoToShare(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
+      <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
     </div>`;
 }
 

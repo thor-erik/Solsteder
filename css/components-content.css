@@ -5584,16 +5584,19 @@
   /* "[sun] 5h 35m left" — number big (display), "left" the lighter trailing
      word (inline, never a stacked sub-label). */
   .dp-card .dp-sun-now-main {
-    display: flex; align-items: baseline; gap: var(--space-xs); flex-wrap: wrap;
+    display: flex; align-items: baseline; gap: var(--space-2xs); flex-wrap: nowrap;
     color: var(--accent-on-light);
   }
   .dp-card .dp-sun-now-main svg { flex-shrink: 0; align-self: center; }
   .dp-card .dp-sun-now-val {
     font-size: var(--text-display); font-weight: var(--fw-display);
     letter-spacing: var(--tracking-display); line-height: 1; color: var(--text);
+    white-space: nowrap;
   }
+  /* Keep "igjen/left" tight on the value's baseline so it reads as one phrase
+     (was wrapping to its own line → looked disconnected). */
   .dp-card .dp-sun-now-word {
-    font-size: var(--text-body); font-weight: 500;
+    font-size: var(--text-subtitle); font-weight: 500; white-space: nowrap;
     line-height: 1.1; color: var(--ink-muted);
   }
   .dp-card .dp-sun-now-verdict {
@@ -5668,7 +5671,7 @@
 
   /* Empty-state composer — title + default moment + share-text preview + send,
      all inside one cream card. Title sits top-left like the sun card's. */
-  .dp-composer { display: flex; flex-direction: column; gap: var(--space-md); }
+  .dp-composer { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-xl); }
   .dp-composer-title {
     font-size: var(--text-caption); font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--rain-ink);  /* blue eyebrow (mock) */
@@ -5690,7 +5693,7 @@
      text+icon button idiom) with a pencil edit affordance. */
   .dp-composer-when {
     display: inline-flex; align-items: center; gap: var(--space-xs); min-width: 0;
-    padding: var(--space-2xs) var(--space-md);
+    padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-pill);
     background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
     font-size: var(--text-subtitle); font-weight: 700; color: var(--text);
@@ -5704,11 +5707,19 @@
   body.nar-mode .dp-composer-chev { display: none; }
   body.nar-mode .dp-composer-when {
     background: none; border-color: transparent; box-shadow: none;
-    padding-left: 0; padding-right: 0;
+    padding-left: 0; padding-right: 0; color: var(--accent-on-light);
   }
   .dp-composer-sep { color: var(--ink-muted); font-weight: 400; }
   .dp-composer-me { flex-shrink: 0; display: flex; }
   .dp-composer-me .avatar { border-radius: 50%; }
+  /* "Juster dag og tid i dokken under ↓" — Active-state hint that replaces the
+     Send button, pointing down to the picker dock. Hidden when Resting. */
+  .dp-composer-hint { display: none; }
+  body.nar-mode .dp-composer-hint {
+    display: flex; align-items: center; justify-content: center; gap: var(--space-2xs);
+    margin-top: var(--space-2xs); font-size: var(--text-label); color: var(--ink-muted);
+  }
+  .dp-composer-hint svg { flex-shrink: 0; }
   /* Jordy-blue share-text preview bubble. */
   .dp-composer-bubble {
     background: var(--surface-sheet);
@@ -5719,12 +5730,13 @@
   /* Navy send button INSIDE the cream card. Cream text via --ctl-icon (root
      #FFF4E0, not flipped by the card's ink --text override). Not honey —
      Directions owns the one honey CTA on this screen. */
-  /* Honey "Send til venner" (mock). Hidden in the Active state (rule below). */
+  /* Navy "Send til venner" (blue, per request). Hidden in the Active state
+     (the hint line replaces it — rules below). */
   .dp-composer-send {
     display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
     width: 100%; height: 48px; margin-top: var(--space-2xs);
     border: none; border-radius: var(--radius-pill);
-    background: var(--accent); color: var(--accent-on);
+    background: var(--bg); color: var(--ctl-icon);
     font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
     cursor: pointer; box-shadow: var(--shadow-1);
     transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
@@ -5756,7 +5768,7 @@
   /* Date/time picker card — a cream-frost box with a sentence-case title.
      overflow:visible so the FTS scrub popup can pop up over the day tiles. */
   .nar-card {
-    display: flex; flex-direction: column; gap: var(--space-md);
+    display: flex; flex-direction: column; gap: var(--space-lg);
     padding: var(--space-lg); border-radius: var(--radius-lg);
     background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
     box-shadow: var(--card-cream-shadow); overflow: visible;
@@ -5826,6 +5838,9 @@
        can shrink/grow with the picker. */
     body.nar-mode #detail-panel.open #dp-content { flex: 0 1 auto; min-height: 0; }
     body.nar-mode #detail-panel.open #dp-scroll { overflow: visible; }
+    /* #dp-scroll's default 24px bottom padding left a big, lopsided gap under
+       the cancel link in the picker — trim it to match the top rhythm. */
+    body.nar-mode #detail-panel.open #dp-scroll { padding-bottom: var(--space-lg); }
   }
 
   /* Plan card. */
