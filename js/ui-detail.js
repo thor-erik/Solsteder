@@ -412,6 +412,7 @@ function _renderSocialSection(v) {
  *  friends" button that opens the invite sheet. */
 function _renderSocialComposer(v) {
   const cap = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const now  = new Date();
   const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const pad  = (n) => String(n).padStart(2, '0');
