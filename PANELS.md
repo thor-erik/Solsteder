@@ -39,6 +39,19 @@ picker grows up from the bottom.
 | **Time bar** | The sun/shade scrubber (the reparented Time slider) | `#fts` |
 | **Send button** | Navy "Send til venner" | `.nar-send` |
 
+## Plan card states: Resting vs Active
+
+The **Plan card** (and its **Date chip**) renders in two states, switched by the
+`body.nar-mode` class (off → Resting, on → Active):
+
+| | **Resting** (Detail Panel, picker closed) | **Active** (When picker open) |
+|---|---|---|
+| Plan card bg | Cream-frost | Top-bar control glass (`--btn-glass-*`) |
+| Date chip | Cream pill **with chevron** — looks like a button | Plain label — no bg, no border, no chevron |
+| Meaning | "Tap to set the day/time" | "You're editing it below" |
+
+So you can say *"the Resting chip"* or *"the Active card bg"* and it's unambiguous.
+
 ## App-wide surfaces
 
 | Name | What it is | Code |

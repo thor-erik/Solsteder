@@ -5673,9 +5673,11 @@
     font-size: var(--text-caption); font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--ink-muted);
   }
-  /* Plan card surface = the top-bar control glass (per request), not cream.
-     Overrides the #detail-panel .dp-social-card cream fill for the composer. */
-  #detail-panel .dp-composer {
+  /* Plan card surface — two states (see PANELS.md):
+     · RESTING (Detail Panel): cream-frost, inherited from .dp-social-card.
+     · ACTIVE (When picker open): steps to the top-bar control glass so the
+       cream Picker card below it reads as the focus. */
+  body.nar-mode #detail-panel .dp-composer {
     background: var(--btn-glass-bg);
     border-color: var(--btn-glass-border);
   }
@@ -5697,9 +5699,14 @@
   }
   .dp-composer-when:active { transform: translateY(1px); }
   .dp-composer-chev { display: inline-flex; color: var(--ink-muted); }
-  /* Inside the open picker the chevron is meaningless — the editor is already
-     showing below — so drop it there (but keep it in the detail panel). */
+  /* ACTIVE state (When picker open): the chip sheds its button skin — no bg,
+     no border, no chevron, flush-left — becoming a plain label, since the
+     editor is already open below. RESTING state keeps the full button chip. */
   body.nar-mode .dp-composer-chev { display: none; }
+  body.nar-mode .dp-composer-when {
+    background: none; border-color: transparent; box-shadow: none;
+    padding-left: 0; padding-right: 0;
+  }
   .dp-composer-sep { color: var(--ink-muted); font-weight: 400; }
   .dp-composer-me { flex-shrink: 0; display: flex; }
   .dp-composer-me .avatar { border-radius: 50%; }
