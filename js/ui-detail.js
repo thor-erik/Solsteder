@@ -456,13 +456,16 @@ function _renderSocialComposer(v) {
     : '';
 
   // FEATURE #11 v2 (2026-05-29): horizontal pager.
-  // The composer card (title row + chat bubble) STAYS visible at the top.
-  // Below it sits .dp-action-pager — two pages side by side that slide
-  // horizontally when share mode toggles:
-  //   Page A (.dp-action-page-compose): the Send button + hint (Resting),
-  //     OR the NÅR picker (Active — the picker is appended into
-  //     #dp-action-active-slot by _openNarPanel).
-  //   Page B (.dp-action-page-share):   friends label + 4-col avatar grid +
+  // The composer card (title row + chat bubble — cream-frost) STAYS visible
+  // at the top as ONE card. The pager is a SIBLING below it, NOT a child —
+  // otherwise the picker's own .nar-card chrome ends up rendered inside the
+  // composer's cream chrome (card-in-card, caught in v2.0 review).
+  // Pager pages:
+  //   Page A (.dp-action-page-compose): Resting = bare Send button + hint
+  //     (no card chrome); Active = the NÅR picker (its .nar-card brings the
+  //     cream chrome). Picker is appended into #dp-action-active-slot by
+  //     _openNarPanel.
+  //   Page B (.dp-action-page-share): friends label + 4-col avatar grid +
   //     "eller" + share targets + honey Send overlay + cancel row. Bottom-
   //     anchored via flex column + margin-top:auto on the cancel row so the
   //     cancel sits a constant padding from the panel bottom regardless of
@@ -485,17 +488,17 @@ function _renderSocialComposer(v) {
         ${meAv ? `<div class="dp-composer-msg-av">${meAv}</div>` : ''}
         <div class="dp-composer-bubble">${esc(msg)}</div>
       </div>
-      <div class="dp-action-pager" id="dp-action-pager">
-        <div class="dp-action-page dp-action-page-compose" id="dp-action-page-compose">
-          <div class="dp-action-resting">
-            <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
-            <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
-          </div>
-          <div class="dp-action-active-slot" id="dp-action-active-slot"></div>
+    </div>
+    <div class="dp-action-pager" id="dp-action-pager">
+      <div class="dp-action-page dp-action-page-compose" id="dp-action-page-compose">
+        <div class="dp-action-resting">
+          <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
+          <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
         </div>
-        <div class="dp-action-page dp-action-page-share" id="dp-share-zone" data-venue-id="${v.id}">
-          ${_renderShareContent(v)}
-        </div>
+        <div class="dp-action-active-slot" id="dp-action-active-slot"></div>
+      </div>
+      <div class="dp-action-page dp-action-page-share" id="dp-share-zone" data-venue-id="${v.id}">
+        ${_renderShareContent(v)}
       </div>
     </div>`;
 }
