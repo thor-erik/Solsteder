@@ -4321,6 +4321,12 @@ function updateDetailPanel() {
     _dpRenderedVid = v.id;
     const scroll2 = document.getElementById('dp-scroll');
     if (scroll2 && savedScroll) scroll2.scrollTop = savedScroll;
+    // Initial size for the action pager — the share/compose pages are absolute-
+    // positioned, so without a measured height the pager would render as 0 px.
+    // _dpPagerResize reads the active page's natural height and sets a CSS var.
+    if (typeof _dpPagerResize === 'function') {
+      requestAnimationFrame(() => _dpPagerResize());
+    }
   }
   // Both modes refresh the dynamic card (it carries the time-varying sun-hours,
   // pills, anchor + the timeline). On PARTIAL this is the ONLY DOM that changes,

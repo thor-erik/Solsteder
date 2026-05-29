@@ -455,15 +455,22 @@ function _renderSocialComposer(v) {
     ? _renderFriendAvatarsHtml([{ user: { id: me.id, name: me.user_metadata?.name, email: me.email, avatar_url: me.user_metadata?.avatar_url } }], 1, 28)
     : '';
 
-  // Mock (2026-05-29): "DEL PLAN" eyebrow + a date chip (pencil) on one row,
-  // then a chat message — your avatar bottom-left + a Delft-blue bubble — then
-  // the blue Send. Send is hidden in the Active (picker-open) state.
-  // FEATURE #11 (2026-05-29): the inline .dp-share-zone is rendered as a sibling
-  // of the composer card. It's collapsed (max-height: 0) by default; tapping the
-  // composer's Send (Resting) or the picker's Send (Active) flips body.share-mode
-  // → expand zone + staggered slide-in (dprcv-card-in @ nth-child delays, same
-  // beat as the old invite sheet's .show-share page).
-  const composerHtml = `
+  // FEATURE #11 v2 (2026-05-29): horizontal pager.
+  // The composer card (title row + chat bubble) STAYS visible at the top.
+  // Below it sits .dp-action-pager — two pages side by side that slide
+  // horizontally when share mode toggles:
+  //   Page A (.dp-action-page-compose): the Send button + hint (Resting),
+  //     OR the NÅR picker (Active — the picker is appended into
+  //     #dp-action-active-slot by _openNarPanel).
+  //   Page B (.dp-action-page-share):   friends label + 4-col avatar grid +
+  //     "eller" + share targets + honey Send overlay + cancel row. Bottom-
+  //     anchored via flex column + margin-top:auto on the cancel row so the
+  //     cancel sits a constant padding from the panel bottom regardless of
+  //     friend count.
+  // body.share-mode → track translates -50%; page A slides left, page B
+  // slides in from the right. Pager height is JS-managed via --dp-pager-h
+  // so the transition between compose / picker / share heights is smooth.
+  return `
     <div class="dp-social-card dp-composer">
       <div class="dp-composer-titlerow">
         <div class="dp-composer-title">${t('share_plan')}</div>
@@ -478,22 +485,32 @@ function _renderSocialComposer(v) {
         ${meAv ? `<div class="dp-composer-msg-av">${meAv}</div>` : ''}
         <div class="dp-composer-bubble">${esc(msg)}</div>
       </div>
-      <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
-      <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
+      <div class="dp-action-pager" id="dp-action-pager">
+        <div class="dp-action-page dp-action-page-compose" id="dp-action-page-compose">
+          <div class="dp-action-resting">
+            <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
+            <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
+          </div>
+          <div class="dp-action-active-slot" id="dp-action-active-slot"></div>
+        </div>
+        <div class="dp-action-page dp-action-page-share" id="dp-share-zone" data-venue-id="${v.id}">
+          ${_renderShareContent(v)}
+        </div>
+      </div>
     </div>`;
-
-  return composerHtml + _renderShareZone(v);
 }
 
-/** Inline share zone — friend-avatar carousel + share-target circles + the
- *  honey Send overlay. Lives in the detail panel as a sibling of the composer
- *  card, collapsed by default. _dpShareOpen flips body.share-mode → the zone
- *  expands and each child slides in (staggered nth-child delays). The avatar
- *  + target markup reuses the .dpinvite-* classes (CSS isn't scoped to the
- *  invite sheet, so the same tile + circle styling applies here). The Send
- *  overlay pattern (target row + honey CTA in the same box, .has-selection
- *  flips the overlay in) mirrors the invite sheet's bottom slot too. */
-function _renderShareZone(v) {
+/** Inline share content — friends label + 4-col avatar grid + "eller" +
+ *  share-target circles + honey Send overlay + cancel link. Rendered inside
+ *  the horizontal pager's page B (.dp-action-page-share). The page itself is
+ *  a flex column; the cancel row's margin-top:auto pushes it to the bottom of
+ *  the page, and the grid is `flex: 1` so it absorbs the slack — when the
+ *  pager fills the panel content area (the JS resize path sets --dp-pager-h
+ *  big enough for that), the cancel sits a constant padding from the panel
+ *  bottom and the grid scales to whatever space is left above the targets.
+ *  The avatar + target markup reuses the .dpinvite-* classes (CSS isn't
+ *  scoped to the invite sheet, so the tile + circle styling applies here). */
+function _renderShareContent(v) {
   const friends = (typeof _friends !== 'undefined') ? _friends : [];
   const hasFriends = friends.length > 0;
   const _hashColor = (s) => {
@@ -512,8 +529,12 @@ function _renderShareZone(v) {
   const avatarsHtml = (typeof _renderInviteAvatarCarousel === 'function')
     ? _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm) : '';
 
+  // Friend block: 4-col CSS grid (was a horizontal scroll row in v1). Grid
+  // rows scale with friend count — 1 row at 1–4 friends, 2 rows at 5–8, etc.
+  // The grid is `flex: 1; overflow-y: auto` (set in CSS) so a long list
+  // scrolls inside its slot without breaking the bottom-locked cancel.
   const friendsBlock = hasFriends
-    ? `<div class="dpinvite-avatar-row no-scrollbar" id="dp-share-avatar-row">${avatarsHtml}</div>`
+    ? `<div class="dp-share-grid" id="dp-share-avatar-grid">${avatarsHtml}</div>`
     : `<div class="dpinvite-empty-card">
          <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
          <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
@@ -555,15 +576,21 @@ function _renderShareZone(v) {
       </div>
     </div>` : targetsRow;
 
+  // Inner content of the share page. The outer .dp-action-page-share wrapper
+  // (with the id #dp-share-zone) is rendered in _renderSocialComposer.
+  // Layout: top group (label + grid) → bottom group (eller + targets + send
+  // overlay) → cancel row (margin-top:auto → pinned to page bottom).
   return `
-    <div class="dp-share-zone" id="dp-share-zone" data-venue-id="${v.id}" aria-hidden="true">
+    <div class="dp-share-top">
       ${sendLabel}
       ${friendsBlock}
+    </div>
+    <div class="dp-share-bottom-group">
       ${orDivider}
       ${bottomSlot}
-      <div class="dprcv-cta-row dp-share-cancel-row">
-        <button type="button" class="dprcv-cta-link" onclick="_dpShareClose()"><span>${t('invite_cancel')}</span></button>
-      </div>
+    </div>
+    <div class="dprcv-cta-row dp-share-cancel-row">
+      <button type="button" class="dprcv-cta-link" onclick="_dpShareClose()"><span>${t('invite_cancel')}</span></button>
     </div>`;
 }
 
@@ -605,29 +632,30 @@ function _narSyncStatus() {
 }
 
 function _openNarPanel(venueId) {
-  if (document.querySelector('.nar-picker')) return; // already open
-  // If the share zone is up (user is editing the time mid-pick), close it
-  // first — the two surfaces collapse the same set of #dp-scroll children,
-  // and they shouldn't be layered together.
+  // If share-mode is on, the date-chip tap means "go back to the picker" —
+  // close share-mode so the pager slides back to compose page A. If the picker
+  // is already mounted there (Active → Send → share flow), that's all we need
+  // to do; otherwise we fall through and build a fresh picker.
   if (document.body.classList.contains('share-mode')) {
     if (typeof _dpShareClose === 'function') _dpShareClose();
+    if (document.querySelector('.nar-picker')) return;
   }
-  const scroll = document.getElementById('dp-scroll');
-  const social = scroll && scroll.querySelector('.dp-social-zone');
-  if (!scroll || !social) return;
+  if (document.querySelector('.nar-picker')) return; // already open
+  // FEATURE #11 v2: picker now lives INSIDE the action pager's compose page
+  // (next to the Resting Send button, which CSS hides while nar-mode is on).
+  // When share mode activates, the whole compose page slides left as a unit —
+  // the picker's choose-time card + Send button go with it. No more sibling-
+  // of-social-zone placement, no more outer dividers (the pager owns the
+  // surrounding spacing).
+  const slot = document.getElementById('dp-action-active-slot');
+  if (!slot) return;
   _narVenueId = venueId;
 
   const planeSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`;
 
-  // The picker lives INSIDE the detail panel, right after the plan card. CSS
-  // (body.nar-mode) hides every other #dp-scroll child, leaving handle + plan
-  // card, then grows the picker up (max-height) — pushing the plan card up as
-  // the bottom-anchored panel expands. No reparenting, no full-panel recede
-  // (that froze on the panel's backdrop-filter).
   const picker = document.createElement('div');
   picker.className = 'nar-picker';
   picker.innerHTML = `
-    <div class="dp-divider" aria-hidden="true"></div>
     <div class="nar-card">
       <div class="nar-card-head">
         <span class="nar-card-title">${t('nar_card_title')}</span>
@@ -635,7 +663,6 @@ function _openNarPanel(venueId) {
       <div class="nar-strip" id="nar-strip"></div>
       <div class="nar-fts-slot" id="nar-fts-slot"></div>
     </div>
-    <div class="dp-divider" aria-hidden="true"></div>
     <div class="dpinvite-cta-row">
       <button type="button" class="nar-send" onclick="_narGoToShare(${venueId})">
         ${planeSvg}<span>${t('send_to_friends')}</span>
@@ -644,7 +671,7 @@ function _openNarPanel(venueId) {
     <div class="dprcv-cta-row">
       <button type="button" class="dprcv-cta-link" onclick="_closeNarPanel()"><span>${t('invite_cancel')}</span></button>
     </div>`;
-  social.insertAdjacentElement('afterend', picker);
+  slot.appendChild(picker);
 
   // Day-strip — reuse the global QC strip renderer (its day taps set the date).
   const strip = picker.querySelector('#nar-strip');
@@ -655,14 +682,14 @@ function _openNarPanel(venueId) {
   // Reparent the FTS in (proven pattern — see the invite sheet). Remember its
   // home so _closeNarPanel can put it back exactly where it was.
   const fts = document.getElementById('fts');
-  const slot = picker.querySelector('#nar-fts-slot');
-  if (fts && slot) {
+  const ftsSlot = picker.querySelector('#nar-fts-slot');
+  if (fts && ftsSlot) {
     // Remember the EXACT home position (parent + next sibling) so close can
     // put the slider back where it was — appendChild would dump it at the
     // bottom of the list (the "FTS anchors to the bottom" bug).
     picker._ftsHome = fts.parentNode;
     picker._ftsNext = fts.nextSibling;
-    if (fts.parentNode !== slot) slot.appendChild(fts);
+    if (fts.parentNode !== ftsSlot) ftsSlot.appendChild(fts);
   }
 
   // Tap outside the detail panel (map) closes the picker back to the full card.
@@ -682,6 +709,9 @@ function _openNarPanel(venueId) {
   // Collapse the panel to handle + plan card, then grow the picker up.
   void picker.offsetWidth; // commit max-height:0 before the grow
   document.body.classList.add('nar-mode');
+  // Resize the action pager — the compose page just got taller (picker grew
+  // in), so the pager's height should track the picker's full height.
+  if (typeof _dpPagerResize === 'function') _dpPagerResize();
   // Swap the venue's map pin to the friend/going pin showing YOU (#4).
   if (typeof _updateFriendsCanvasPin === 'function') _updateFriendsCanvasPin();
   // Un-clip once grown so the FTS scrub popup isn't cut off by overflow:hidden.
@@ -713,21 +743,24 @@ function _closeNarPanel() {
   }
   if (picker._onDocDown) document.removeEventListener('pointerdown', picker._onDocDown);
   if (picker._overflowTimer) clearTimeout(picker._overflowTimer);
-  picker.style.overflow = 'hidden';        // re-clip for the collapse
-  document.body.classList.remove('nar-mode'); // siblings reappear, picker collapses
+  document.body.classList.remove('nar-mode');
+  // Remove the picker from DOM immediately so its scrollHeight doesn't muddle
+  // the pager's measure of the compose-page height. The pager's smooth height
+  // transition (compose-with-picker → compose-Resting) masks the abrupt
+  // removal visually — Send button just slides into view as the pager shrinks.
+  try { picker.remove(); } catch (e) {}
+  if (typeof _dpPagerResize === 'function') _dpPagerResize();
   // Recompute the map pin now that we're no longer composing (#4).
   if (typeof _updateFriendsCanvasPin === 'function') _updateFriendsCanvasPin();
-  setTimeout(() => { try { picker.remove(); } catch (e) {} }, 420);
 }
 
-// Picker's Send → close the picker, then reveal the inline share zone with the
-// staggered slide-in. The Resting path (composer Send) calls _dpShareOpen
-// directly; this is the Active path (after editing the moment in the picker).
+// Picker's Send → slide the action pager to the share page. The picker stays
+// MOUNTED in the compose page (now off-screen left); the FTS stays parented
+// inside it. If the user taps "Avbryt" on the share page they slide back to
+// the picker and can keep editing. Sending successfully cleans the picker up
+// via _inviteShowSent's cleanup chain.
 function _narGoToShare(venueId) {
-  _closeNarPanel();
-  // Wait for the picker's collapse beat to finish before kicking the slide-in
-  // so both motions don't fight for the user's attention in the same frame.
-  setTimeout(() => { try { _dpShareOpen(venueId); } catch (e) {} }, 280);
+  _dpShareOpen(venueId);
 }
 
 if (typeof window !== 'undefined') {
@@ -743,8 +776,10 @@ if (typeof window !== 'undefined') {
 // panel, animated with the accept-panel's slide-in beat (dprcv-card-in).
 
 /** Open the inline share zone. Wired from the composer's Send (Resting state)
- *  and from _narGoToShare (Active state). Both paths use the staggered
- *  slide-in (kicking the animation by re-toggling .is-open). */
+ *  and from _narGoToShare (Active state). Both paths slide the action pager's
+ *  track left so the share page (page B) replaces the action page (page A);
+ *  the staggered avatar/target slide-in (.is-open + nth-child animation
+ *  delays) re-fires on every reopen. */
 function _dpShareOpen(venueId) {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
     if (typeof window !== 'undefined') {
@@ -752,11 +787,6 @@ function _dpShareOpen(venueId) {
     }
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
     return;
-  }
-  // If the picker happens to be open and somebody calls this directly, close
-  // it first so the share zone has the space.
-  if (document.body.classList.contains('nar-mode')) {
-    if (typeof _closeNarPanel === 'function') _closeNarPanel();
   }
   const zone = document.getElementById('dp-share-zone');
   if (!zone) return;
@@ -767,26 +797,88 @@ function _dpShareOpen(venueId) {
   document.body.classList.add('share-mode');
   zone.removeAttribute('aria-hidden');
   // Restart the staggered slide-in by toggling .is-open off→on so the
-  // animation re-fires on every reopen (otherwise it only plays the first time).
+  // animation re-fires on every reopen (otherwise it only plays once).
   zone.classList.remove('is-open');
   void zone.offsetWidth;
   zone.classList.add('is-open');
   _dpShareRefresh();
-  // Bring the zone into view — the detail panel is the scroll container, so
-  // scrollIntoView on the zone walks up to #dp-scroll.
-  requestAnimationFrame(() => {
-    try { zone.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
-  });
+  // Resize the pager so its height = the share page's content (or fills the
+  // panel content area, whichever is taller — _dpPagerResize handles the math).
+  if (typeof _dpPagerResize === 'function') _dpPagerResize();
 }
 
-/** Close the inline share zone — drop the body class + the .is-open state. */
+/** Close the inline share zone — drop the body class, drop .is-open, and
+ *  shrink the pager back to whatever Page A is showing (Resting Send or
+ *  the still-mounted Active picker). */
 function _dpShareClose() {
   const zone = document.getElementById('dp-share-zone');
   if (!zone) return;
   document.body.classList.remove('share-mode');
   zone.classList.remove('is-open');
   zone.setAttribute('aria-hidden', 'true');
+  if (typeof _dpPagerResize === 'function') _dpPagerResize();
 }
+
+/** Resize the action pager to track the currently-active page's content
+ *  height. In share-mode the pager wants to fill the panel content area
+ *  (so the cancel-row sits a constant padding from the panel bottom — its
+ *  margin-top:auto only pushes if there's slack to push into). In compose
+ *  mode (Resting or Active) the pager shrinks to the natural Send-button
+ *  height or the picker's full height.
+ *
+ *  Tricky bit: the picker uses `max-height: 0 → 680px` to grow in. At the
+ *  moment _dpPagerResize fires (right after the picker is added and
+ *  nar-mode is set), the picker's scrollHeight is its CONSTRAINED height,
+ *  not its natural one. We temporarily lift max-height, read scrollHeight,
+ *  then restore — synchronous measurement avoids any visible flicker. */
+function _dpPagerResize() {
+  const pager = document.getElementById('dp-action-pager');
+  if (!pager) return;
+  const composePage = pager.querySelector('.dp-action-page-compose');
+  const sharePage   = pager.querySelector('.dp-action-page-share');
+  const isShare = document.body.classList.contains('share-mode');
+  const isNar   = document.body.classList.contains('nar-mode');
+  const target = isShare ? sharePage : composePage;
+  if (!target) return;
+
+  let h;
+  if (!isShare && isNar) {
+    // Compose page with the picker mounted. Lift max-height to read natural.
+    const picker = composePage.querySelector('.nar-picker');
+    if (picker) {
+      const prev = picker.style.maxHeight;
+      picker.style.maxHeight = 'none';
+      h = composePage.scrollHeight;
+      picker.style.maxHeight = prev;
+    } else {
+      h = composePage.scrollHeight;
+    }
+  } else {
+    h = target.scrollHeight;
+  }
+
+  // In share mode we want the page tall enough that margin-top:auto on the
+  // cancel-row can push it to the panel bottom. Compute the available height
+  // under the composer card and use the max of (natural, available).
+  if (isShare) {
+    const scroll = document.getElementById('dp-scroll');
+    const composer = document.querySelector('#detail-panel .dp-composer');
+    if (scroll && composer) {
+      const scrollRect = scroll.getBoundingClientRect();
+      const bubble = composer.querySelector('.dp-composer-msg');
+      const bubbleRect = bubble ? bubble.getBoundingClientRect()
+                                : composer.getBoundingClientRect();
+      // composer card has --space-lg bottom padding; reserve a little extra
+      // breathing room (12 px) so cancel-row doesn't kiss the panel safe-area.
+      const composerCardPad = 24;
+      const avail = Math.max(0, scrollRect.bottom - bubbleRect.bottom - composerCardPad - 12);
+      if (avail > h) h = avail;
+    }
+  }
+
+  pager.style.setProperty('--dp-pager-h', `${Math.round(h)}px`);
+}
+if (typeof window !== 'undefined') window._dpPagerResize = _dpPagerResize;
 
 /** Refresh the honey Send overlay state from the current selection — same
  *  rules as _refreshInvitePrimaryCTA but scoped to #dp-share-zone. */
@@ -3327,6 +3419,12 @@ function _inviteShowSent(names) {
       setTimeout(() => {
         zone.classList.remove('is-confirming');
         _dpShareClose();
+        // If the send was kicked from the Active state (picker mounted in
+        // page A), clean the picker up now that the share flow has resolved.
+        if (document.body.classList.contains('nar-mode')
+            && typeof _closeNarPanel === 'function') {
+          _closeNarPanel();
+        }
       }, 1100);
     } else {
       _closeInviteSheet();

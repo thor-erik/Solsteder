@@ -5741,77 +5741,156 @@
   /* Native button chrome reset that doesn't fight the chip styling above. */
   .dp-composer-when { margin: 0; font-family: 'Inter', sans-serif; }
 
-  /* ── NÅR picker — collapse the detail panel to handle + plan card, then grow
-     the date/time picker UP from the bottom. The plan card stays in place; no
-     reparenting, no full-panel recede (that froze on the panel's blur). The
-     picker lives inside #dp-scroll, so the cream-frost + ink scope applies. */
-  body.nar-mode #dp-scroll > *:not(.dp-social-zone):not(.nar-picker) { display: none; }
-  /* The plan card's own Send button is redundant while the picker is up. */
-  body.nar-mode .dp-composer-send { display: none; }
-
-  /* ── Inline share zone (FEATURE #11, 2026-05-29) ────────────────────────────
-     Sibling of the composer card inside .dp-social-zone. Collapsed by default;
-     body.share-mode + .is-open expand it, and each child slides in with the
-     accept-panel's dprcv-card-in beat (translateX 40px → 0 + fade, staggered
-     nth-child delays). When share mode is on the composer's Send + hint are
-     redundant, and we hide every other detail-panel section so the user is
-     fully focused on the pick step — same shape as nar-mode collapses. */
+  /* ── Action pager (FEATURE #11 v2, 2026-05-29) ─────────────────────────────
+     The composer card (title row + chat bubble) is always visible at top. The
+     pager sits below it and holds two pages side by side:
+       Page A (.dp-action-page-compose): Send button + hint (Resting) OR the
+         NÅR picker (Active — _openNarPanel appends it into the active-slot,
+         CSS hides the Resting Send + hint while .nar-mode is on).
+       Page B (.dp-action-page-share):   friends label + 4-col avatar grid +
+         "eller" + share targets + honey Send overlay + cancel-row. The cancel
+         row's margin-top:auto pushes it to the page bottom, so when JS sizes
+         the pager to fill the panel content area the cancel sits a constant
+         padding from the panel bottom regardless of friend count.
+     body.share-mode → track translates -50% (page A slides left, page B
+     slides in from the right). The staggered nth-child slide-in on the
+     avatars + targets re-fires on every (re)open via the .is-open toggle. */
+  body.nar-mode #dp-scroll > *:not(.dp-social-zone) { display: none; }
   body.share-mode #dp-scroll > *:not(.dp-social-zone) { display: none; }
-  body.share-mode .dp-composer-send,
-  body.share-mode .dp-composer-hint { display: none; }
-  /* Active "when" chip stays editable — user can still tap to reopen picker. */
-  .dp-share-zone {
+
+  .dp-action-pager {
+    position: relative;
+    overflow: hidden;
+    /* JS sets --dp-pager-h on state changes so the height between Resting
+       (small) / Active (picker height) / share (~panel content height)
+       transitions smoothly instead of snapping. */
+    height: var(--dp-pager-h, auto);
+    transition: height 360ms var(--ease-decelerate);
+  }
+  /* In compose mode, let the pager just track its content (no JS measure
+     needed at boot — _dpPagerResize fills in the value on first transition). */
+  .dp-action-pager:not([style*="--dp-pager-h"]) { height: auto; }
+
+  .dp-action-page {
+    /* Pages are absolutely positioned so only the "active" page contributes
+       to layout flow (via the pager's JS-controlled height). The exiting page
+       still renders during the transition but doesn't push layout around. */
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    /* Slide horizontally — page A from translateX(0) → -100%, page B from
+       translateX(100%) → 0. Opacity damps the cross-fade so the user reads
+       the slide as "out then in" rather than two stacked sheets. */
+    transition: transform 360ms var(--ease-decelerate),
+                opacity   360ms var(--ease-decelerate);
+  }
+  .dp-action-page-compose { transform: translateX(0);    opacity: 1; }
+  .dp-action-page-share   { transform: translateX(100%); opacity: 0; pointer-events: none; }
+  body.share-mode .dp-action-page-compose {
+    transform: translateX(-100%); opacity: 0; pointer-events: none;
+  }
+  body.share-mode .dp-action-page-share {
+    transform: translateX(0); opacity: 1; pointer-events: auto;
+  }
+
+  /* The compose page is flex column so the Resting CTA + Active picker each
+     own their own vertical rhythm. */
+  .dp-action-page-compose {
     display: flex; flex-direction: column; gap: var(--space-md);
-    max-height: 0; opacity: 0; overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.28s ease;
-    /* No padding when collapsed — the children own their own gap once open. */
   }
-  .dp-share-zone.is-open {
-    max-height: 760px; opacity: 1; overflow: visible;
+  .dp-action-resting {
+    display: flex; flex-direction: column; gap: var(--space-md);
+  }
+  body.nar-mode .dp-action-resting { display: none; }
+  .dp-action-active-slot:empty { display: none; }
+  .dp-action-active-slot {
+    display: flex; flex-direction: column; gap: var(--space-md);
+  }
+
+  /* The share page is flex column with three groups: top (label + grid),
+     bottom-group (eller + targets), and cancel-row pinned to the bottom via
+     margin-top:auto. The grid is `flex: 1` so it absorbs the slack when the
+     pager is sized to fill the panel content area — the cancel ends up at a
+     constant padding from the panel bottom regardless of friend count. */
+  .dp-action-page-share {
+    display: flex; flex-direction: column; gap: var(--space-md);
+    padding-bottom: 0;
+  }
+  .dp-share-top {
+    display: flex; flex-direction: column; gap: var(--space-md);
+    flex: 1; min-height: 0;
+  }
+  .dp-share-bottom-group {
+    display: flex; flex-direction: column; gap: var(--space-md);
+    flex-shrink: 0;
+  }
+  .dp-share-cancel-row {
     margin-top: var(--space-md);
+    padding-bottom: var(--space-md);
+    flex-shrink: 0;
   }
+
+  /* 4-col avatar grid (was horizontal scroll in v1). Rows scale with friend
+     count — 4 → 1 row, 8 → 2 rows, etc. The grid scrolls vertically inside
+     its slot so a very long list doesn't push the bottom group up. */
+  .dp-share-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    justify-items: center;
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    /* Hide the scrollbar — same pattern as the day-strip. */
+    scrollbar-width: none;
+    padding: var(--space-sm) 0;
+  }
+  .dp-share-grid::-webkit-scrollbar { display: none; }
+  /* Inside the grid the avatar tile should fill its cell rather than its
+     content-sized default; this keeps the 4-col rhythm even, regardless of
+     name-label width per tile. */
+  .dp-share-grid .dpinvite-avatar { width: 100%; }
+
   /* Staggered slide-in — same beat as the legacy invite sheet's .show-share
-     page. Avatars first (110–350 ms), targets right behind them (250–330 ms). */
-  .dp-share-zone.is-open .dpinvite-avatar,
-  .dp-share-zone.is-open .dpinvite-target {
+     page. Avatars first (110–350 ms), targets right behind them (250–330 ms).
+     Kicked by the .is-open class which _dpShareOpen toggles off→on per open. */
+  .dp-action-page-share.is-open .dpinvite-avatar,
+  .dp-action-page-share.is-open .dpinvite-target {
     animation: dprcv-card-in 260ms var(--ease-spring) backwards;
   }
-  .dp-share-zone.is-open .dpinvite-avatar:nth-child(1) { animation-delay: 110ms; }
-  .dp-share-zone.is-open .dpinvite-avatar:nth-child(2) { animation-delay: 150ms; }
-  .dp-share-zone.is-open .dpinvite-avatar:nth-child(3) { animation-delay: 190ms; }
-  .dp-share-zone.is-open .dpinvite-avatar:nth-child(4) { animation-delay: 230ms; }
-  .dp-share-zone.is-open .dpinvite-avatar:nth-child(5) { animation-delay: 270ms; }
-  .dp-share-zone.is-open .dpinvite-avatar:nth-child(6) { animation-delay: 310ms; }
-  .dp-share-zone.is-open .dpinvite-avatar:nth-child(n+7) { animation-delay: 350ms; }
-  .dp-share-zone.is-open .dpinvite-target:nth-child(1) { animation-delay: 250ms; }
-  .dp-share-zone.is-open .dpinvite-target:nth-child(2) { animation-delay: 290ms; }
-  .dp-share-zone.is-open .dpinvite-target:nth-child(3) { animation-delay: 330ms; }
-  /* "Send til" + the "eller" divider should reveal with the rest of the zone,
-     not hold ghost height before the staggered avatars land. Fade them in
-     softly under the avatar wave so the shape feels complete on landing. */
-  .dp-share-zone.is-open .dp-share-send-label,
-  .dp-share-zone.is-open .dpinvite-or {
+  .dp-action-page-share.is-open .dpinvite-avatar:nth-child(1) { animation-delay: 110ms; }
+  .dp-action-page-share.is-open .dpinvite-avatar:nth-child(2) { animation-delay: 150ms; }
+  .dp-action-page-share.is-open .dpinvite-avatar:nth-child(3) { animation-delay: 190ms; }
+  .dp-action-page-share.is-open .dpinvite-avatar:nth-child(4) { animation-delay: 230ms; }
+  .dp-action-page-share.is-open .dpinvite-avatar:nth-child(5) { animation-delay: 270ms; }
+  .dp-action-page-share.is-open .dpinvite-avatar:nth-child(6) { animation-delay: 310ms; }
+  .dp-action-page-share.is-open .dpinvite-avatar:nth-child(n+7) { animation-delay: 350ms; }
+  .dp-action-page-share.is-open .dpinvite-target:nth-child(1) { animation-delay: 250ms; }
+  .dp-action-page-share.is-open .dpinvite-target:nth-child(2) { animation-delay: 290ms; }
+  .dp-action-page-share.is-open .dpinvite-target:nth-child(3) { animation-delay: 330ms; }
+  .dp-action-page-share.is-open .dp-share-send-label,
+  .dp-action-page-share.is-open .dpinvite-or {
     animation: dprcv-card-in 220ms var(--ease-spring) 60ms backwards;
   }
   @media (prefers-reduced-motion: reduce) {
-    .dp-share-zone.is-open .dpinvite-avatar,
-    .dp-share-zone.is-open .dpinvite-target,
-    .dp-share-zone.is-open .dp-share-send-label,
-    .dp-share-zone.is-open .dpinvite-or { animation: none; }
+    .dp-action-page-share.is-open .dpinvite-avatar,
+    .dp-action-page-share.is-open .dpinvite-target,
+    .dp-action-page-share.is-open .dp-share-send-label,
+    .dp-action-page-share.is-open .dpinvite-or { animation: none; }
+    .dp-action-page, body.share-mode .dp-action-page-compose,
+    body.share-mode .dp-action-page-share { transition: none; }
   }
+
   /* Honey gleam after the user taps Send — same beat as the sheet's confirm
-     animation (reuses @keyframes dprcv-panel-sheen) but scoped to this zone. */
-  .dp-share-zone.is-confirming::after {
+     animation (reuses @keyframes dprcv-panel-sheen) but scoped to this page. */
+  .dp-action-page-share.is-confirming::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
-    border-radius: var(--radius-md);
     background: linear-gradient(115deg, transparent 32%, var(--accent) 50%, transparent 68%);
     transform: translateX(-120%); opacity: 0; mix-blend-mode: screen;
     animation: dprcv-panel-sheen 720ms var(--ease-decelerate) forwards;
   }
-  .dp-share-zone { position: relative; }
 
-  /* The honey Send overlay button inside the inline zone — match the
-     accent CTA in the rest of the app (Resting composer Send is honey too). */
+  /* Honey Send overlay button — match the accent CTA in the rest of the app
+     (the composer's Resting Send is honey too, per the user's request). */
   #dp-share-send-btn {
     background: var(--accent); color: var(--accent-on);
     border: none; box-shadow: var(--shadow-1);
@@ -5821,23 +5900,22 @@
   #dp-share-send-btn:disabled {
     opacity: 0.55; cursor: not-allowed; box-shadow: none;
   }
-  /* The legacy .dpinvite-friends-label carries its own margins (built for the
-     invite sheet's tight page metrics). Inside the inline zone the flex gap
-     owns the spacing, so zero the margins out. */
-  .dp-share-zone > .dp-share-send-label { margin: 0; }
-  /* Same idea for the "eller" divider — drop its built-in margin so the flex
-     gap is the single source of vertical rhythm. */
-  .dp-share-zone > .dpinvite-or { margin: 0; }
+  /* Zero the legacy margins on .dpinvite-friends-label + .dpinvite-or so the
+     flex gap on the share page is the single source of vertical rhythm. */
+  .dp-action-page-share .dp-share-send-label,
+  .dp-action-page-share .dpinvite-or { margin: 0; }
 
+  /* ── NÅR picker — lives inside the action pager's compose page (in
+     .dp-action-active-slot). max-height grows from 0 → 680 px when nar-mode
+     is on so the slot's height tracks the picker; _dpPagerResize then drives
+     the outer pager height. No outer dividers (the pager owns surrounding
+     spacing); the picker still styles its own cream-frost nar-card. */
   .nar-picker {
     display: flex; flex-direction: column; gap: var(--space-md);
     max-height: 0; opacity: 0; overflow: hidden;
     transition: max-height 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.28s ease;
   }
   body.nar-mode .nar-picker { max-height: 680px; opacity: 1; }
-  /* Dividers separate plan-card → date/time card → CTA; the flex gap owns the
-     spacing, so zero the divider's own margin. */
-  .nar-picker > .dp-divider { margin: 0; }
 
   /* Date/time picker card — a cream-frost box with a sentence-case title.
      overflow:visible so the FTS scrub popup can pop up over the day tiles. */
