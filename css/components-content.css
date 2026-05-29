@@ -5749,6 +5749,86 @@
   /* The plan card's own Send button is redundant while the picker is up. */
   body.nar-mode .dp-composer-send { display: none; }
 
+  /* ── Inline share zone (FEATURE #11, 2026-05-29) ────────────────────────────
+     Sibling of the composer card inside .dp-social-zone. Collapsed by default;
+     body.share-mode + .is-open expand it, and each child slides in with the
+     accept-panel's dprcv-card-in beat (translateX 40px → 0 + fade, staggered
+     nth-child delays). When share mode is on the composer's Send + hint are
+     redundant, and we hide every other detail-panel section so the user is
+     fully focused on the pick step — same shape as nar-mode collapses. */
+  body.share-mode #dp-scroll > *:not(.dp-social-zone) { display: none; }
+  body.share-mode .dp-composer-send,
+  body.share-mode .dp-composer-hint { display: none; }
+  /* Active "when" chip stays editable — user can still tap to reopen picker. */
+  .dp-share-zone {
+    display: flex; flex-direction: column; gap: var(--space-md);
+    max-height: 0; opacity: 0; overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.28s ease;
+    /* No padding when collapsed — the children own their own gap once open. */
+  }
+  .dp-share-zone.is-open {
+    max-height: 760px; opacity: 1; overflow: visible;
+    margin-top: var(--space-md);
+  }
+  /* Staggered slide-in — same beat as the legacy invite sheet's .show-share
+     page. Avatars first (110–350 ms), targets right behind them (250–330 ms). */
+  .dp-share-zone.is-open .dpinvite-avatar,
+  .dp-share-zone.is-open .dpinvite-target {
+    animation: dprcv-card-in 260ms var(--ease-spring) backwards;
+  }
+  .dp-share-zone.is-open .dpinvite-avatar:nth-child(1) { animation-delay: 110ms; }
+  .dp-share-zone.is-open .dpinvite-avatar:nth-child(2) { animation-delay: 150ms; }
+  .dp-share-zone.is-open .dpinvite-avatar:nth-child(3) { animation-delay: 190ms; }
+  .dp-share-zone.is-open .dpinvite-avatar:nth-child(4) { animation-delay: 230ms; }
+  .dp-share-zone.is-open .dpinvite-avatar:nth-child(5) { animation-delay: 270ms; }
+  .dp-share-zone.is-open .dpinvite-avatar:nth-child(6) { animation-delay: 310ms; }
+  .dp-share-zone.is-open .dpinvite-avatar:nth-child(n+7) { animation-delay: 350ms; }
+  .dp-share-zone.is-open .dpinvite-target:nth-child(1) { animation-delay: 250ms; }
+  .dp-share-zone.is-open .dpinvite-target:nth-child(2) { animation-delay: 290ms; }
+  .dp-share-zone.is-open .dpinvite-target:nth-child(3) { animation-delay: 330ms; }
+  /* "Send til" + the "eller" divider should reveal with the rest of the zone,
+     not hold ghost height before the staggered avatars land. Fade them in
+     softly under the avatar wave so the shape feels complete on landing. */
+  .dp-share-zone.is-open .dp-share-send-label,
+  .dp-share-zone.is-open .dpinvite-or {
+    animation: dprcv-card-in 220ms var(--ease-spring) 60ms backwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dp-share-zone.is-open .dpinvite-avatar,
+    .dp-share-zone.is-open .dpinvite-target,
+    .dp-share-zone.is-open .dp-share-send-label,
+    .dp-share-zone.is-open .dpinvite-or { animation: none; }
+  }
+  /* Honey gleam after the user taps Send — same beat as the sheet's confirm
+     animation (reuses @keyframes dprcv-panel-sheen) but scoped to this zone. */
+  .dp-share-zone.is-confirming::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    border-radius: var(--radius-md);
+    background: linear-gradient(115deg, transparent 32%, var(--accent) 50%, transparent 68%);
+    transform: translateX(-120%); opacity: 0; mix-blend-mode: screen;
+    animation: dprcv-panel-sheen 720ms var(--ease-decelerate) forwards;
+  }
+  .dp-share-zone { position: relative; }
+
+  /* The honey Send overlay button inside the inline zone — match the
+     accent CTA in the rest of the app (Resting composer Send is honey too). */
+  #dp-share-send-btn {
+    background: var(--accent); color: var(--accent-on);
+    border: none; box-shadow: var(--shadow-1);
+  }
+  #dp-share-send-btn:hover { background: var(--accent); box-shadow: var(--shadow-2); }
+  #dp-share-send-btn:active { transform: translateY(1px); box-shadow: none; }
+  #dp-share-send-btn:disabled {
+    opacity: 0.55; cursor: not-allowed; box-shadow: none;
+  }
+  /* The legacy .dpinvite-friends-label carries its own margins (built for the
+     invite sheet's tight page metrics). Inside the inline zone the flex gap
+     owns the spacing, so zero the margins out. */
+  .dp-share-zone > .dp-share-send-label { margin: 0; }
+  /* Same idea for the "eller" divider — drop its built-in margin so the flex
+     gap is the single source of vertical rhythm. */
+  .dp-share-zone > .dpinvite-or { margin: 0; }
+
   .nar-picker {
     display: flex; flex-direction: column; gap: var(--space-md);
     max-height: 0; opacity: 0; overflow: hidden;

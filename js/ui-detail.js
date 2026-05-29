@@ -458,7 +458,12 @@ function _renderSocialComposer(v) {
   // Mock (2026-05-29): "DEL PLAN" eyebrow + a date chip (pencil) on one row,
   // then a chat message — your avatar bottom-left + a Delft-blue bubble — then
   // the blue Send. Send is hidden in the Active (picker-open) state.
-  return `
+  // FEATURE #11 (2026-05-29): the inline .dp-share-zone is rendered as a sibling
+  // of the composer card. It's collapsed (max-height: 0) by default; tapping the
+  // composer's Send (Resting) or the picker's Send (Active) flips body.share-mode
+  // → expand zone + staggered slide-in (dprcv-card-in @ nth-child delays, same
+  // beat as the old invite sheet's .show-share page).
+  const composerHtml = `
     <div class="dp-social-card dp-composer">
       <div class="dp-composer-titlerow">
         <div class="dp-composer-title">${t('share_plan')}</div>
@@ -473,8 +478,92 @@ function _renderSocialComposer(v) {
         ${meAv ? `<div class="dp-composer-msg-av">${meAv}</div>` : ''}
         <div class="dp-composer-bubble">${esc(msg)}</div>
       </div>
-      <button class="dp-composer-send" onclick="_narGoToShare(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
+      <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
       <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
+    </div>`;
+
+  return composerHtml + _renderShareZone(v);
+}
+
+/** Inline share zone — friend-avatar carousel + share-target circles + the
+ *  honey Send overlay. Lives in the detail panel as a sibling of the composer
+ *  card, collapsed by default. _dpShareOpen flips body.share-mode → the zone
+ *  expands and each child slides in (staggered nth-child delays). The avatar
+ *  + target markup reuses the .dpinvite-* classes (CSS isn't scoped to the
+ *  invite sheet, so the same tile + circle styling applies here). The Send
+ *  overlay pattern (target row + honey CTA in the same box, .has-selection
+ *  flips the overlay in) mirrors the invite sheet's bottom slot too. */
+function _renderShareZone(v) {
+  const friends = (typeof _friends !== 'undefined') ? _friends : [];
+  const hasFriends = friends.length > 0;
+  const _hashColor = (s) => {
+    s = String(s || '');
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % 8;
+  };
+  const checkSvgSm = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+  const userPlusSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>`;
+  const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
+  const whatsappSvg    = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>`;
+  const copyTargetSvg  = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  const shareTargetSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg>`;
+
+  const avatarsHtml = (typeof _renderInviteAvatarCarousel === 'function')
+    ? _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm) : '';
+
+  const friendsBlock = hasFriends
+    ? `<div class="dpinvite-avatar-row no-scrollbar" id="dp-share-avatar-row">${avatarsHtml}</div>`
+    : `<div class="dpinvite-empty-card">
+         <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
+         <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
+         <div class="es-cta-slot"><button type="button" class="p-pill dpinvite-empty-cta" onclick="openFriendsModal()">${userPlusSvg}<span>${t('add_friend')}</span></button></div>
+       </div>`;
+
+  const targetsRow = `
+    <div class="dpinvite-targets-row" id="dp-share-targets-row">
+      <button type="button" class="dpinvite-target" onclick="_copyInviteLink(${v.id})" aria-label="${t('copy_invite_link')}">
+        <span class="dpinvite-target-circle">${copyTargetSvg}</span>
+        <span class="dpinvite-target-label">${t('invite_target_copy')}</span>
+      </button>
+      <button type="button" class="dpinvite-target" onclick="_shareInviteLink(${v.id})" aria-label="${t('invite_other_apps')}">
+        <span class="dpinvite-target-circle">${shareTargetSvg}</span>
+        <span class="dpinvite-target-label">${t('invite_target_share')}</span>
+      </button>
+      <button type="button" class="dpinvite-target" onclick="_shareInviteWhatsApp(${v.id})" aria-label="${t('invite_via_whatsapp')}">
+        <span class="dpinvite-target-circle">${whatsappSvg}</span>
+        <span class="dpinvite-target-label">${t('invite_via_whatsapp')}</span>
+      </button>
+    </div>`;
+
+  const sendLabel = hasFriends
+    ? `<div class="dpinvite-friends-label dp-share-send-label">${t('invite_friends_label')}</div>`
+    : '';
+  const orDivider = `<div class="dpinvite-or">${t('invite_or')}</div>`;
+
+  // Empty (no-friends) state: targets row stands alone; honey Send never
+  // appears (nothing to send to). Same shape as the invite sheet's empty path.
+  const bottomSlot = hasFriends ? `
+    <div class="dpinvite-share-bottom" id="dp-share-bottom">
+      ${targetsRow}
+      <div class="dpinvite-send-overlay" id="dp-share-send-overlay" aria-hidden="true">
+        <button class="p-pill" id="dp-share-send-btn" data-mode="send" disabled
+                onclick="_dpShareSend(${v.id})">
+          <span id="dp-share-send-icon">${sendSvg}</span>
+          <span id="dp-share-send-text">${t('invite_send_pick')}</span>
+        </button>
+      </div>
+    </div>` : targetsRow;
+
+  return `
+    <div class="dp-share-zone" id="dp-share-zone" data-venue-id="${v.id}" aria-hidden="true">
+      ${sendLabel}
+      ${friendsBlock}
+      ${orDivider}
+      ${bottomSlot}
+      <div class="dprcv-cta-row dp-share-cancel-row">
+        <button type="button" class="dprcv-cta-link" onclick="_dpShareClose()"><span>${t('invite_cancel')}</span></button>
+      </div>
     </div>`;
 }
 
@@ -517,6 +606,12 @@ function _narSyncStatus() {
 
 function _openNarPanel(venueId) {
   if (document.querySelector('.nar-picker')) return; // already open
+  // If the share zone is up (user is editing the time mid-pick), close it
+  // first — the two surfaces collapse the same set of #dp-scroll children,
+  // and they shouldn't be layered together.
+  if (document.body.classList.contains('share-mode')) {
+    if (typeof _dpShareClose === 'function') _dpShareClose();
+  }
   const scroll = document.getElementById('dp-scroll');
   const social = scroll && scroll.querySelector('.dp-social-zone');
   if (!scroll || !social) return;
@@ -625,22 +720,121 @@ function _closeNarPanel() {
   setTimeout(() => { try { picker.remove(); } catch (e) {} }, 420);
 }
 
-// Hand off to the invite sheet's select-friends (share) page. The polished
-// WHEN→WHO transition is deferred; for now we open + jump straight to share.
+// Picker's Send → close the picker, then reveal the inline share zone with the
+// staggered slide-in. The Resting path (composer Send) calls _dpShareOpen
+// directly; this is the Active path (after editing the moment in the picker).
 function _narGoToShare(venueId) {
   _closeNarPanel();
-  if (typeof _openInviteSheet === 'function') {
-    _openInviteSheet(venueId);
-    if (typeof _dpinviteGoToShare === 'function') {
-      setTimeout(() => { try { _dpinviteGoToShare(venueId); } catch (e) {} }, 60);
-    }
-  }
+  // Wait for the picker's collapse beat to finish before kicking the slide-in
+  // so both motions don't fight for the user's attention in the same frame.
+  setTimeout(() => { try { _dpShareOpen(venueId); } catch (e) {} }, 280);
 }
 
 if (typeof window !== 'undefined') {
   window._openNarPanel = _openNarPanel;
   window._closeNarPanel = _closeNarPanel;
   window._narGoToShare = _narGoToShare;
+}
+
+// ── Inline share zone (FEATURE #11) ─────────────────────────────────────────
+// Reveals the friend-avatar carousel + share-target circles below the plan
+// card without opening the legacy invite sheet. Same Send → in-app fan-out
+// path, same Copy / More / WhatsApp deep-links — just inline, in the detail
+// panel, animated with the accept-panel's slide-in beat (dprcv-card-in).
+
+/** Open the inline share zone. Wired from the composer's Send (Resting state)
+ *  and from _narGoToShare (Active state). Both paths use the staggered
+ *  slide-in (kicking the animation by re-toggling .is-open). */
+function _dpShareOpen(venueId) {
+  if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
+    if (typeof window !== 'undefined') {
+      window._postLoginIntent = { type: 'invite_sheet', venueId };
+    }
+    if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+    return;
+  }
+  // If the picker happens to be open and somebody calls this directly, close
+  // it first so the share zone has the space.
+  if (document.body.classList.contains('nar-mode')) {
+    if (typeof _closeNarPanel === 'function') _closeNarPanel();
+  }
+  const zone = document.getElementById('dp-share-zone');
+  if (!zone) return;
+  // Fresh selection each time the zone opens — the user picks who, hits Send,
+  // and the next round shouldn't carry their stale picks.
+  zone.querySelectorAll('.dpinvite-avatar[aria-checked="true"]')
+    .forEach(a => a.setAttribute('aria-checked', 'false'));
+  document.body.classList.add('share-mode');
+  zone.removeAttribute('aria-hidden');
+  // Restart the staggered slide-in by toggling .is-open off→on so the
+  // animation re-fires on every reopen (otherwise it only plays the first time).
+  zone.classList.remove('is-open');
+  void zone.offsetWidth;
+  zone.classList.add('is-open');
+  _dpShareRefresh();
+  // Bring the zone into view — the detail panel is the scroll container, so
+  // scrollIntoView on the zone walks up to #dp-scroll.
+  requestAnimationFrame(() => {
+    try { zone.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+  });
+}
+
+/** Close the inline share zone — drop the body class + the .is-open state. */
+function _dpShareClose() {
+  const zone = document.getElementById('dp-share-zone');
+  if (!zone) return;
+  document.body.classList.remove('share-mode');
+  zone.classList.remove('is-open');
+  zone.setAttribute('aria-hidden', 'true');
+}
+
+/** Refresh the honey Send overlay state from the current selection — same
+ *  rules as _refreshInvitePrimaryCTA but scoped to #dp-share-zone. */
+function _dpShareRefresh() {
+  const zone = document.getElementById('dp-share-zone');
+  if (!zone) return;
+  const rows = Array.from(zone.querySelectorAll('.dpinvite-avatar'));
+  const selectedRows = rows.filter(r => r.getAttribute('aria-checked') === 'true');
+  const n = selectedRows.length;
+  const total = rows.length;
+  const btn = zone.querySelector('#dp-share-send-btn');
+  const label = zone.querySelector('#dp-share-send-text');
+  const bottom = zone.querySelector('#dp-share-bottom');
+  const overlay = zone.querySelector('#dp-share-send-overlay');
+  // Empty-state (no friends) has no Send button — nothing to refresh.
+  if (!btn || !label) return;
+  if (n === 0) {
+    btn.disabled = true;
+    label.textContent = t('invite_send_pick');
+    if (bottom) bottom.classList.remove('has-selection');
+    if (overlay) overlay.setAttribute('aria-hidden', 'true');
+    return;
+  }
+  btn.disabled = false;
+  if (n === 1) {
+    const name = selectedRows[0].getAttribute('data-friend-name') || '';
+    const firstName = name.split(/\s+/)[0] || name;
+    label.textContent = t('invite_send_to_one', { name: firstName });
+  } else if (n === total) {
+    label.textContent = t('invite_send_to_all', { n });
+  } else {
+    label.textContent = t('invite_send_to_many', { n });
+  }
+  if (bottom) bottom.classList.add('has-selection');
+  if (overlay) overlay.setAttribute('aria-hidden', 'false');
+}
+
+/** Send tap from the inline zone's honey overlay — same send + confirm beat
+ *  as the invite sheet's primary CTA, just without the sheet around it. */
+async function _dpShareSend(venueId) {
+  await _sendInvite(venueId);
+}
+
+if (typeof window !== 'undefined') {
+  window._dpShareOpen = _dpShareOpen;
+  window._dpShareClose = _dpShareClose;
+  window._dpShareRefresh = _dpShareRefresh;
+  window._dpShareSend = _dpShareSend;
 }
 
 /** Plans block — own section below the social card. Empty string when no
@@ -2793,12 +2987,15 @@ function _invFtsDetach() {
   }
 }
 
-/** Toggle a single friend tile's selection (avatar-tap pattern, no checkbox). */
+/** Toggle a single friend tile's selection (avatar-tap pattern, no checkbox).
+ *  Refreshes both the invite-sheet CTA (legacy path) AND the inline share zone
+ *  CTA (FEATURE #11) — each function self-bails if its surface isn't open. */
 function _toggleInviteFriend(row) {
   if (!row) return;
   const next = row.getAttribute('aria-checked') !== 'true';
   row.setAttribute('aria-checked', next ? 'true' : 'false');
   _refreshInvitePrimaryCTA();
+  if (typeof _dpShareRefresh === 'function') _dpShareRefresh();
 }
 
 /** Select-all / clear toggle. Operates on visible (non-filtered) tiles only. */
@@ -3058,8 +3255,11 @@ async function _sendInvite(venueId) {
   const [hh, mm] = _hhmmFromHour(h);
   const isoTime = new Date(`${d}T${hh}:${mm}:00`).toISOString();
 
+  // Selection lives on whichever surface is open — the legacy invite sheet
+  // (#invite-sheet) or the inline share zone (#dp-share-zone, FEATURE #11).
+  // Either selector matches the avatars by class + aria-checked.
   const selectedRows = Array.from(
-    document.querySelectorAll('#invite-sheet .dpinvite-avatar[aria-checked="true"]')
+    document.querySelectorAll('#invite-sheet .dpinvite-avatar[aria-checked="true"], #dp-share-zone .dpinvite-avatar[aria-checked="true"]')
   );
   const selectedIds = selectedRows.map(r => r.getAttribute('data-friend-id'));
   // First names for the confirmation line (data-friend-name is the full name).
@@ -3106,7 +3306,33 @@ async function _sendInvite(venueId) {
  *  header stays; only the pager region swaps to the success state. */
 function _inviteShowSent(names) {
   const sheet = document.getElementById('invite-sheet');
-  if (!sheet) { _closeInviteSheet(); return; }
+  // FEATURE #11: when the send came from the inline share zone (no sheet in
+  // the DOM), play a lightweight success beat on the zone — honey gleam + a
+  // brief check + a toast — then close the zone. The legacy sheet path below
+  // still owns the full sheet-wide gleam + auto-close.
+  if (!sheet) {
+    const zone = document.getElementById('dp-share-zone');
+    if (zone) {
+      zone.classList.remove('is-confirming');
+      void zone.offsetWidth;
+      zone.classList.add('is-confirming');
+      try { if (navigator.vibrate) navigator.vibrate(12); } catch {}
+      if (typeof showToast === 'function') {
+        const list = (Array.isArray(names) ? names.filter(Boolean) : []);
+        const sub = list.length
+          ? (list.slice(0, 2).join(', ') + (list.length > 2 ? ` +${list.length - 2}` : ''))
+          : '';
+        showToast(sub ? `${t('invite_sent_title')} — ${sub}` : t('invite_sent_title'));
+      }
+      setTimeout(() => {
+        zone.classList.remove('is-confirming');
+        _dpShareClose();
+      }, 1100);
+    } else {
+      _closeInviteSheet();
+    }
+    return;
+  }
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // Honey gleam across the whole sheet (reuses the @keyframes dprcv-panel-sheen
   // defined for the accept panel). Re-trigger by toggling the class off→on.
