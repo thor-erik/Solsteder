@@ -545,7 +545,11 @@ function _openNarPanel(venueId) {
   const fts = document.getElementById('fts');
   const slot = picker.querySelector('#nar-fts-slot');
   if (fts && slot) {
+    // Remember the EXACT home position (parent + next sibling) so close can
+    // put the slider back where it was — appendChild would dump it at the
+    // bottom of the list (the "FTS anchors to the bottom" bug).
     picker._ftsHome = fts.parentNode;
+    picker._ftsNext = fts.nextSibling;
     if (fts.parentNode !== slot) slot.appendChild(fts);
   }
 
@@ -573,11 +577,21 @@ function _openNarPanel(venueId) {
 function _closeNarPanel() {
   const picker = document.querySelector('.nar-picker');
   if (!picker) return;
-  // Return the FTS to its home parent.
+  // Return the FTS to its EXACT home position (not appendChild → that lands it
+  // at the bottom of the list). Prefer the remembered next-sibling; else fall
+  // back to the FTS contract slot (right after #panel-handle).
   const fts = document.getElementById('fts');
   if (fts && picker._ftsHome && fts.parentNode !== picker._ftsHome) {
     fts.style.cssText = '';
-    picker._ftsHome.appendChild(fts);
+    const ref = (picker._ftsNext && picker._ftsNext.parentNode === picker._ftsHome)
+      ? picker._ftsNext : null;
+    if (ref) {
+      picker._ftsHome.insertBefore(fts, ref);
+    } else {
+      const handle = picker._ftsHome.querySelector('#panel-handle');
+      if (handle && handle.nextSibling) picker._ftsHome.insertBefore(fts, handle.nextSibling);
+      else picker._ftsHome.appendChild(fts);
+    }
   }
   if (picker._onMoment) {
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', picker._onMoment);
