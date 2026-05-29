@@ -5666,8 +5666,13 @@
   }
   .dp-here-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-on-light); }
 
-  /* Empty-state composer — default moment + share-text preview + send. */
+  /* Empty-state composer — title + default moment + share-text preview + send,
+     all inside one cream card. Title sits top-left like the sun card's. */
   .dp-composer { display: flex; flex-direction: column; gap: var(--space-md); }
+  .dp-composer-title {
+    font-size: var(--text-caption); font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ink-muted);
+  }
   .dp-composer-top {
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--space-md);
@@ -5680,7 +5685,6 @@
   .dp-composer-chev { display: inline-flex; color: var(--ink-muted); }
   .dp-composer-me { flex-shrink: 0; display: flex; }
   .dp-composer-me .avatar { border-radius: 50%; }
-  .dp-composer-label { font-size: var(--text-label); font-weight: 500; color: var(--ink-muted); }
   /* Jordy-blue share-text preview bubble. */
   .dp-composer-bubble {
     background: var(--surface-sheet);
@@ -5688,13 +5692,14 @@
     padding: var(--space-md) var(--space-lg);
     font-size: var(--text-label); line-height: 1.45; color: var(--panel-text);
   }
-  /* Navy send button (sibling of the card, not box-in-box). Not honey —
+  /* Navy send button INSIDE the cream card. Cream text via --ctl-icon (root
+     #FFF4E0, not flipped by the card's ink --text override). Not honey —
      Directions owns the one honey CTA on this screen. */
   .dp-composer-send {
     display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
-    width: 100%; height: 48px;
+    width: 100%; height: 48px; margin-top: var(--space-2xs);
     border: none; border-radius: var(--radius-pill);
-    background: var(--bg); color: var(--text);
+    background: var(--bg); color: var(--ctl-icon);
     font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
     cursor: pointer; box-shadow: var(--shadow-1);
     transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;

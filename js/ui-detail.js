@@ -384,9 +384,10 @@ function _renderSocialSection(v) {
   // + one "Send to friends"). When friends are here or a plan exists, fall back
   // to the regular zone (cards + the honey invite CTA).
   if (!checkins.length && !plansHtml) {
+    // No external "FRIENDS" label here — the composer card owns its title
+    // ("Inviter venner hit", top-left, like the sun card's "Solforhold").
     return `
       <div class="dp-social-zone">
-        <div class="dp-section-title">${t('friends')}</div>
         ${_renderSocialComposer(v)}
       </div>`;
   }
@@ -450,6 +451,7 @@ function _renderSocialComposer(v) {
 
   return `
     <div class="dp-social-card dp-composer">
+      <div class="dp-composer-title">${t('invite_friends')}</div>
       <div class="dp-composer-top">
         <div class="dp-composer-when">
           <span class="dp-composer-day">${esc(dayHeader)}</span>
@@ -459,10 +461,9 @@ function _renderSocialComposer(v) {
         </div>
         ${meAv ? `<div class="dp-composer-me">${meAv}</div>` : ''}
       </div>
-      <div class="dp-composer-label">${t('invite_friends')}</div>
       <div class="dp-composer-bubble">${esc(msg)}</div>
-    </div>
-    <button class="dp-composer-send" onclick="_openInviteSheet(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>`;
+      <button class="dp-composer-send" onclick="_openInviteSheet(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
+    </div>`;
 }
 
 /** Plans block — own section below the social card. Empty string when no
