@@ -253,9 +253,10 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
            freshly-rendered .dp-card (verdict + timeline + facts). -->
       <div id="dp-card-slot" class="dp-card-slot"></div>
 
-      <!-- Order (per Claude-Design): sun → social/plans → invite (all in the
-           VENNER zone) → divider → actions → divider → info. Hours moved into
-           the info card (was a standalone line here). -->
+      <div class="dp-divider" aria-hidden="true"></div>
+
+      <!-- Order: sun → divider → social/plans → divider → actions → divider →
+           info → divider. -->
       ${_renderSocialSection(v)}
 
       <div class="dp-divider" aria-hidden="true"></div>
@@ -427,9 +428,15 @@ function _planMomentParts(v) {
     const cur = (windows || []).find(w => hour >= w.start && hour < w.end);
     if (cur) sunUntil = formatHour(cur.end);
   } catch (e) { /* no sun data */ }
-  const msg = sunUntil
-    ? t('composer_preview_sun', { venue: v.name, day: dayInline, time: timeStr, sunUntil })
-    : t('composer_preview',     { venue: v.name, day: dayInline, time: timeStr });
+  let temp = null;
+  try {
+    const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, hour) : null;
+    if (wx && Number.isFinite(wx.temp)) temp = Math.round(wx.temp);
+  } catch (e) { /* no weather */ }
+  let msg;
+  if (sunUntil && temp != null) msg = t('composer_preview_sun', { venue: v.name, day: dayInline, time: timeStr, sunUntil, temp });
+  else if (sunUntil)            msg = t('composer_preview_sun_notemp', { venue: v.name, day: dayInline, time: timeStr, sunUntil });
+  else                          msg = t('composer_preview', { venue: v.name, day: dayInline, time: timeStr });
   return { dayHeader, timeStr, msg };
 }
 

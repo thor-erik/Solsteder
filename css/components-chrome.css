@@ -179,7 +179,8 @@
   body.plan-preview-active #top-strip,
   body.post-accept-active #top-strip,
   body.profile-panel-open #top-strip,
-  body.invite-sheet-open #top-strip {
+  body.invite-sheet-open #top-strip,
+  body.nar-mode #top-strip {
     transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
     pointer-events: none;
   }

@@ -5690,7 +5690,7 @@
     padding: var(--space-2xs) var(--space-sm);
     border-radius: var(--radius-pill);
     background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
-    font-size: var(--text-label); font-weight: 700; color: var(--rain-ink);
+    font-size: var(--text-caption); font-weight: 700; color: var(--rain-ink);
     cursor: pointer; text-align: left;
   }
   .dp-composer-when:active { transform: translateY(1px); }
@@ -5705,22 +5705,25 @@
   /* Chat message — your avatar bottom-left + a Delft-blue bubble (white text).
      Rounded like a modern chat bubble, but the bottom-left corner (toward the
      avatar) is tight, so it reads as "from you". */
-  .dp-composer-msg { display: flex; align-items: flex-end; gap: var(--space-sm); }
+  /* Sender perspective: your avatar bottom-RIGHT, bubble to its left, tight
+     bottom-right corner (toward the avatar) — an outgoing message. */
+  .dp-composer-msg { display: flex; flex-direction: row-reverse; align-items: flex-end; gap: var(--space-sm); }
   .dp-composer-msg-av { flex-shrink: 0; display: flex; }
   .dp-composer-msg-av .avatar { border-radius: 50%; }
   .dp-composer-bubble {
     flex: 1; min-width: 0;
     background: var(--bg); color: var(--ctl-icon);
-    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-xs);
+    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-xs) var(--radius-lg);
     padding: var(--space-sm) var(--space-md);
     font-size: var(--text-label); line-height: 1.4;
   }
-  /* Navy "Send til venner" (blue). Hidden in Active (the hint replaces it). */
+  /* Honey "Send til venner" — the plan card's one CTA (Directions steps down to
+     cream-frost). Hidden in Active (the hint replaces it). */
   .dp-composer-send {
     display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
     width: 100%; height: 48px;
     border: none; border-radius: var(--radius-pill);
-    background: var(--bg); color: var(--ctl-icon);
+    background: var(--accent); color: var(--accent-on);
     font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
     cursor: pointer; box-shadow: var(--shadow-1);
     transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
@@ -5760,7 +5763,7 @@
      overflow:visible so the FTS scrub popup can pop up over the day tiles. */
   .nar-card {
     display: flex; flex-direction: column; gap: var(--space-lg);
-    padding: var(--space-lg); border-radius: var(--radius-lg);
+    padding: var(--space-lg); border-radius: var(--radius-md);
     background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
     box-shadow: var(--card-cream-shadow); overflow: visible;
   }
@@ -5775,7 +5778,9 @@
   .nar-strip .dc-grid {
     display: flex; flex-wrap: nowrap; gap: var(--space-xs);
     overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;  /* hide the faint scrollbar that overlapped the tiles */
   }
+  .nar-strip .dc-grid::-webkit-scrollbar { display: none; }
   .nar-strip .dc-expand-btn-wide { display: none; }
   .nar-strip .dc-tile {
     flex: 0 0 58px; padding: var(--space-sm) var(--space-2xs); gap: var(--space-2xs);
@@ -5793,10 +5798,15 @@
   .nar-strip .dc-tile.sun-mid,
   .nar-strip .dc-tile.sun-low { border-color: var(--card-cream-border) !important; opacity: 1; }
   .nar-strip .dc-tile.today .dc-day { color: var(--ink-muted); }
+  /* SELECTED day — solid Delft fill + cream text/glyph: an unambiguous "this is
+     the picked day" (selected = Delft, never honey). */
   .nar-strip .dc-tile.selected {
-    box-shadow: inset 0 0 0 2px var(--bg) !important; border-color: transparent !important;
+    background: var(--bg) !important; border-color: var(--bg) !important; box-shadow: none !important;
   }
-  .nar-strip .dc-tile.selected .dc-num { color: var(--panel-text); }
+  .nar-strip .dc-tile.selected .dc-day,
+  .nar-strip .dc-tile.selected .dc-num,
+  .nar-strip .dc-tile.selected .dc-temp { color: var(--ctl-icon); }
+  .nar-strip .dc-tile.selected .dc-icon .wx-sky-icon { color: var(--ctl-icon); }
   /* Host the reparented FTS: neutralise its fixed/floating positioning + force
      it visible (we don't flip the global body.fts state). Zero the LEFT/RIGHT
      margin (the body.fts rule adds a side inset) so the bar lines up with the
@@ -5804,7 +5814,7 @@
      lets the expanded popup overlap the tiles above. */
   /* Extra room above the FTS (beyond the card's row gap) so the unexpanded
      scrub popup sits with breathing space between the day tiles and the bar. */
-  .nar-fts-slot { position: relative; overflow: visible; margin-top: var(--space-md); }
+  .nar-fts-slot { position: relative; overflow: visible; margin-top: var(--space-lg); }
   .nar-fts-slot #fts {
     display: flex !important; position: relative;
     top: auto; bottom: auto; left: auto; right: auto;
@@ -6049,17 +6059,16 @@
      (overrides .s-rnd's dark glass fill, which would blend on solid Delft).
      text-decoration:none — it's an <a>, not a <button>. */
   .dp-directions {
-    /* The detail panel's ONE honey CTA (per the mock). height from .s-rnd
-       (48px); full-width pill. Honey fill + ink, canonical .p-pill recipe. */
+    /* Cream-frost now (honey moved to the plan card's "Send til venner"). */
     width: 100%; border-radius: var(--radius-pill);
-    background: var(--accent);
-    border: none;
-    box-shadow: var(--shadow-1);
-    color: var(--accent-on);
+    background: var(--card-cream-bg);
+    border: 1px solid var(--card-cream-border);
+    box-shadow: var(--card-cream-shadow);
+    color: var(--panel-text);
     text-decoration: none;
   }
-  .dp-directions:hover { background: var(--accent-hover); box-shadow: var(--shadow-2); }
-  .dp-directions:active { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
+  .dp-directions:hover { background: var(--card-cream-bg-hover); }
+  .dp-directions:active { transform: translateY(1px); box-shadow: none; }
   .dp-directions svg { width: 18px; height: 18px; flex-shrink: 0; }
   .dp-directions-label { overflow: hidden; text-overflow: ellipsis; }
 
