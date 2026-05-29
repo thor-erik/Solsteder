@@ -178,19 +178,16 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     ? `<div class="photo-overlay-count">1 / ${_photoCount}</div>`
     : '';
 
-  // Sun verdict chip on the photo — the #1 answer ("will it be sunny when I
-  // want") made glanceable the instant the panel opens, before any scroll.
-  // Kept in sync on time-scrub by _populateDpCardSlot (app.js), which updates
-  // #dp-sun-chip-text so it never disagrees with the card below.
-  const _sunChipIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
-  const sunChipHtml = `<div class="dp-sun-chip ${state.className || ''}" id="dp-sun-chip">${_sunChipIcon}<span id="dp-sun-chip-text">${state.mainText || ''}</span></div>`;
+  // Sun verdict chip on the photo: REMOVED. The titled "Sun conditions" card
+  // right below the photo now owns the verdict, so the chip duplicated it
+  // ("removed the chip clutter"). app.js's #dp-sun-chip sync is guarded and
+  // simply no-ops now that the element is gone.
 
-  // Photo block — shared header overlay (title + meta + sun chip + count
-  // + dark gradient) sits on top of every state.
+  // Photo block — shared header overlay (title + meta + count + dark gradient)
+  // sits on top of every state.
   const photoOverlayHtml = `
     <div class="photo-overlay-grad"></div>
     ${photoCountHtml}
-    ${sunChipHtml}
     ${photoChipHtml}
     <div class="photo-overlay-header">
       <div class="photo-overlay-title">${v.name}</div>
