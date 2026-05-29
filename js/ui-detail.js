@@ -441,9 +441,16 @@ function _renderSocialComposer(v) {
   const plane  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`;
   const dnChev = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
 
-  // Mock (2026-05-29): "DEL PLAN" eyebrow + a date chip with a pencil affordance
-  // on one row, the share-text bubble, then the honey Send. No avatar. The Send
-  // is hidden in the Active (picker-open) state via body.nar-mode CSS.
+  // Your avatar — the "sender" of the preview message (sells the chat effect).
+  const me = (typeof _currentUser !== 'undefined' && _currentUser)
+    ? _currentUser : (typeof window !== 'undefined' ? window._currentUser : null);
+  const meAv = me
+    ? _renderFriendAvatarsHtml([{ user: { id: me.id, name: me.user_metadata?.name, email: me.email, avatar_url: me.user_metadata?.avatar_url } }], 1, 28)
+    : '';
+
+  // Mock (2026-05-29): "DEL PLAN" eyebrow + a date chip (pencil) on one row,
+  // then a chat message — your avatar bottom-left + a Delft-blue bubble — then
+  // the blue Send. Send is hidden in the Active (picker-open) state.
   return `
     <div class="dp-social-card dp-composer">
       <div class="dp-composer-titlerow">
@@ -455,7 +462,10 @@ function _renderSocialComposer(v) {
           <span class="dp-composer-chev" aria-hidden="true">${pencil}</span>
         </button>
       </div>
-      <div class="dp-composer-bubble">${esc(msg)}</div>
+      <div class="dp-composer-msg">
+        ${meAv ? `<div class="dp-composer-msg-av">${meAv}</div>` : ''}
+        <div class="dp-composer-bubble">${esc(msg)}</div>
+      </div>
       <button class="dp-composer-send" onclick="_narGoToShare(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
       <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
     </div>`;

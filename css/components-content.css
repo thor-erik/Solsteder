@@ -5690,29 +5690,30 @@
     padding: var(--space-2xs) var(--space-sm);
     border-radius: var(--radius-pill);
     background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
-    font-size: var(--text-label); font-weight: 700; color: var(--accent-on-light);
+    font-size: var(--text-label); font-weight: 700; color: var(--rain-ink);
     cursor: pointer; text-align: left;
   }
   .dp-composer-when:active { transform: translateY(1px); }
   .dp-composer-sep { font-weight: 400; opacity: 0.6; }
   .dp-composer-chev { display: inline-flex; }
-  /* ACTIVE: the date sheds its chip — plain honey label, no pill/pencil. */
+  /* ACTIVE: the date sheds its chip — plain blue label, no pill/pencil. */
   body.nar-mode .dp-composer-chev { display: none; }
   body.nar-mode .dp-composer-when {
     background: none; border-color: transparent; box-shadow: none; padding: 0;
+    color: var(--rain-ink);
   }
-  /* Jordy chat bubble — opaque enough to keep ink legible, with a tail nub. */
+  /* Chat message — your avatar bottom-left + a Delft-blue bubble (white text).
+     Rounded like a modern chat bubble, but the bottom-left corner (toward the
+     avatar) is tight, so it reads as "from you". */
+  .dp-composer-msg { display: flex; align-items: flex-end; gap: var(--space-sm); }
+  .dp-composer-msg-av { flex-shrink: 0; display: flex; }
+  .dp-composer-msg-av .avatar { border-radius: 50%; }
   .dp-composer-bubble {
-    position: relative;
-    background: var(--bubble-jordy);
-    border-radius: var(--radius-md);
+    flex: 1; min-width: 0;
+    background: var(--bg); color: var(--ctl-icon);
+    border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-xs);
     padding: var(--space-sm) var(--space-md);
-    font-size: var(--text-label); line-height: 1.4; color: var(--panel-text);
-  }
-  .dp-composer-bubble::after {
-    content: ''; position: absolute; left: var(--space-lg); bottom: -4px;
-    width: 10px; height: 10px; background: var(--bubble-jordy);
-    transform: rotate(45deg);
+    font-size: var(--text-label); line-height: 1.4;
   }
   /* Navy "Send til venner" (blue). Hidden in Active (the hint replaces it). */
   .dp-composer-send {
@@ -5764,7 +5765,10 @@
     box-shadow: var(--card-cream-shadow); overflow: visible;
   }
   .nar-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
-  .nar-card-title { font-size: var(--text-label); font-weight: 600; color: var(--ink-muted); }
+  .nar-card-title {
+    font-size: var(--text-caption); font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ink-muted);
+  }
   /* Day-strip: one horizontal SCROLLING row of legible cream-frost tiles (the
      QC strip is a 5×2 grid of small dark over-map tiles by default). Hide its
      "Vis full kalender" — no full calendar here. */
