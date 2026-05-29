@@ -5720,10 +5720,13 @@
     display: flex; flex-direction: column; gap: var(--space-md);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
-    background: var(--glass-panel-bg);
-    -webkit-backdrop-filter: var(--glass-blur-frost);
-    backdrop-filter: var(--glass-blur-frost);
-    border: var(--glass-border);
+    /* OPAQUE cream frost — this sheet stacks OVER the detail panel (not the
+       map), so a 0%-fill frost would let the venue card bleed through. The
+       bright cream fill + blur fully covers what's behind. */
+    background: var(--card-cream-bg-hover);
+    -webkit-backdrop-filter: var(--card-cream-blur);
+    backdrop-filter: var(--card-cream-blur);
+    border: 1px solid var(--card-cream-border);
     box-shadow: var(--panel-shadow);
     color: var(--panel-text);
     transform: translateY(calc(100% + 24px)); opacity: 0;
@@ -5733,6 +5736,9 @@
   .nar-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
   .nar-title { font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
   .nar-date { font-size: var(--text-label); color: var(--ink-muted); }
+  /* The reparented QC strip drags in its "Vis full kalender" expander — not
+     wanted in the compact picker. */
+  .nar-strip .dc-expand-btn-wide { display: none; }
   /* Host the reparented FTS: neutralise its fixed/floating positioning and
      force it visible (we don't flip the global body.fts state). */
   .nar-fts-slot { position: relative; }
@@ -5750,9 +5756,13 @@
   }
   .nar-cta { width: 100%; }  /* honey fill comes from .p-pill */
 
-  /* Recede the detail panel behind the NÅR sheet (the "pushed back + fade"). */
+  /* Recede the detail panel behind the NÅR sheet (the "pushed back + fade").
+     Fades well down so the part of it above the sheet reads as receded, not
+     a crisp duplicate. !important to beat the per-breakpoint .open transforms. */
   body.nar-open #detail-panel.open {
-    transform: translateY(-10px) scale(0.95); opacity: 0.4; pointer-events: none;
+    transform: translateY(-12px) scale(0.94) !important;
+    opacity: 0.25 !important; pointer-events: none;
+    transition: transform 0.32s ease, opacity 0.32s ease;
   }
   /* The composer's send button fades out while the picker is up. */
   body.nar-open .dp-composer-send { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
