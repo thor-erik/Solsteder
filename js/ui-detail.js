@@ -117,7 +117,12 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   if (v.kitchenCloseHour != null) {
     hoursSubtext = t('kitchen_until', { time: formatHour(v.kitchenCloseHour) });
   }
-  // "Åpent til X" renders as a line under the sun panel (dp-hours-line), not here.
+  // Hours live as an info row now (clock + "Open until X · Kitchen til Y"),
+  // right after the address — the standalone line above friends was awkward.
+  infoItems.splice(v.address ? 1 : 0, 0, {
+    icon: clockIcon,
+    strong: hoursLine + (hoursSubtext ? ' · ' + hoursSubtext : ''),
+  });
 
   // Info as cream-frost rows (mock 1): icon + label, optional right indicator
   // (busyness bars). One card with divided rows.
@@ -251,12 +256,9 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
            freshly-rendered .dp-card (verdict + timeline + facts). -->
       <div id="dp-card-slot" class="dp-card-slot"></div>
 
-      <!-- Hours paired with the sun answer: "is it sunny" + "is it open" read
-           together, right under the sun panel. -->
-      <div class="dp-hours-line">${clockIcon}<span>${hoursLine}${hoursSubtext ? ' · ' + hoursSubtext : ''}</span></div>
-
       <!-- Order (per Claude-Design): sun → social/plans → invite (all in the
-           VENNER zone) → divider → actions → divider → info. -->
+           VENNER zone) → divider → actions → divider → info. Hours moved into
+           the info card (was a standalone line here). -->
       ${_renderSocialSection(v)}
 
       <div class="dp-divider" aria-hidden="true"></div>

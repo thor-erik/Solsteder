@@ -654,17 +654,20 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     // LEFT (big): sun remaining now; else the verdict text for shadow/done.
     let leftHtml;
     if (cur) {
-      leftHtml = `<div class="dp-sun-now"><div class="dp-sun-now-main">${sunG}<span class="dp-sun-now-val">${fmtDur(Math.max(5/60, cur.end - nowH))}</span></div><div class="dp-sun-now-label">${_leftWord}</div></div>`;
+      leftHtml = `<div class="dp-sun-now"><div class="dp-sun-now-main">${sunG}<span class="dp-sun-now-val">${fmtDur(Math.max(5/60, cur.end - nowH))}</span> <span class="dp-sun-now-word">${_leftWord}</span></div></div>`;
     } else {
       leftHtml = `<div class="dp-sun-now"><div class="dp-sun-now-verdict">${dpState?.mainText || '—'}</div>${dpState?.subText ? `<div class="dp-sun-now-label">${dpState.subText}</div>` : ''}</div>`;
     }
 
     // RIGHT (pills): the day's upcoming sun events, same source as the left.
+    // Each pill names the event ("shadow at", "sun from", "closing at") so the
+    // bare times read as a sentence, not a row of clocks.
+    const _t = (k, p, fb) => (typeof t === 'function') ? t(k, p) : fb;
     const evs = [];
     if (cur && (sundownH == null || cur.end < sundownH - 0.01)) {
-      evs.push(`<span class="dp-evt dp-evt-shade">${shadeG}${fmtH(cur.end)}</span>`);
+      evs.push(`<span class="dp-evt dp-evt-shade">${shadeG}${_t('dp_evt_shade', { time: fmtH(cur.end) }, fmtH(cur.end))}</span>`);
     } else if (!cur && nextWin) {
-      evs.push(`<span class="dp-evt dp-evt-bonus">${sunSm}${fmtH(nextWin.start)}</span>`);
+      evs.push(`<span class="dp-evt dp-evt-bonus">${sunSm}${_t('state_sun_from', { time: fmtH(nextWin.start) }, fmtH(nextWin.start))}</span>`);
     }
     wins.filter(w => w.start > ((cur ? cur.end : (nextWin ? nextWin.start : nowH)) + 0.01)).slice(0, 2).forEach(w => {
       const oppTxt = (typeof t === 'function')
@@ -672,7 +675,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         : `+${fmtDur(w.end - w.start)} fra ${fmtH(w.start)}`;
       evs.push(`<span class="dp-evt dp-evt-bonus">${oppTxt}</span>`);
     });
-    if (sundownH != null) evs.push(`<span class="dp-evt dp-evt-moon">${moonG}${fmtH(sundownH)}</span>`);
+    if (sundownH != null) evs.push(`<span class="dp-evt dp-evt-moon">${moonG}${_t('dp_evt_closing', { time: fmtH(sundownH) }, fmtH(sundownH))}</span>`);
 
     return `
       <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}${auditCardCls}"

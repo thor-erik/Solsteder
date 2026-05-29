@@ -5566,19 +5566,27 @@
   /* Sun card: big "X igjen" on the left, the day's events as a pill column on
      the right. Both sides come from one computeSunWindows source so the numbers
      always agree (fixes the old left/right mismatch). */
+  /* Top-aligned: the "X left" verdict sits level with the first event pill
+     (the diagram), the timeline spans full width below both. */
   .dp-card .dp-sun-row {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: flex-start; justify-content: space-between;
     gap: var(--space-md);
   }
   .dp-card .dp-sun-now { min-width: 0; }
+  /* "[sun] 4h 30m left" — one line, the word kept the SAME size as the number
+     (just lighter), so it never reads as a small sub-label. */
   .dp-card .dp-sun-now-main {
-    display: flex; align-items: center; gap: var(--space-sm);
+    display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap;
     color: var(--accent-on-light);
   }
   .dp-card .dp-sun-now-main svg { flex-shrink: 0; }
   .dp-card .dp-sun-now-val {
-    font-size: var(--text-display); font-weight: var(--fw-display);
-    letter-spacing: var(--tracking-display); line-height: 1; color: var(--text);
+    font-size: var(--text-title); font-weight: 800;
+    letter-spacing: var(--tracking-title); line-height: 1.1; color: var(--text);
+  }
+  .dp-card .dp-sun-now-word {
+    font-size: var(--text-title); font-weight: 500;
+    line-height: 1.1; color: var(--ink-muted);
   }
   .dp-card .dp-sun-now-verdict {
     font-size: var(--text-title); font-weight: var(--fw-title);
@@ -5615,6 +5623,10 @@
     color: var(--ink-muted);
   }
   .dp-card .dp-sun-row + .card-timeline-block { margin-top: var(--space-md); }
+  /* Drop the list-card's extra 16px side padding here — the .dp-card already
+     pads 12px, so the bar was inset 28px while the row above was inset 12px.
+     Zeroing it lines the timeline up flush with the sun-row content width. */
+  .dp-card .card-timeline-block { padding-left: 0; padding-right: 0; }
   /* Slim the detail sun-card timeline well below the 48px accept-panel bar —
      it's a quiet day-shape strip now (pills carry the times). Still tappable +
      scrubbable; 28px stays >= 16 so the recessed channel (drawIndent) renders. */
