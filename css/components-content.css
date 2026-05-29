@@ -5707,6 +5707,63 @@
   .dp-composer-send svg { flex-shrink: 0; }
   .dp-composer-send:hover { box-shadow: var(--shadow-2); }
   .dp-composer-send:active { transform: translateY(1px); box-shadow: none; }
+  /* Composer "when" is a button — strip native chrome, keep the inline look. */
+  .dp-composer-when {
+    background: none; border: 0; margin: 0; padding: 0; font: inherit;
+    color: inherit; cursor: pointer; text-align: left;
+  }
+
+  /* ── NÅR panel — combined date+time picker, slides up from the composer ──── */
+  .nar-panel {
+    position: fixed; left: 412px; width: 380px; max-width: calc(100vw - 32px);
+    bottom: 16px; z-index: 900;
+    display: flex; flex-direction: column; gap: var(--space-md);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+    background: var(--glass-panel-bg);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+    backdrop-filter: var(--glass-blur-frost);
+    border: var(--glass-border);
+    box-shadow: var(--panel-shadow);
+    color: var(--panel-text);
+    transform: translateY(calc(100% + 24px)); opacity: 0;
+    transition: transform 0.34s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.26s ease;
+  }
+  .nar-panel.open { transform: translateY(0); opacity: 1; }
+  .nar-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
+  .nar-title { font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
+  .nar-date { font-size: var(--text-label); color: var(--ink-muted); }
+  /* Host the reparented FTS: neutralise its fixed/floating positioning and
+     force it visible (we don't flip the global body.fts state). */
+  .nar-fts-slot { position: relative; }
+  .nar-fts-slot #fts {
+    display: flex !important; position: relative;
+    top: auto; bottom: auto; left: auto; right: auto;
+    width: 100%; margin: 0; transform: none; opacity: 1;
+  }
+  .nar-status-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+  .nar-sun { min-width: 0; font-size: var(--text-label); font-weight: 600; color: var(--accent-on-light); }
+  .nar-time-pill {
+    flex-shrink: 0; padding: var(--space-2xs) var(--space-md); border-radius: var(--radius-pill);
+    background: var(--surface-sheet); color: var(--panel-text);
+    font-size: var(--text-label); font-weight: 700; font-variant-numeric: tabular-nums;
+  }
+  .nar-cta { width: 100%; }  /* honey fill comes from .p-pill */
+
+  /* Recede the detail panel behind the NÅR sheet (the "pushed back + fade"). */
+  body.nar-open #detail-panel.open {
+    transform: translateY(-10px) scale(0.95); opacity: 0.4; pointer-events: none;
+  }
+  /* The composer's send button fades out while the picker is up. */
+  body.nar-open .dp-composer-send { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+
+  @media (max-width: 639px) {
+    .nar-panel {
+      left: 0; right: 0; width: 100%; max-width: none; bottom: 0;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding-bottom: calc(var(--space-lg) + var(--app-bottom-inset, 0px));
+    }
+  }
 
   /* Plan card. */
   .dp-plan-card { display: flex; flex-direction: column; gap: var(--space-md); }

@@ -453,17 +453,161 @@ function _renderSocialComposer(v) {
     <div class="dp-social-card dp-composer">
       <div class="dp-composer-title">${t('invite_friends')}</div>
       <div class="dp-composer-top">
-        <div class="dp-composer-when">
+        <button type="button" class="dp-composer-when" onclick="_openNarPanel(${v.id})" aria-label="${t('nar_title')}">
           <span class="dp-composer-day">${esc(dayHeader)}</span>
           <span class="dp-composer-sep">·</span>
           <span class="dp-composer-time">${timeStr}</span>
           <span class="dp-composer-chev" aria-hidden="true">${chev}</span>
-        </div>
+        </button>
         ${meAv ? `<div class="dp-composer-me">${meAv}</div>` : ''}
       </div>
       <div class="dp-composer-bubble">${esc(msg)}</div>
       <button class="dp-composer-send" onclick="_openInviteSheet(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
     </div>`;
+}
+
+// ── NÅR panel — combined date + time picker (replaces invite stage 1) ────────
+// Slides up from the composer's "when" tap. Reparents the global day-strip
+// (via _renderQcCalendarStrip) + the FTS (#fts) in; recedes the detail panel
+// behind it (body.nar-open). "Velg venner / Del" hands off to the invite
+// sheet's select-friends page (the WHEN→WHO animation comes later).
+let _narVenueId = null;
+
+function _narDateLabel(dateStr) {
+  try {
+    const loc = (typeof lang !== 'undefined' && lang) ? lang : 'nb-NO';
+    return new Date(dateStr + 'T12:00:00')
+      .toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' });
+  } catch (e) { return dateStr || ''; }
+}
+
+// Keep the date label + time pill + sun line in sync with the global moment
+// (the reparented day-strip + FTS drive datePicker / timeFromEl).
+function _narSyncStatus() {
+  const panel = document.getElementById('nar-panel');
+  if (!panel) return;
+  const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : '';
+  const h = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : NaN;
+  const dEl = panel.querySelector('#nar-date');
+  if (dEl) dEl.textContent = _narDateLabel(dateStr);
+  const pEl = panel.querySelector('#nar-time-pill');
+  if (pEl && Number.isFinite(h)) pEl.textContent = (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
+  const sEl = panel.querySelector('#nar-sun');
+  const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === _narVenueId) : null;
+  if (!sEl || !v || !Number.isFinite(h)) return;
+  const cap = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const hu = t('unit_h_short');
+  let txt = '';
+  try {
+    const { windows } = computeSunWindows(v, dateStr);
+    const cur = (windows || []).find(w => h >= w.start && h < w.end);
+    if (cur) {
+      const rem = cur.end - h, rh = Math.floor(rem), rm = Math.round((rem - rh) * 60);
+      const dur = rh > 0 ? (rm > 0 ? `${rh}${hu} ${rm}m` : `${rh}${hu}`) : `${Math.max(1, rm)}m`;
+      txt = `${cap(t('sun_until', { time: formatHour(cur.end) }))} · ${dur} ${t('word_left')}`;
+    } else {
+      const next = (windows || []).find(w => w.start > h);
+      txt = next ? cap(t('state_sun_from', { time: formatHour(next.start) })) : t('plan_in_shade');
+    }
+  } catch (e) { /* no sun data */ }
+  sEl.textContent = txt;
+}
+
+function _openNarPanel(venueId) {
+  if (document.getElementById('nar-panel')) return; // already open
+  _narVenueId = venueId;
+
+  const usersSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+  const panel = document.createElement('div');
+  panel.id = 'nar-panel';
+  panel.className = 'nar-panel';
+  panel.innerHTML = `
+    <div class="nar-head">
+      <span class="nar-title">${t('nar_title')}</span>
+      <span class="nar-date" id="nar-date"></span>
+    </div>
+    <div class="nar-strip" id="nar-strip"></div>
+    <div class="nar-fts-slot" id="nar-fts-slot"></div>
+    <div class="nar-status-row">
+      <span class="nar-sun" id="nar-sun"></span>
+      <span class="nar-time-pill" id="nar-time-pill"></span>
+    </div>
+    <button type="button" class="nar-cta p-pill" onclick="_narGoToShare(${venueId})">
+      ${usersSvg}<span>${t('nar_cta')}</span>
+    </button>`;
+  document.body.appendChild(panel);
+
+  // Day-strip — reuse the global QC strip renderer (its day taps set the date).
+  const strip = panel.querySelector('#nar-strip');
+  if (strip && typeof _renderQcCalendarStrip === 'function') {
+    try { _renderQcCalendarStrip(strip); } catch (e) { /* strip optional */ }
+  }
+
+  // Reparent the FTS in (proven pattern — see the invite sheet). Remember its
+  // home so _closeNarPanel can put it back exactly where it was.
+  const fts = document.getElementById('fts');
+  const slot = panel.querySelector('#nar-fts-slot');
+  if (fts && slot) {
+    panel._ftsHome = fts.parentNode;
+    // The slot force-shows the FTS (CSS) so we don't toggle the global
+    // body.fts state (which would leak the slider into the list on close).
+    if (fts.parentNode !== slot) slot.appendChild(fts);
+  }
+
+  // Sync the status row on every scrub / day change.
+  if (typeof timeFromEl !== 'undefined' && timeFromEl) {
+    panel._onTime = () => _narSyncStatus();
+    timeFromEl.addEventListener('input', panel._onTime);
+  }
+  // Tap on the receded detail panel (outside the NÅR sheet) closes it.
+  panel._onDocDown = (ev) => {
+    if (!panel.contains(ev.target) && (typeof fts === 'undefined' || !fts || !fts.contains(ev.target))) {
+      _closeNarPanel();
+    }
+  };
+  setTimeout(() => document.addEventListener('pointerdown', panel._onDocDown), 0);
+
+  // Recede the detail panel + slide the sheet up.
+  document.body.classList.add('nar-open');
+  void panel.offsetWidth; // commit the pre-open transform before animating
+  panel.classList.add('open');
+  _narSyncStatus();
+}
+
+function _closeNarPanel() {
+  const panel = document.getElementById('nar-panel');
+  if (!panel) return;
+  // Return the FTS to its home parent.
+  const fts = document.getElementById('fts');
+  if (fts && panel._ftsHome && fts.parentNode !== panel._ftsHome) {
+    fts.style.cssText = '';
+    panel._ftsHome.appendChild(fts);
+  }
+  if (panel._onTime && typeof timeFromEl !== 'undefined' && timeFromEl) {
+    timeFromEl.removeEventListener('input', panel._onTime);
+  }
+  if (panel._onDocDown) document.removeEventListener('pointerdown', panel._onDocDown);
+  document.body.classList.remove('nar-open');
+  panel.classList.remove('open');
+  setTimeout(() => { try { panel.remove(); } catch (e) {} }, 340);
+}
+
+// Hand off to the invite sheet's select-friends (share) page. The polished
+// WHEN→WHO transition is deferred; for now we open + jump straight to share.
+function _narGoToShare(venueId) {
+  _closeNarPanel();
+  if (typeof _openInviteSheet === 'function') {
+    _openInviteSheet(venueId);
+    if (typeof _dpinviteGoToShare === 'function') {
+      setTimeout(() => { try { _dpinviteGoToShare(venueId); } catch (e) {} }, 60);
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window._openNarPanel = _openNarPanel;
+  window._closeNarPanel = _closeNarPanel;
+  window._narGoToShare = _narGoToShare;
 }
 
 /** Plans block — own section below the social card. Empty string when no
