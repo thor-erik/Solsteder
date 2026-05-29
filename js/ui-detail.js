@@ -451,16 +451,16 @@ function _renderSocialComposer(v) {
 
   return `
     <div class="dp-social-card dp-composer">
-      <div class="dp-composer-title">${t('invite_friends')}</div>
-      <div class="dp-composer-top">
-        <button type="button" class="dp-composer-when" onclick="_openNarPanel(${v.id})" aria-label="${t('nar_title')}">
-          <span class="dp-composer-day">${esc(dayHeader)}</span>
-          <span class="dp-composer-sep">·</span>
-          <span class="dp-composer-time">${timeStr}</span>
-          <span class="dp-composer-chev" aria-hidden="true">${chev}</span>
-        </button>
+      <div class="dp-composer-titlerow">
+        <div class="dp-composer-title">${t('invite_friends')}</div>
         ${meAv ? `<div class="dp-composer-me">${meAv}</div>` : ''}
       </div>
+      <button type="button" class="dp-composer-when" onclick="_openNarPanel(${v.id})" aria-label="${t('nar_title')}">
+        <span class="dp-composer-day">${esc(dayHeader)}</span>
+        <span class="dp-composer-sep">·</span>
+        <span class="dp-composer-time">${timeStr}</span>
+        <span class="dp-composer-chev" aria-hidden="true">${chev}</span>
+      </button>
       <div class="dp-composer-bubble">${esc(msg)}</div>
       <button class="dp-composer-send" onclick="_openInviteSheet(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
     </div>`;
@@ -521,7 +521,7 @@ function _openNarPanel(venueId) {
   if (!scroll || !social) return;
   _narVenueId = venueId;
 
-  const usersSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+  const planeSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`;
 
   // The picker lives INSIDE the detail panel, right after the plan card. CSS
   // (body.nar-mode) hides every other #dp-scroll child, leaving handle + plan
@@ -541,9 +541,10 @@ function _openNarPanel(venueId) {
       <span class="nar-sun" id="nar-sun"></span>
       <span class="nar-time-pill" id="nar-time-pill"></span>
     </div>
-    <button type="button" class="nar-cta p-pill" onclick="_narGoToShare(${venueId})">
-      ${usersSvg}<span>${t('nar_cta')}</span>
-    </button>`;
+    <button type="button" class="nar-send" onclick="_narGoToShare(${venueId})">
+      ${planeSvg}<span>${t('send_to_friends')}</span>
+    </button>
+    <button type="button" class="nar-cancel" onclick="_closeNarPanel()">${t('invite_cancel')}</button>`;
   social.insertAdjacentElement('afterend', picker);
 
   // Day-strip — reuse the global QC strip renderer (its day taps set the date).

@@ -5673,12 +5673,14 @@
     font-size: var(--text-caption); font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--ink-muted);
   }
-  .dp-composer-top {
+  /* Title row: label left, your avatar in the top-right corner. */
+  .dp-composer-titlerow {
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--space-md);
   }
   .dp-composer-when {
-    display: flex; align-items: center; gap: var(--space-2xs); min-width: 0;
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: var(--space-2xs); min-width: 0;
     font-size: var(--text-subtitle); font-weight: 700; color: var(--text);
   }
   .dp-composer-sep { color: var(--ink-muted); font-weight: 400; }
@@ -5732,14 +5734,21 @@
   .nar-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
   .nar-title { font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
   .nar-date { font-size: var(--text-label); color: var(--ink-muted); }
-  /* Day-strip: one horizontal scrolling row (the QC strip is a 5×2 grid by
-     default — wraps in this narrow panel). Hide its "Vis full kalender". */
+  /* Day-strip: one horizontal SCROLLING row of fixed-width cream-frost tiles
+     (the QC strip is a 5×2 grid of dark over-map tiles by default). Hide its
+     "Vis full kalender" — no full calendar here. */
   .nar-strip .dc-grid {
     display: flex; flex-wrap: nowrap; gap: var(--space-xs);
     overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
   }
-  .nar-strip .dc-grid > * { flex: 0 0 auto; }
   .nar-strip .dc-expand-btn-wide { display: none; }
+  .nar-strip .dc-tile {
+    flex: 0 0 54px;                       /* comfortable tile, scroll for more */
+    background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
+  }
+  .nar-strip .dc-tile .dc-day  { color: var(--ink-muted); }
+  .nar-strip .dc-tile .dc-num  { color: var(--panel-text); }
+  .nar-strip .dc-tile .dc-temp { color: var(--ink-muted); }
   /* Host the reparented FTS: neutralise its fixed/floating positioning and
      force it visible (we don't flip the global body.fts state). */
   .nar-fts-slot { position: relative; }
@@ -5755,7 +5764,26 @@
     background: var(--surface-sheet); color: var(--panel-text);
     font-size: var(--text-label); font-weight: 700; font-variant-numeric: tabular-nums;
   }
-  .nar-cta { width: 100%; }  /* honey fill comes from .p-pill */
+  /* Navy "Send til venner" + a quiet cancel below it (replaces the yellow CTA;
+     the honey CTA on this screen stays with the venue's Directions button). */
+  .nar-send {
+    display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
+    width: 100%; height: 48px; border: none; border-radius: var(--radius-pill);
+    background: var(--bg); color: var(--ctl-icon);
+    font-family: 'Inter', sans-serif; font-size: var(--text-body); font-weight: 700;
+    cursor: pointer; box-shadow: var(--shadow-1);
+    transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
+  }
+  .nar-send svg { flex-shrink: 0; }
+  .nar-send:hover { box-shadow: var(--shadow-2); }
+  .nar-send:active { transform: translateY(1px); box-shadow: none; }
+  .nar-cancel {
+    align-self: center; background: none; border: none; cursor: pointer;
+    padding: var(--space-sm) var(--space-md); margin-top: calc(var(--space-xs) * -1);
+    font-family: 'Inter', sans-serif; font-size: var(--text-label); font-weight: 600;
+    color: var(--ink-muted);
+  }
+  .nar-cancel:hover { color: var(--panel-text); }
 
   @media (max-width: 639px) {
     /* Panel fits its now-short content + grows UP as the picker expands
