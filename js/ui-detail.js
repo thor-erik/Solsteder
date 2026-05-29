@@ -514,28 +514,62 @@ function _narSyncStatus() {
 }
 
 function _openNarPanel(venueId) {
-  if (document.getElementById('nar-panel')) return; // already open
+  if (document.getElementById('nar-wrap')) return; // already open
   _narVenueId = venueId;
+  const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === venueId) : null;
+
+  // Plan moment — static "tomorrow 15:30" for now (mirrors the composer; the
+  // picker editing it is the deferred wiring). Drives the lifted plan card.
+  const cap = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const now = new Date();
+  const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const pad = (n) => String(n).padStart(2, '0');
+  const tmrwStr = `${tmrw.getFullYear()}-${pad(tmrw.getMonth() + 1)}-${pad(tmrw.getDate())}`;
+  const planHour = 15.5;
+  const dayHeader = (typeof _dayLabel === 'function') ? cap(_dayLabel(tmrwStr)) : 'Tomorrow';
+  const dayInline = (typeof _dayLabel === 'function') ? _dayLabel(tmrwStr) : 'tomorrow';
+  const timeStr = (typeof formatHour === 'function') ? formatHour(planHour) : '15:30';
+  let sunUntil = null;
+  try { const { windows } = computeSunWindows(v, tmrwStr); const cur = (windows || []).find(w => planHour >= w.start && planHour < w.end); if (cur) sunUntil = formatHour(cur.end); } catch (e) { /* no sun */ }
+  const msg = sunUntil
+    ? t('composer_preview_sun', { venue: (v && v.name) || '', day: dayInline, time: timeStr, sunUntil })
+    : t('composer_preview', { venue: (v && v.name) || '', day: dayInline, time: timeStr });
+  const me = (typeof _currentUser !== 'undefined' && _currentUser) ? _currentUser : (typeof window !== 'undefined' ? window._currentUser : null);
+  const meAv = me ? _renderFriendAvatarsHtml([{ user: { id: me.id, name: me.user_metadata && me.user_metadata.name, email: me.email, avatar_url: me.user_metadata && me.user_metadata.avatar_url } }], 1, 34) : '';
 
   const usersSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
-  const panel = document.createElement('div');
-  panel.id = 'nar-panel';
-  panel.className = 'nar-panel';
-  panel.innerHTML = `
-    <div class="nar-head">
-      <span class="nar-title">${t('nar_title')}</span>
-      <span class="nar-date" id="nar-date"></span>
+
+  // Wrap = [lifted plan card] + [picker sheet], sliding up as one. The detail
+  // panel fades fully out behind it (see body.nar-open CSS).
+  const wrap = document.createElement('div');
+  wrap.id = 'nar-wrap';
+  wrap.className = 'nar-wrap';
+  wrap.innerHTML = `
+    <div class="nar-plan">
+      <div class="nar-plan-top">
+        <div class="nar-plan-when"><span class="nar-plan-day">${esc(dayHeader)}</span> · <span class="nar-plan-time">${timeStr}</span></div>
+        ${meAv ? `<div class="nar-plan-av">${meAv}</div>` : ''}
+      </div>
+      <div class="nar-plan-bubble">${esc(msg)}</div>
     </div>
-    <div class="nar-strip" id="nar-strip"></div>
-    <div class="nar-fts-slot" id="nar-fts-slot"></div>
-    <div class="nar-status-row">
-      <span class="nar-sun" id="nar-sun"></span>
-      <span class="nar-time-pill" id="nar-time-pill"></span>
-    </div>
-    <button type="button" class="nar-cta p-pill" onclick="_narGoToShare(${venueId})">
-      ${usersSvg}<span>${t('nar_cta')}</span>
-    </button>`;
-  document.body.appendChild(panel);
+    <div class="nar-panel" id="nar-panel">
+      <div class="nar-head">
+        <span class="nar-title">${t('nar_title')}</span>
+        <span class="nar-date" id="nar-date"></span>
+      </div>
+      <div class="nar-strip" id="nar-strip"></div>
+      <div class="nar-fts-slot" id="nar-fts-slot"></div>
+      <div class="nar-status-row">
+        <span class="nar-sun" id="nar-sun"></span>
+        <span class="nar-time-pill" id="nar-time-pill"></span>
+      </div>
+      <button type="button" class="nar-cta p-pill" onclick="_narGoToShare(${venueId})">
+        ${usersSvg}<span>${t('nar_cta')}</span>
+      </button>
+    </div>`;
+  document.body.appendChild(wrap);
+  const panel = wrap.querySelector('#nar-panel');
 
   // Day-strip — reuse the global QC strip renderer (its day taps set the date).
   const strip = panel.querySelector('#nar-strip');
@@ -548,7 +582,7 @@ function _openNarPanel(venueId) {
   const fts = document.getElementById('fts');
   const slot = panel.querySelector('#nar-fts-slot');
   if (fts && slot) {
-    panel._ftsHome = fts.parentNode;
+    wrap._ftsHome = fts.parentNode;
     // The slot force-shows the FTS (CSS) so we don't toggle the global
     // body.fts state (which would leak the slider into the list on close).
     if (fts.parentNode !== slot) slot.appendChild(fts);
@@ -556,26 +590,24 @@ function _openNarPanel(venueId) {
 
   // Sync the status row on every scrub / day change.
   if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-    panel._onTime = () => _narSyncStatus();
-    timeFromEl.addEventListener('input', panel._onTime);
+    wrap._onTime = () => _narSyncStatus();
+    timeFromEl.addEventListener('input', wrap._onTime);
   }
-  // Tap on the receded detail panel (outside the NÅR sheet) closes it.
-  panel._onDocDown = (ev) => {
-    if (!panel.contains(ev.target) && (typeof fts === 'undefined' || !fts || !fts.contains(ev.target))) {
-      _closeNarPanel();
-    }
+  // Tap outside the wrap (on the faded detail panel / map) closes it.
+  wrap._onDocDown = (ev) => {
+    if (!wrap.contains(ev.target)) _closeNarPanel();
   };
-  setTimeout(() => document.addEventListener('pointerdown', panel._onDocDown), 0);
+  setTimeout(() => document.addEventListener('pointerdown', wrap._onDocDown), 0);
 
-  // Recede the detail panel + slide the sheet up.
+  // Fade the detail panel away + slide the wrap up.
   document.body.classList.add('nar-open');
-  void panel.offsetWidth; // commit the pre-open transform before animating
-  panel.classList.add('open');
+  void wrap.offsetWidth; // commit the pre-open transform before animating
+  wrap.classList.add('open');
   _narSyncStatus();
 }
 
 function _closeNarPanel() {
-  const panel = document.getElementById('nar-panel');
+  const panel = document.getElementById('nar-wrap');
   if (!panel) return;
   // Return the FTS to its home parent.
   const fts = document.getElementById('fts');

@@ -5713,27 +5713,46 @@
     color: inherit; cursor: pointer; text-align: left;
   }
 
-  /* ── NÅR panel — combined date+time picker, slides up from the composer ──── */
-  .nar-panel {
+  /* ── NÅR picker — slides up from the composer's "when" tap ───────────────────
+     Wrap = the slider. It stacks a LIFTED plan card above the picker sheet and
+     animates as one; the detail panel fades fully out behind it. Everything is
+     SOLID cream (no backdrop-filter): stacked frost blurs over the detail
+     panel's own blur froze the slide, and a flat fill covers cleanly. NB: this
+     subtree is appended to <body>, OUTSIDE #detail-panel, so the card-scope
+     ink --text override doesn't apply — use --panel-text/--ink-muted directly,
+     never var(--text) (which is the root cream here). */
+  .nar-wrap {
     position: fixed; left: 412px; width: 380px; max-width: calc(100vw - 32px);
     bottom: 16px; z-index: 900;
     display: flex; flex-direction: column; gap: var(--space-md);
-    padding: var(--space-lg);
-    border-radius: var(--radius-lg);
-    /* SOLID cream — this sheet stacks OVER the detail panel (not the map), so
-       a translucent/blurred fill let the venue card bleed through AND a
-       backdrop-filter stacked on the detail panel's own frost froze the
-       slide-up animation (nested backdrop-filters are very expensive). A flat
-       opaque fill renders cheaply and covers cleanly. */
-    background: var(--paper-cream);
-    border: 1px solid var(--card-cream-border);
-    box-shadow: var(--panel-shadow);
-    color: var(--panel-text);
     transform: translateY(calc(100% + 24px)); opacity: 0;
     will-change: transform, opacity;
     transition: transform 0.34s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.26s ease;
   }
-  .nar-panel.open { transform: translateY(0); opacity: 1; }
+  .nar-wrap.open { transform: translateY(0); opacity: 1; }
+  /* Lifted plan card — floats above the picker. */
+  .nar-plan {
+    display: flex; flex-direction: column; gap: var(--space-sm);
+    padding: var(--space-lg); border-radius: var(--radius-lg);
+    background: var(--paper-cream); border: 1px solid var(--card-cream-border);
+    box-shadow: var(--panel-shadow); color: var(--panel-text);
+  }
+  .nar-plan-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+  .nar-plan-when { font-size: var(--text-subtitle); font-weight: 700; color: var(--panel-text); }
+  .nar-plan-av { flex-shrink: 0; display: flex; }
+  .nar-plan-av .avatar { border-radius: 50%; }
+  .nar-plan-bubble {
+    background: var(--surface-sheet); border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--text-label); line-height: 1.45; color: var(--panel-text);
+  }
+  /* Picker sheet — static inside the wrap (the wrap animates). */
+  .nar-panel {
+    display: flex; flex-direction: column; gap: var(--space-md);
+    padding: var(--space-lg); border-radius: var(--radius-lg);
+    background: var(--paper-cream); border: 1px solid var(--card-cream-border);
+    box-shadow: var(--panel-shadow); color: var(--panel-text);
+  }
   .nar-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
   .nar-title { font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
   .nar-date { font-size: var(--text-label); color: var(--ink-muted); }
@@ -5762,20 +5781,24 @@
   }
   .nar-cta { width: 100%; }  /* honey fill comes from .p-pill */
 
-  /* Recede the detail panel behind the NÅR sheet (the "pushed back + fade").
-     Fades well down so the part of it above the sheet reads as receded, not
-     a crisp duplicate. !important to beat the per-breakpoint .open transforms. */
+  /* Detail panel recedes + fades FULLY out behind the picker. Critically we
+     also kill its backdrop-filter: cal-open slides it off-screen (no blur
+     cost), but our recede keeps it on-screen, so its blur(22px) recomputed
+     every frame and FROZE the slide. none = cheap fade. !important beats the
+     per-breakpoint .open transforms. */
   body.nar-open #detail-panel.open {
-    transform: translateY(-12px) scale(0.94) !important;
-    opacity: 0.25 !important; pointer-events: none;
-    transition: transform 0.32s ease, opacity 0.32s ease;
+    transform: translateY(-16px) scale(0.93) !important;
+    opacity: 0 !important; pointer-events: none;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    transition: transform 0.32s ease, opacity 0.3s ease;
   }
   /* The composer's send button fades out while the picker is up. */
   body.nar-open .dp-composer-send { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
 
   @media (max-width: 639px) {
+    .nar-wrap { left: 0; right: 0; width: 100%; max-width: none; bottom: 0; gap: var(--space-sm); }
+    /* Picker sheet is the bottom edge — flat bottom corners + safe-area inset. */
     .nar-panel {
-      left: 0; right: 0; width: 100%; max-width: none; bottom: 0;
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
       padding-bottom: calc(var(--space-lg) + var(--app-bottom-inset, 0px));
     }
