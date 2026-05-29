@@ -455,11 +455,10 @@ function _renderSocialComposer(v) {
         <div class="dp-composer-title">${t('invite_friends')}</div>
         ${meAv ? `<div class="dp-composer-me">${meAv}</div>` : ''}
       </div>
-      <button type="button" class="dp-composer-when" onclick="_openNarPanel(${v.id})" aria-label="${t('nar_title')}">
+      <button type="button" class="dp-composer-when" onclick="_openNarPanel(${v.id})" aria-label="${t('nar_card_title')}">
         <span class="dp-composer-day">${esc(dayHeader)}</span>
         <span class="dp-composer-sep">·</span>
         <span class="dp-composer-time">${timeStr}</span>
-        <span class="dp-composer-chev" aria-hidden="true">${chev}</span>
       </button>
       <div class="dp-composer-bubble">${esc(msg)}</div>
       <button class="dp-composer-send" onclick="_openInviteSheet(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
@@ -482,36 +481,13 @@ function _narDateLabel(dateStr) {
   } catch (e) { return dateStr || ''; }
 }
 
-// Keep the date label + time pill + sun line in sync with the global moment
-// (the reparented day-strip + FTS drive datePicker / timeFromEl).
+// Keep the card's date label in sync with the global moment (the reparented
+// day-strip + FTS drive datePicker).
 function _narSyncStatus() {
-  const panel = document.querySelector('.nar-picker');
-  if (!panel) return;
+  const dEl = document.getElementById('nar-date');
+  if (!dEl) return;
   const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : '';
-  const h = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : NaN;
-  const dEl = panel.querySelector('#nar-date');
-  if (dEl) dEl.textContent = _narDateLabel(dateStr);
-  const pEl = panel.querySelector('#nar-time-pill');
-  if (pEl && Number.isFinite(h)) pEl.textContent = (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
-  const sEl = panel.querySelector('#nar-sun');
-  const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === _narVenueId) : null;
-  if (!sEl || !v || !Number.isFinite(h)) return;
-  const cap = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  const hu = t('unit_h_short');
-  let txt = '';
-  try {
-    const { windows } = computeSunWindows(v, dateStr);
-    const cur = (windows || []).find(w => h >= w.start && h < w.end);
-    if (cur) {
-      const rem = cur.end - h, rh = Math.floor(rem), rm = Math.round((rem - rh) * 60);
-      const dur = rh > 0 ? (rm > 0 ? `${rh}${hu} ${rm}m` : `${rh}${hu}`) : `${Math.max(1, rm)}m`;
-      txt = `${cap(t('sun_until', { time: formatHour(cur.end) }))} · ${dur} ${t('word_left')}`;
-    } else {
-      const next = (windows || []).find(w => w.start > h);
-      txt = next ? cap(t('state_sun_from', { time: formatHour(next.start) })) : t('plan_in_shade');
-    }
-  } catch (e) { /* no sun data */ }
-  sEl.textContent = txt;
+  dEl.textContent = _narDateLabel(dateStr);
 }
 
 function _openNarPanel(venueId) {
@@ -531,20 +507,23 @@ function _openNarPanel(venueId) {
   const picker = document.createElement('div');
   picker.className = 'nar-picker';
   picker.innerHTML = `
-    <div class="nar-head">
-      <span class="nar-title">${t('nar_title')}</span>
-      <span class="nar-date" id="nar-date"></span>
+    <div class="dp-divider" aria-hidden="true"></div>
+    <div class="nar-card">
+      <div class="nar-card-head">
+        <span class="nar-card-title">${t('nar_card_title')}</span>
+      </div>
+      <div class="nar-strip" id="nar-strip"></div>
+      <div class="nar-fts-slot" id="nar-fts-slot"></div>
     </div>
-    <div class="nar-strip" id="nar-strip"></div>
-    <div class="nar-fts-slot" id="nar-fts-slot"></div>
-    <div class="nar-status-row">
-      <span class="nar-sun" id="nar-sun"></span>
-      <span class="nar-time-pill" id="nar-time-pill"></span>
+    <div class="dp-divider" aria-hidden="true"></div>
+    <div class="dpinvite-cta-row">
+      <button type="button" class="nar-send" onclick="_narGoToShare(${venueId})">
+        ${planeSvg}<span>${t('send_to_friends')}</span>
+      </button>
     </div>
-    <button type="button" class="nar-send" onclick="_narGoToShare(${venueId})">
-      ${planeSvg}<span>${t('send_to_friends')}</span>
-    </button>
-    <button type="button" class="nar-cancel" onclick="_closeNarPanel()">${t('invite_cancel')}</button>`;
+    <div class="dprcv-cta-row">
+      <button type="button" class="dprcv-cta-link" onclick="_closeNarPanel()"><span>${t('invite_cancel')}</span></button>
+    </div>`;
   social.insertAdjacentElement('afterend', picker);
 
   // Day-strip — reuse the global QC strip renderer (its day taps set the date).
@@ -562,11 +541,6 @@ function _openNarPanel(venueId) {
     if (fts.parentNode !== slot) slot.appendChild(fts);
   }
 
-  // Sync the status row on every scrub / day change.
-  if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-    picker._onTime = () => _narSyncStatus();
-    timeFromEl.addEventListener('input', picker._onTime);
-  }
   // Tap outside the detail panel (map) closes the picker back to the full card.
   picker._onDocDown = (ev) => {
     const dp = document.getElementById('detail-panel');
@@ -577,7 +551,6 @@ function _openNarPanel(venueId) {
   // Collapse the panel to handle + plan card, then grow the picker up.
   void picker.offsetWidth; // commit max-height:0 before the grow
   document.body.classList.add('nar-mode');
-  _narSyncStatus();
   // Un-clip once grown so the FTS scrub popup isn't cut off by overflow:hidden.
   picker._overflowTimer = setTimeout(() => { picker.style.overflow = 'visible'; }, 440);
 }

@@ -5673,9 +5673,15 @@
     font-size: var(--text-caption); font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--ink-muted);
   }
-  /* Title row: label left, your avatar in the top-right corner. */
+  /* Plan card surface = the top-bar control glass (per request), not cream.
+     Overrides the #detail-panel .dp-social-card cream fill for the composer. */
+  #detail-panel .dp-composer {
+    background: var(--btn-glass-bg);
+    border-color: var(--btn-glass-border);
+  }
+  /* Title row: label pinned top-LEFT, your avatar in the top-right corner. */
   .dp-composer-titlerow {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: flex-start; justify-content: space-between;
     gap: var(--space-md);
   }
   .dp-composer-when {
@@ -5684,7 +5690,6 @@
     font-size: var(--text-subtitle); font-weight: 700; color: var(--text);
   }
   .dp-composer-sep { color: var(--ink-muted); font-weight: 400; }
-  .dp-composer-chev { display: inline-flex; color: var(--ink-muted); }
   .dp-composer-me { flex-shrink: 0; display: flex; }
   .dp-composer-me .avatar { border-radius: 50%; }
   /* Jordy-blue share-text preview bubble. */
@@ -5725,17 +5730,25 @@
 
   .nar-picker {
     display: flex; flex-direction: column; gap: var(--space-md);
-    margin-top: var(--space-md); padding-top: var(--space-lg);
-    border-top: 1px solid var(--line-l-faint);
     max-height: 0; opacity: 0; overflow: hidden;
     transition: max-height 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.28s ease;
   }
-  body.nar-mode .nar-picker { max-height: 640px; opacity: 1; }
-  .nar-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
-  .nar-title { font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); }
-  .nar-date { font-size: var(--text-label); color: var(--ink-muted); }
-  /* Day-strip: one horizontal SCROLLING row of fixed-width cream-frost tiles
-     (the QC strip is a 5×2 grid of dark over-map tiles by default). Hide its
+  body.nar-mode .nar-picker { max-height: 680px; opacity: 1; }
+  /* Dividers separate plan-card → date/time card → CTA; the flex gap owns the
+     spacing, so zero the divider's own margin. */
+  .nar-picker > .dp-divider { margin: 0; }
+
+  /* Date/time picker card — a cream-frost box with a sentence-case title. */
+  .nar-card {
+    display: flex; flex-direction: column; gap: var(--space-md);
+    padding: var(--space-lg); border-radius: var(--radius-lg);
+    background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
+    box-shadow: var(--card-cream-shadow);
+  }
+  .nar-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
+  .nar-card-title { font-size: var(--text-label); font-weight: 600; color: var(--ink-muted); }
+  /* Day-strip: one horizontal SCROLLING row of legible cream-frost tiles (the
+     QC strip is a 5×2 grid of small dark over-map tiles by default). Hide its
      "Vis full kalender" — no full calendar here. */
   .nar-strip .dc-grid {
     display: flex; flex-wrap: nowrap; gap: var(--space-xs);
@@ -5743,12 +5756,13 @@
   }
   .nar-strip .dc-expand-btn-wide { display: none; }
   .nar-strip .dc-tile {
-    flex: 0 0 54px;                       /* comfortable tile, scroll for more */
+    flex: 0 0 58px; padding: var(--space-sm) var(--space-2xs); gap: var(--space-2xs);
     background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
   }
-  .nar-strip .dc-tile .dc-day  { color: var(--ink-muted); }
-  .nar-strip .dc-tile .dc-num  { color: var(--panel-text); }
-  .nar-strip .dc-tile .dc-temp { color: var(--ink-muted); }
+  .nar-strip .dc-tile .dc-day  { font-size: var(--text-caption); color: var(--ink-muted); }
+  .nar-strip .dc-tile .dc-num  { font-size: var(--text-subtitle); color: var(--panel-text); }
+  .nar-strip .dc-tile .dc-temp { font-size: var(--text-caption); color: var(--ink-muted); }
+  .nar-strip .dc-tile .dc-icon .wx-sky-icon { width: 18px; height: 18px; }
   /* Host the reparented FTS: neutralise its fixed/floating positioning and
      force it visible (we don't flip the global body.fts state). */
   .nar-fts-slot { position: relative; }
@@ -5757,17 +5771,11 @@
     top: auto; bottom: auto; left: auto; right: auto;
     width: 100%; margin: 0; transform: none; opacity: 1;
   }
-  .nar-status-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
-  .nar-sun { min-width: 0; font-size: var(--text-label); font-weight: 600; color: var(--accent-on-light); }
-  .nar-time-pill {
-    flex-shrink: 0; padding: var(--space-2xs) var(--space-md); border-radius: var(--radius-pill);
-    background: var(--surface-sheet); color: var(--panel-text);
-    font-size: var(--text-label); font-weight: 700; font-variant-numeric: tabular-nums;
-  }
-  /* Navy "Send til venner" + a quiet cancel below it (replaces the yellow CTA;
-     the honey CTA on this screen stays with the venue's Directions button). */
+  /* Primary + cancel — identical layout to the invite panel (.dpinvite-cta-row
+     + .dprcv-cta-row/.dprcv-cta-link), just a navy "Send til venner" in place
+     of the honey p-pill. */
   .nar-send {
-    display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
+    display: flex; flex: 1; align-items: center; justify-content: center; gap: var(--space-sm);
     width: 100%; height: 48px; border: none; border-radius: var(--radius-pill);
     background: var(--bg); color: var(--ctl-icon);
     font-family: 'Inter', sans-serif; font-size: var(--text-body); font-weight: 700;
@@ -5777,13 +5785,6 @@
   .nar-send svg { flex-shrink: 0; }
   .nar-send:hover { box-shadow: var(--shadow-2); }
   .nar-send:active { transform: translateY(1px); box-shadow: none; }
-  .nar-cancel {
-    align-self: center; background: none; border: none; cursor: pointer;
-    padding: var(--space-sm) var(--space-md); margin-top: calc(var(--space-xs) * -1);
-    font-family: 'Inter', sans-serif; font-size: var(--text-label); font-weight: 600;
-    color: var(--ink-muted);
-  }
-  .nar-cancel:hover { color: var(--panel-text); }
 
   @media (max-width: 639px) {
     /* Panel fits its now-short content + grows UP as the picker expands
