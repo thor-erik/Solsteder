@@ -270,6 +270,14 @@ function _syncFtsPosition() {
   if (_prevPanelMobileState && _prevPanelMobileState !== newState) {
     _maybePanMapForPanelState(_prevPanelMobileState, newState);
   }
+  // Detail panel state changes (peek → expanded → fullscreen) change the
+  // available content height — re-measure the action pager so the Send
+  // button + cancel positions stay correct.
+  if (_prevPanelMobileState !== newState
+      && typeof _dpPagerResize === 'function'
+      && document.getElementById('detail-panel')?.classList.contains('open')) {
+    requestAnimationFrame(() => _dpPagerResize());
+  }
   _prevPanelMobileState = newState;
 }
 

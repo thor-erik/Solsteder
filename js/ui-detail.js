@@ -532,12 +532,19 @@ function _renderShareContent(v) {
   const avatarsHtml = (typeof _renderInviteAvatarCarousel === 'function')
     ? _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm) : '';
 
-  // Friend block: 4-col CSS grid (was a horizontal scroll row in v1). Grid
-  // rows scale with friend count — 1 row at 1–4 friends, 2 rows at 5–8, etc.
-  // The grid is `flex: 1; overflow-y: auto` (set in CSS) so a long list
-  // scrolls inside its slot without breaking the bottom-locked cancel.
+  // Friends card (v3, 2026-05-30): the grid lives inside a cream-frost card
+  // with its own "Velg venner" eyebrow (same shape as the NÅR picker's card),
+  // so the picker page and share page mirror each other visually. The grid
+  // scrolls vertically inside the card if the friend list overflows the
+  // available height — keeps the bottom-locked cancel/Send anchored even
+  // with 20+ friends.
   const friendsBlock = hasFriends
-    ? `<div class="dp-share-grid" id="dp-share-avatar-grid">${avatarsHtml}</div>`
+    ? `<div class="dp-share-friends-card">
+         <div class="dp-share-friends-head">
+           <span class="dp-share-friends-title">${t('share_friends_card_title')}</span>
+         </div>
+         <div class="dp-share-grid" id="dp-share-avatar-grid">${avatarsHtml}</div>
+       </div>`
     : `<div class="dpinvite-empty-card">
          <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
          <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
@@ -560,9 +567,8 @@ function _renderShareContent(v) {
       </button>
     </div>`;
 
-  const sendLabel = hasFriends
-    ? `<div class="dpinvite-friends-label dp-share-send-label">${t('invite_friends_label')}</div>`
-    : '';
+  // The "Send til" label is removed in v3 — the friends card's own "Velg
+  // venner" eyebrow is the new label for the picker.
   const orDivider = `<div class="dpinvite-or">${t('invite_or')}</div>`;
 
   // Empty (no-friends) state: targets row stands alone; honey Send never
@@ -580,14 +586,13 @@ function _renderShareContent(v) {
     </div>` : targetsRow;
 
   // Inner content of the share page. The outer .dp-action-page-share wrapper
-  // (with the id #dp-share-zone) is rendered in _renderSocialComposer.
-  // Layout: top group (label + grid) → bottom group (eller + targets + send
-  // overlay) → cancel row (margin-top:auto → pinned to page bottom).
+  // (id #dp-share-zone) is rendered in _renderSocialComposer.
+  // Layout: friends card (cream-frost, owns its eyebrow + grid + internal
+  // scroll) → bottom group (eller + targets + honey Send overlay) → cancel
+  // row (margin-top:auto → pinned to page bottom with constant padding,
+  // identical to the picker page's cancel row so both pages match heights).
   return `
-    <div class="dp-share-top">
-      ${sendLabel}
-      ${friendsBlock}
-    </div>
+    ${friendsBlock}
     <div class="dp-share-bottom-group">
       ${orDivider}
       ${bottomSlot}
@@ -846,13 +851,18 @@ function _dpPagerResize() {
 
   let h;
   if (!isShare && isNar) {
-    // Compose page with the picker mounted. Lift max-height to read natural.
+    // Compose page with the picker mounted. Lift max-height + flex so we can
+    // read the picker's natural content height (without the growth animation
+    // constraint, and without its `flex:1` height:0 stretch).
     const picker = composePage.querySelector('.nar-picker');
     if (picker) {
-      const prev = picker.style.maxHeight;
+      const prevMaxH = picker.style.maxHeight;
+      const prevFlex = picker.style.flex;
       picker.style.maxHeight = 'none';
+      picker.style.flex = '0 0 auto';
       h = composePage.scrollHeight;
-      picker.style.maxHeight = prev;
+      picker.style.maxHeight = prevMaxH;
+      picker.style.flex = prevFlex;
     } else {
       h = composePage.scrollHeight;
     }
@@ -860,24 +870,31 @@ function _dpPagerResize() {
     h = target.scrollHeight;
   }
 
-  // In share mode we want the page tall enough that margin-top:auto on the
-  // cancel-row can push it to the panel bottom. Compute the available height
-  // under the composer card and use the max of (natural, available).
-  if (isShare) {
+  // In share-mode AND nar-mode we want the page tall enough for cancel-row's
+  // margin-top:auto to push it to the panel bottom — so both pages anchor
+  // their cancel rows at the same screen y. Compute the available height
+  // under the composer card and use max(natural, available).
+  if (isShare || isNar) {
     const scroll = document.getElementById('dp-scroll');
     const composer = document.querySelector('#detail-panel .dp-composer');
     if (scroll && composer) {
       const scrollRect = scroll.getBoundingClientRect();
-      const bubble = composer.querySelector('.dp-composer-msg');
-      const bubbleRect = bubble ? bubble.getBoundingClientRect()
-                                : composer.getBoundingClientRect();
-      // composer card has --space-lg bottom padding; reserve a little extra
-      // breathing room (12 px) so cancel-row doesn't kiss the panel safe-area.
-      const composerCardPad = 24;
-      const avail = Math.max(0, scrollRect.bottom - bubbleRect.bottom - composerCardPad - 12);
+      const composerRect = composer.getBoundingClientRect();
+      // composer card sits just above the pager; .dp-social-zone gaps the two
+      // by --space-md. Take the space from the composer's bottom down to the
+      // scroll container's bottom, minus the gap + a small bottom safe-area.
+      const gap = 12; // --space-md
+      const tail = 12; // breathing room above the safe-area
+      const avail = Math.max(0, scrollRect.bottom - composerRect.bottom - gap - tail);
       if (avail > h) h = avail;
     }
   }
+
+  // Safety: if the page is currently hidden (scrollHeight returned 0), fall
+  // back to a Resting-sized minimum so the Send button doesn't vanish. The
+  // CSS rule `min-height: 96px` covers this too, but setting the var keeps
+  // the height transition snappy when the panel becomes visible again.
+  if (!Number.isFinite(h) || h < 96) h = 96;
 
   pager.style.setProperty('--dp-pager-h', `${Math.round(h)}px`);
 }

@@ -5763,13 +5763,17 @@
     overflow: hidden;
     /* JS sets --dp-pager-h on state changes so the height between Resting
        (small) / Active (picker height) / share (~panel content height)
-       transitions smoothly instead of snapping. */
-    height: var(--dp-pager-h, auto);
+       transitions smoothly instead of snapping. Min-height guard so the
+       Resting Send button stays visible even if a measure briefly returned 0
+       (e.g. detail panel hidden when the rAF fired). */
+    height: var(--dp-pager-h, 96px);
+    min-height: 96px;
     transition: height 360ms var(--ease-decelerate);
+    /* Side padding so the Send button's box-shadow renders inside the pager
+       (overflow:hidden clips it otherwise — left a hard-edge look on the
+       Resting honey button, the "weird shadow" caught in user review). */
+    padding: var(--space-2xs) 0;
   }
-  /* In compose mode, let the pager just track its content (no JS measure
-     needed at boot — _dpPagerResize fills in the value on first transition). */
-  .dp-action-pager:not([style*="--dp-pager-h"]) { height: auto; }
 
   .dp-action-page {
     /* Pages are absolutely positioned so only the "active" page contributes
@@ -5793,46 +5797,68 @@
     transform: translateX(0); opacity: 1; pointer-events: auto;
   }
 
-  /* The compose page is flex column so the Resting CTA + Active picker each
-     own their own vertical rhythm. */
-  .dp-action-page-compose {
+  /* Both pages flex-fill the pager so cancel rows on each can bottom-anchor
+     to the same position via margin-top:auto. */
+  .dp-action-page-compose,
+  .dp-action-page-share {
     display: flex; flex-direction: column; gap: var(--space-md);
+    height: 100%;
   }
   .dp-action-resting {
     display: flex; flex-direction: column; gap: var(--space-md);
+    flex-shrink: 0;
   }
   body.nar-mode .dp-action-resting { display: none; }
+  /* The active slot fills the compose page so the picker inside it can also
+     fill the height — its cancel row then bottom-anchors like the share page's. */
   .dp-action-active-slot:empty { display: none; }
   .dp-action-active-slot {
     display: flex; flex-direction: column; gap: var(--space-md);
-  }
-
-  /* The share page is flex column with three groups: top (label + grid),
-     bottom-group (eller + targets), and cancel-row pinned to the bottom via
-     margin-top:auto. The grid is `flex: 1` so it absorbs the slack when the
-     pager is sized to fill the panel content area — the cancel ends up at a
-     constant padding from the panel bottom regardless of friend count. */
-  .dp-action-page-share {
-    display: flex; flex-direction: column; gap: var(--space-md);
-    padding-bottom: 0;
-  }
-  .dp-share-top {
-    display: flex; flex-direction: column; gap: var(--space-md);
     flex: 1; min-height: 0;
   }
+
+  /* Picker becomes a flex column inside the slot. The NÅR card takes the
+     natural space; the Send + Cancel bottom-anchor via margin-top:auto on
+     the CTA row so the picker page and share page cancel-rows match. */
+  body.nar-mode .nar-picker {
+    flex: 1; min-height: 0;
+  }
+  .nar-picker .dpinvite-cta-row { margin-top: auto; flex-shrink: 0; }
+  .nar-picker .dprcv-cta-row { flex-shrink: 0; padding-bottom: var(--space-md); }
+
+  /* Share page: friends card (cream-frost) on top, bottom group (eller +
+     targets + send overlay), cancel-row pinned to bottom. The friends card
+     absorbs vertical slack (flex:1) so cancel sits at a constant padding
+     from the panel bottom regardless of friend count. */
   .dp-share-bottom-group {
     display: flex; flex-direction: column; gap: var(--space-md);
     flex-shrink: 0;
   }
   .dp-share-cancel-row {
-    margin-top: var(--space-md);
+    margin-top: auto;
     padding-bottom: var(--space-md);
     flex-shrink: 0;
   }
 
+  /* Friends card — same cream-frost chrome as .nar-card so the picker page
+     and the share page mirror each other (eyebrow card up top, dock of
+     actions below, cancel pinned at bottom). */
+  .dp-share-friends-card {
+    display: flex; flex-direction: column; gap: var(--space-lg);
+    padding: var(--space-lg); border-radius: var(--radius-md);
+    background: var(--card-cream-bg); border: 1px solid var(--card-cream-border);
+    box-shadow: var(--card-cream-shadow); overflow: hidden;
+    flex: 1; min-height: 0;
+  }
+  .dp-share-friends-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
+  .dp-share-friends-title {
+    font-size: var(--text-caption); font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ink-muted);
+  }
+
   /* 4-col avatar grid (was horizontal scroll in v1). Rows scale with friend
-     count — 4 → 1 row, 8 → 2 rows, etc. The grid scrolls vertically inside
-     its slot so a very long list doesn't push the bottom group up. */
+     count — 4 → 1 row, 8 → 2 rows, etc. Scrolls vertically inside the card
+     when the list overflows. */
   .dp-share-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -5840,14 +5866,12 @@
     justify-items: center;
     flex: 1; min-height: 0;
     overflow-y: auto;
-    /* Hide the scrollbar — same pattern as the day-strip. */
     scrollbar-width: none;
-    padding: var(--space-sm) 0;
+    padding-right: var(--space-2xs);
   }
   .dp-share-grid::-webkit-scrollbar { display: none; }
-  /* Inside the grid the avatar tile should fill its cell rather than its
-     content-sized default; this keeps the 4-col rhythm even, regardless of
-     name-label width per tile. */
+  /* Avatar tiles fill their cell rather than their content-sized default, so
+     the 4-col rhythm is even regardless of per-tile name-label width. */
   .dp-share-grid .dpinvite-avatar { width: 100%; }
 
   /* Staggered slide-in — same beat as the legacy invite sheet's .show-share
@@ -5867,14 +5891,14 @@
   .dp-action-page-share.is-open .dpinvite-target:nth-child(1) { animation-delay: 250ms; }
   .dp-action-page-share.is-open .dpinvite-target:nth-child(2) { animation-delay: 290ms; }
   .dp-action-page-share.is-open .dpinvite-target:nth-child(3) { animation-delay: 330ms; }
-  .dp-action-page-share.is-open .dp-share-send-label,
+  .dp-action-page-share.is-open .dp-share-friends-card,
   .dp-action-page-share.is-open .dpinvite-or {
     animation: dprcv-card-in 220ms var(--ease-spring) 60ms backwards;
   }
   @media (prefers-reduced-motion: reduce) {
     .dp-action-page-share.is-open .dpinvite-avatar,
     .dp-action-page-share.is-open .dpinvite-target,
-    .dp-action-page-share.is-open .dp-share-send-label,
+    .dp-action-page-share.is-open .dp-share-friends-card,
     .dp-action-page-share.is-open .dpinvite-or { animation: none; }
     .dp-action-page, body.share-mode .dp-action-page-compose,
     body.share-mode .dp-action-page-share { transition: none; }
@@ -5900,9 +5924,8 @@
   #dp-share-send-btn:disabled {
     opacity: 0.55; cursor: not-allowed; box-shadow: none;
   }
-  /* Zero the legacy margins on .dpinvite-friends-label + .dpinvite-or so the
-     flex gap on the share page is the single source of vertical rhythm. */
-  .dp-action-page-share .dp-share-send-label,
+  /* Zero the legacy margin on .dpinvite-or so the flex gap on the share
+     page's bottom-group owns the spacing. */
   .dp-action-page-share .dpinvite-or { margin: 0; }
 
   /* ── NÅR picker — lives inside the action pager's compose page (in
@@ -5980,12 +6003,13 @@
     transform: none; opacity: 1;
   }
   /* Primary + cancel — identical layout to the invite panel (.dpinvite-cta-row
-     + .dprcv-cta-row/.dprcv-cta-link), just a navy "Send til venner" in place
-     of the honey p-pill. */
+     + .dprcv-cta-row/.dprcv-cta-link). Both Send buttons (composer Resting +
+     picker Send) are honey now — consistent CTA color across the flow
+     regardless of which page the user is on. */
   .nar-send {
     display: flex; flex: 1; align-items: center; justify-content: center; gap: var(--space-sm);
     width: 100%; height: 48px; border: none; border-radius: var(--radius-pill);
-    background: var(--bg); color: var(--ctl-icon);
+    background: var(--accent); color: var(--accent-on);
     font-family: 'Inter', sans-serif; font-size: var(--text-body); font-weight: 700;
     cursor: pointer; box-shadow: var(--shadow-1);
     transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
