@@ -2214,7 +2214,11 @@ function _wireTimelineScrubber(opts) {
     scrubberEl.classList.add('is-dragging');
   };
   const onCanvasUp = () => {
-    if (labelEl) labelEl.classList.remove('fts-popup-expanded');
+    // Keep the popup EXPANDED after release so its weather row (temp/wind +
+    // wx icon — display:none in compact) stays visible for the 2.5s the popup
+    // lingers. The auto-hide timer clears both is-active + expanded together.
+    // (The FTS collapses on release; the detail scrubber is a "tap to inspect"
+    // affordance, so weather must persist, not flash only during the drag.)
     // Smooth snap-to (FTS parity): drop is-dragging so the CSS `left` transition
     // re-engages, then snap to a 15-min grid.
     scrubberEl.classList.remove('is-dragging');

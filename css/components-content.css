@@ -5639,6 +5639,10 @@
      it's a quiet day-shape strip now (pills carry the times). Still tappable +
      scrubbable; 28px stays >= 16 so the recessed channel (drawIndent) renders. */
   .dp-card .card-timeline { height: 28px; }
+  /* The scrubber marker spans the bar top-to-bottom; its base height is the
+     48px accept-panel bar, so on the slim 28px detail bar the pill overshot
+     20px below. Match it to the slim bar. */
+  .dp-card .dprcv-timeline-scrubber { height: 28px; }
 
   /* Section dividers between zones. */
   .dp-divider { height: 1px; background: var(--line-l-faint); margin: var(--space-lg) 0; }
@@ -5872,20 +5876,17 @@
      (overrides .s-rnd's dark glass fill, which would blend on solid Delft).
      text-decoration:none — it's an <a>, not a <button>. */
   .dp-directions {
-    /* height comes from .s-rnd (now 48px); width/radius are the full-width
-       pill adaptation. Glass-control material (button hue) — the top-bar
-       .ts-btn look: transparent warm-white glass + bright rim + ink. */
+    /* The detail panel's ONE honey CTA (per the mock). height from .s-rnd
+       (48px); full-width pill. Honey fill + ink, canonical .p-pill recipe. */
     width: 100%; border-radius: var(--radius-pill);
-    background: var(--btn-glass-bg);
-    -webkit-backdrop-filter: var(--btn-glass-blur);
-    backdrop-filter: var(--btn-glass-blur);
-    border-color: var(--btn-glass-border);
-    box-shadow: var(--btn-glass-raise);
-    color: var(--btn-glass-icon);
+    background: var(--accent);
+    border: none;
+    box-shadow: var(--shadow-1);
+    color: var(--accent-on);
     text-decoration: none;
   }
-  .dp-directions:hover { background: var(--btn-glass-bg-hover); border-color: var(--btn-glass-border); }
-  .dp-directions:active { box-shadow: var(--btn-glass-press); }
+  .dp-directions:hover { background: var(--accent-hover); box-shadow: var(--shadow-2); }
+  .dp-directions:active { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
   .dp-directions svg { width: 18px; height: 18px; flex-shrink: 0; }
   .dp-directions-label { overflow: hidden; text-overflow: ellipsis; }
 
@@ -5906,14 +5907,14 @@
     height: 48px;
     padding: 0 var(--space-sm);
     border-radius: var(--radius-md);
-    /* Glass-control material (button hue) — same top-bar .ts-btn look as the
-       directions pill: transparent warm-white glass + bright rim + ink.
-       Stacked icon+label kept; brighter glass + filled icon on active (below). */
-    background: var(--btn-glass-bg);
-    -webkit-backdrop-filter: var(--btn-glass-blur);
-    backdrop-filter: var(--btn-glass-blur);
-    border: 1px solid var(--btn-glass-border);
-    color: var(--btn-glass-icon);
+    /* Cream-frost lens material — same surface as the cards (no box-in-box;
+       these sit directly on the frost sheet). Ink text/icon. */
+    background: var(--card-cream-bg);
+    -webkit-backdrop-filter: var(--card-cream-blur);
+    backdrop-filter: var(--card-cream-blur);
+    border: 1px solid var(--card-cream-border);
+    box-shadow: var(--card-cream-shadow);
+    color: var(--panel-text);
     cursor: pointer;
     text-decoration: none;
     font-family: 'Inter', sans-serif;
@@ -5938,24 +5939,19 @@
     max-width: 100%;
   }
   .dp-secondary-btn:hover {
-    background: var(--btn-glass-bg-hover);
-    border-color: var(--btn-glass-border);
-    color: var(--btn-glass-icon);
+    background: var(--card-cream-bg-hover);
+    color: var(--panel-text);
   }
-  .dp-secondary-btn:active { box-shadow: var(--btn-glass-press); }
-  /* Active toggle state — brighter glass + a brighter rim, and the icon goes
-     filled (heart/bell solid). NOT honey: honey stays reserved for the one
-     Invite CTA per screen; the filled glyph carries the "on" signal. */
+  .dp-secondary-btn:active { transform: translateY(1px); }
+  /* Active toggle state (heart/bell ON) — brighter cream + the glyph fills
+     honey-ink. The filled honey glyph carries the "on" signal (Directions is
+     now the one honey CTA, so the toggle stays cream, not a honey fill). */
   .dp-secondary-btn.is-active {
-    background: var(--btn-glass-bg-hover);
-    border-color: var(--btn-glass-border-active);
-    color: var(--btn-glass-icon);
+    background: var(--card-cream-bg-hover);
+    color: var(--accent-on-light);
   }
-  .dp-secondary-btn.is-active svg { color: var(--btn-glass-icon); fill: currentColor; }
-  .dp-secondary-btn.is-active:hover {
-    background: var(--btn-glass-bg-hover);
-    border-color: var(--btn-glass-border-active);
-  }
+  .dp-secondary-btn.is-active svg { color: var(--accent-on-light); fill: currentColor; }
+  .dp-secondary-btn.is-active:hover { background: var(--card-cream-bg-hover); }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */
   .primary-action {
