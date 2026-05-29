@@ -5566,26 +5566,34 @@
   /* Sun card: big "X igjen" on the left, the day's events as a pill column on
      the right. Both sides come from one computeSunWindows source so the numbers
      always agree (fixes the old left/right mismatch). */
-  /* Top-aligned: the "X left" verdict sits level with the first event pill
-     (the diagram), the timeline spans full width below both. */
+  /* Stretch so the left column matches the pill column's height: the title
+     pins to the top, the big verdict drops to the bottom — level with the
+     lowest event pill (the "Sun conditions" mock). */
   .dp-card .dp-sun-row {
-    display: flex; align-items: flex-start; justify-content: space-between;
+    display: flex; align-items: stretch; justify-content: space-between;
     gap: var(--space-md);
   }
-  .dp-card .dp-sun-now { min-width: 0; }
-  /* "[sun] 4h 30m left" — one line, the word kept the SAME size as the number
-     (just lighter), so it never reads as a small sub-label. */
+  .dp-card .dp-sun-now {
+    min-width: 0; display: flex; flex-direction: column;
+    justify-content: space-between; gap: var(--space-sm);
+  }
+  .dp-card .dp-sun-title {
+    font-size: var(--text-caption); font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ink-muted);
+  }
+  /* "[sun] 5h 35m left" — number big (display), "left" the lighter trailing
+     word (inline, never a stacked sub-label). */
   .dp-card .dp-sun-now-main {
-    display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap;
+    display: flex; align-items: baseline; gap: var(--space-xs); flex-wrap: wrap;
     color: var(--accent-on-light);
   }
-  .dp-card .dp-sun-now-main svg { flex-shrink: 0; }
+  .dp-card .dp-sun-now-main svg { flex-shrink: 0; align-self: center; }
   .dp-card .dp-sun-now-val {
-    font-size: var(--text-title); font-weight: 800;
-    letter-spacing: var(--tracking-title); line-height: 1.1; color: var(--text);
+    font-size: var(--text-display); font-weight: var(--fw-display);
+    letter-spacing: var(--tracking-display); line-height: 1; color: var(--text);
   }
   .dp-card .dp-sun-now-word {
-    font-size: var(--text-title); font-weight: 500;
+    font-size: var(--text-body); font-weight: 500;
     line-height: 1.1; color: var(--ink-muted);
   }
   .dp-card .dp-sun-now-verdict {

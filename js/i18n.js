@@ -479,8 +479,10 @@ const _STRINGS = {
     close:               'Close',
     preview_plan:        'Preview',
     // Detail panel — hours, wind shelter, plan cards, footer (pass-2 redesign)
-    dp_evt_shade:        'shadow at {time}',
+    sun_conditions:      'Sun conditions',
+    dp_evt_shade:        'shade at {time}',
     dp_evt_closing:      'closing at {time}',
+    dp_evt_sundown:      'sundown {time}',
     open_until:          'Open until {time}',
     open_label:          'Open',
     kitchen_until:       'Kitchen until {time}',
@@ -1055,8 +1057,10 @@ const _STRINGS = {
     close:               'Lukk',
     preview_plan:        'Forhåndsvis',
     // Detail panel — hours, wind shelter, plan cards, footer (pass-2 redesign)
+    sun_conditions:      'Solforhold',
     dp_evt_shade:        'skygge fra {time}',
-    dp_evt_closing:      'solnedgang {time}',
+    dp_evt_closing:      'stenger {time}',
+    dp_evt_sundown:      'solnedgang {time}',
     open_until:          'Åpent til {time}',
     open_label:          'Åpent',
     kitchen_until:       'Kjøkken til {time}',

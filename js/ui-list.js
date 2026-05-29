@@ -637,12 +637,17 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const fmtH = (h) => (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
     const _hu = (typeof t === 'function') ? t('unit_h_short') : 't';
     const fmtDur = (hrs) => { const h = Math.floor(hrs), m = Math.round((hrs - h) * 60); return h > 0 ? (m > 0 ? `${h}${_hu} ${m}m` : `${h}${_hu}`) : `${Math.max(1, m)}m`; };
-    const _leftWord = (typeof t === 'function') ? t('word_left') : 'igjen';
+    const _t = (k, p, fb) => (typeof t === 'function') ? t(k, p) : fb;
+    const _leftWord = _t('word_left', null, 'igjen');
+    const _sunTitle = _t('sun_conditions', null, 'Solforhold');
     let wins = [];
     try { wins = (computeSunWindows(v, dateStr).windows) || []; } catch (e) { /* no sun data */ }
     const nowH = fromHour;
     const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
       ? findSunCrossingFromTable(currentSunTable, false) : null;
+    // Venue closing hour for the day — drives the "closing vs sundown" end pill.
+    let closeH = null;
+    try { const _dh = getVenueHoursForDay(v, dateStr); if (_dh && _dh.close != null) closeH = _dh.close; } catch (e) { /* no hours */ }
     const cur = wins.find(w => nowH >= w.start && nowH < w.end);
     const nextWin = wins.find(w => w.start > nowH);
 
@@ -650,19 +655,21 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const sunSm  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
     const shadeG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>`;
     const moonG  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>`;
+    const clockG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
 
-    // LEFT (big): sun remaining now; else the verdict text for shadow/done.
-    let leftHtml;
+    // LEFT: section title (top) + the big "X left" verdict (bottom, so it sits
+    // level with the lowest event pill). Shadow/done states show the verdict.
+    let leftBody;
     if (cur) {
-      leftHtml = `<div class="dp-sun-now"><div class="dp-sun-now-main">${sunG}<span class="dp-sun-now-val">${fmtDur(Math.max(5/60, cur.end - nowH))}</span> <span class="dp-sun-now-word">${_leftWord}</span></div></div>`;
+      leftBody = `<div class="dp-sun-now-main">${sunG}<span class="dp-sun-now-val">${fmtDur(Math.max(5/60, cur.end - nowH))}</span> <span class="dp-sun-now-word">${_leftWord}</span></div>`;
     } else {
-      leftHtml = `<div class="dp-sun-now"><div class="dp-sun-now-verdict">${dpState?.mainText || '—'}</div>${dpState?.subText ? `<div class="dp-sun-now-label">${dpState.subText}</div>` : ''}</div>`;
+      leftBody = `<div class="dp-sun-now-verdict">${dpState?.mainText || '—'}</div>${dpState?.subText ? `<div class="dp-sun-now-label">${dpState.subText}</div>` : ''}`;
     }
+    const leftHtml = `<div class="dp-sun-now"><div class="dp-sun-title">${_sunTitle}</div>${leftBody}</div>`;
 
     // RIGHT (pills): the day's upcoming sun events, same source as the left.
-    // Each pill names the event ("shadow at", "sun from", "closing at") so the
-    // bare times read as a sentence, not a row of clocks.
-    const _t = (k, p, fb) => (typeof t === 'function') ? t(k, p) : fb;
+    // Each pill names the event ("shade at", "sun from", "closing/sundown") so
+    // the bare times read as a sentence, not a row of clocks.
     const evs = [];
     if (cur && (sundownH == null || cur.end < sundownH - 0.01)) {
       evs.push(`<span class="dp-evt dp-evt-shade">${shadeG}${_t('dp_evt_shade', { time: fmtH(cur.end) }, fmtH(cur.end))}</span>`);
@@ -675,7 +682,14 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         : `+${fmtDur(w.end - w.start)} fra ${fmtH(w.start)}`;
       evs.push(`<span class="dp-evt dp-evt-bonus">${oppTxt}</span>`);
     });
-    if (sundownH != null) evs.push(`<span class="dp-evt dp-evt-moon">${moonG}${_t('dp_evt_closing', { time: fmtH(sundownH) }, fmtH(sundownH))}</span>`);
+    // End-of-day pill: "closing at X" ONLY if the venue shuts before the sun
+    // sets (closing is the binding limit); otherwise "sundown X". Whichever
+    // comes first is what actually ends your sun here.
+    if (closeH != null && (sundownH == null || closeH < sundownH - 0.01)) {
+      evs.push(`<span class="dp-evt dp-evt-moon">${clockG}${_t('dp_evt_closing', { time: fmtH(closeH) }, fmtH(closeH))}</span>`);
+    } else if (sundownH != null) {
+      evs.push(`<span class="dp-evt dp-evt-moon">${moonG}${_t('dp_evt_sundown', { time: fmtH(sundownH) }, fmtH(sundownH))}</span>`);
+    }
 
     return `
       <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}${auditCardCls}"
