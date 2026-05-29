@@ -263,6 +263,10 @@ function _syncFtsPosition() {
   // Track panel state across calls so we can pan the map in sync with the list
   // when the user just located themselves and is centered on the user dot.
   const newState = isFull ? 'fullscreen' : isExpanded ? 'expanded' : isHidden ? 'hidden' : 'peek';
+  // Reflect the panel state on <body> so CSS can scope to it (e.g. the Shades
+  // floating brand shows only in peek — see #floating-brand rules).
+  document.body.classList.remove('panel-peek', 'panel-expanded', 'panel-fullscreen', 'panel-hidden');
+  document.body.classList.add('panel-' + newState);
   if (_prevPanelMobileState && _prevPanelMobileState !== newState) {
     _maybePanMapForPanelState(_prevPanelMobileState, newState);
   }

@@ -189,7 +189,12 @@
   body.plan-preview-active #floating-brand,
   body.post-accept-active #floating-brand,
   body.profile-panel-open #floating-brand,
-  body.invite-sheet-open #floating-brand {
+  body.invite-sheet-open #floating-brand,
+  /* Brand shows ONLY in the venue-list peek state — hide it once the list is
+     expanded/fullscreen or a detail panel takes over (panel goes hidden). */
+  body.panel-expanded #floating-brand,
+  body.panel-fullscreen #floating-brand,
+  body.panel-hidden #floating-brand {
     opacity: 0;
     pointer-events: none;
   }
@@ -1488,8 +1493,9 @@
       width         180ms cubic-bezier(0.32, 0.72, 0, 1),
       border-radius 180ms cubic-bezier(0.32, 0.72, 0, 1),
       border-color  160ms ease,
-      box-shadow    220ms cubic-bezier(0.32, 0.72, 0, 1);
-    will-change: transform, width;
+      box-shadow    220ms cubic-bezier(0.32, 0.72, 0, 1),
+      left          220ms cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform, width, left;
 
     /* Idle: ±4° wobble of the bright-arc angle so the lens reads as a
        living surface even when the slider is at rest. Paused during
@@ -1567,6 +1573,12 @@
      rim, deeper drop shadow. No coloured aura; the bright arc on the
      rim (rotating via JS) does the active-feel work without colour. */
   #fts-thumb.is-active {
+    /* No `left` transition while dragging — the thumb must track the finger
+       instantly. The slide only applies to programmatic jumps (e.g. a date
+       tap snapping to the first sun hour). */
+    transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+                border-color 160ms ease,
+                box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1);
     transform: translate(-50%, -50%) scale(1.12);
     border-color: rgba(255,250,232,0.50);
     animation-play-state: paused;
