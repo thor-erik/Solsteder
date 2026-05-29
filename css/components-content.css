@@ -5666,6 +5666,43 @@
   }
   .dp-here-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-on-light); }
 
+  /* Empty-state composer — default moment + share-text preview + send. */
+  .dp-composer { display: flex; flex-direction: column; gap: var(--space-md); }
+  .dp-composer-top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-md);
+  }
+  .dp-composer-when {
+    display: flex; align-items: center; gap: var(--space-2xs); min-width: 0;
+    font-size: var(--text-subtitle); font-weight: 700; color: var(--text);
+  }
+  .dp-composer-sep { color: var(--ink-muted); font-weight: 400; }
+  .dp-composer-chev { display: inline-flex; color: var(--ink-muted); }
+  .dp-composer-me { flex-shrink: 0; display: flex; }
+  .dp-composer-me .avatar { border-radius: 50%; }
+  .dp-composer-label { font-size: var(--text-label); font-weight: 500; color: var(--ink-muted); }
+  /* Jordy-blue share-text preview bubble. */
+  .dp-composer-bubble {
+    background: var(--surface-sheet);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--text-label); line-height: 1.45; color: var(--panel-text);
+  }
+  /* Navy send button (sibling of the card, not box-in-box). Not honey —
+     Directions owns the one honey CTA on this screen. */
+  .dp-composer-send {
+    display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
+    width: 100%; height: 48px;
+    border: none; border-radius: var(--radius-pill);
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; box-shadow: var(--shadow-1);
+    transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
+  }
+  .dp-composer-send svg { flex-shrink: 0; }
+  .dp-composer-send:hover { box-shadow: var(--shadow-2); }
+  .dp-composer-send:active { transform: translateY(1px); box-shadow: none; }
+
   /* Plan card. */
   .dp-plan-card { display: flex; flex-direction: column; gap: var(--space-md); }
   .dp-plan-card .dp-plan-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }

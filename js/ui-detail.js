@@ -380,6 +380,17 @@ function _renderSocialSection(v) {
   // Plan cards (own helper). Empty string when no plans.
   const plansHtml = (typeof _renderPlanCards === 'function') ? _renderPlanCards(v) : '';
 
+  // EMPTY STATE → the plan/share composer (default moment + share-text preview
+  // + one "Send to friends"). When friends are here or a plan exists, fall back
+  // to the regular zone (cards + the honey invite CTA).
+  if (!checkins.length && !plansHtml) {
+    return `
+      <div class="dp-social-zone">
+        <div class="dp-section-title">${t('friends')}</div>
+        ${_renderSocialComposer(v)}
+      </div>`;
+  }
+
   // Invite CTA — the one honey unless a pending RSVP already owns the honey
   // (then it steps back to a secondary outline).
   const inviteSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="9.6" cy="9.5" r="1.6"/><circle cx="14.4" cy="9.5" r="1.6"/><path d="M7 13.5c.6-1.1 1.6-1.7 2.6-1.7M14.4 11.8c1 0 2 .6 2.6 1.7"/></svg>`;
@@ -388,11 +399,69 @@ function _renderSocialSection(v) {
 
   return `
     <div class="dp-social-zone">
-      <div class="dp-section-title">${t('friends') || 'Venner'}</div>
+      <div class="dp-section-title">${t('friends')}</div>
       ${hereCard}
       ${plansHtml}
       ${inviteBtn}
     </div>`;
+}
+
+/** Empty-state composer (no friends here, no plans yet): a default plan moment
+ *  ("Tomorrow · 15:30" — STATIC for now, editing is being reworked), your
+ *  avatar, a Jordy-blue share-text preview bubble, and one navy "Send to
+ *  friends" button that opens the invite sheet. */
+function _renderSocialComposer(v) {
+  const cap = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const now  = new Date();
+  const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const pad  = (n) => String(n).padStart(2, '0');
+  const tmrwStr  = `${tmrw.getFullYear()}-${pad(tmrw.getMonth() + 1)}-${pad(tmrw.getDate())}`;
+  const planHour = 15.5;
+  const dayHeader = (typeof _dayLabel === 'function') ? cap(_dayLabel(tmrwStr)) : 'Tomorrow';
+  const dayInline = (typeof _dayLabel === 'function') ? _dayLabel(tmrwStr) : 'tomorrow';
+  const timeStr   = (typeof formatHour === 'function') ? formatHour(planHour) : '15:30';
+
+  // Sun at the planned moment (its own date) → the share-text context.
+  let sunUntil = null;
+  try {
+    const { windows } = computeSunWindows(v, tmrwStr);
+    const cur = (windows || []).find(w => planHour >= w.start && planHour < w.end);
+    if (cur) sunUntil = formatHour(cur.end);
+  } catch (e) { /* no sun data */ }
+
+  const msg = sunUntil
+    ? t('composer_preview_sun', { venue: v.name, day: dayInline, time: timeStr, sunUntil })
+    : t('composer_preview',     { venue: v.name, day: dayInline, time: timeStr });
+
+  // Your avatar (right side) — reuse the friend-avatar renderer with one slot.
+  const me = (typeof _currentUser !== 'undefined' && _currentUser)
+    ? _currentUser
+    : (typeof window !== 'undefined' ? window._currentUser : null);
+  const meAv = me
+    ? _renderFriendAvatarsHtml([{ user: {
+        id: me.id, name: me.user_metadata?.name, email: me.email,
+        avatar_url: me.user_metadata?.avatar_url,
+      } }], 1, 34)
+    : '';
+
+  const chev  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+  const plane = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>`;
+
+  return `
+    <div class="dp-social-card dp-composer">
+      <div class="dp-composer-top">
+        <div class="dp-composer-when">
+          <span class="dp-composer-day">${esc(dayHeader)}</span>
+          <span class="dp-composer-sep">·</span>
+          <span class="dp-composer-time">${timeStr}</span>
+          <span class="dp-composer-chev" aria-hidden="true">${chev}</span>
+        </div>
+        ${meAv ? `<div class="dp-composer-me">${meAv}</div>` : ''}
+      </div>
+      <div class="dp-composer-label">${t('invite_friends')}</div>
+      <div class="dp-composer-bubble">${esc(msg)}</div>
+    </div>
+    <button class="dp-composer-send" onclick="_openInviteSheet(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>`;
 }
 
 /** Plans block — own section below the social card. Empty string when no
