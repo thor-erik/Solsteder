@@ -3542,6 +3542,49 @@
   .settings-row.destructive .settings-row__chevron { color: #E47B7B; }
   .settings-row.destructive:hover { background: rgba(228,123,123,0.06); }
 
+  /* QR card host — sits inside .settings-group below the Share Shades /
+     Add as friend rows. Hidden until a row is tapped. The card itself
+     is a cream Tier-1 surface so the QR has high contrast for scanning
+     (dark slate modules on cream). The cream card body provides enough
+     visual separation from the row above without an explicit divider. */
+  .qr-card-host {
+    padding: var(--space-md) var(--space-lg) var(--space-lg);
+  }
+  .qr-card {
+    display: flex; flex-direction: column; align-items: center;
+    gap: var(--space-sm);
+    background: var(--surface-content);
+    color: var(--panel-text);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+  }
+  .qr-card-svg { line-height: 0; }
+  .qr-card-svg svg {
+    display: block; width: 200px; height: 200px;
+    background: var(--surface-content); border-radius: var(--radius-md);
+  }
+  .qr-card-caption {
+    font-size: var(--text-body); font-weight: 600;
+    color: var(--panel-text); text-align: center;
+  }
+  .qr-card-url {
+    font-size: var(--text-caption); color: var(--ink-muted);
+    word-break: break-all; text-align: center; max-width: 100%;
+  }
+  .qr-card-copy {
+    font: 600 13px/1 'Inter', sans-serif;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-pill);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--panel-text);
+    cursor: pointer;
+    transition: background 120ms;
+  }
+  .qr-card-copy:hover { background: var(--line-l-faint); }
+  .qr-card-loading,
+  .qr-card-fallback { color: var(--panel-text); padding: var(--space-lg); }
+
   /* Identity card variant — full bleed within group */
   /* Stage 4b-1: Hero identity — centered, 72px avatar, soft honey halo.
      The wrapping .settings-identity-group has its card chrome stripped so
@@ -3833,12 +3876,21 @@
     border-top: 1px solid rgba(255,255,255,0.07);
     padding: var(--space-md) 0 var(--space-xs); margin-top: var(--space-md); text-align: center;
   }
+  /* Close button anchors to the viewport (position: fixed), not the panel —
+     the panel is a fixed-position overflow-y:auto flex container, and on
+     iOS WebKit absolute-positioned children inside that combo could end up
+     offset / clipped (user-reported: "cut off to the left"). Fixed +
+     env(safe-area-inset-*) lands it cleanly in the viewport's top-right
+     corner across web, iOS PWA, and the Capacitor WebView. z-index sits
+     above #profile-panel (9999). */
   .login-close-btn {
-    position: absolute; top: 10px; right: 10px;
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
     width: 32px; height: 32px; border-radius: 50%;
     background: rgba(255,255,255,0.06); border: none;
     color: var(--muted); font-size: var(--text-title); line-height: 1;
-    cursor: pointer; z-index: 2; display: none;
+    cursor: pointer; z-index: 10000; display: none;
     align-items: center; justify-content: center;
   }
   .login-close-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }

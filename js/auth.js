@@ -872,6 +872,23 @@ function _renderSettingsView() {
       </div>
 
       <div>
+        <div class="settings-group-label">${t('share_section_label')}</div>
+        <div class="settings-group">
+          <button class="settings-row" id="share-shades-row" onclick="_toggleShareShadesQR()">
+            <span class="settings-row__icon">${_QR_ICON_SVG}</span>
+            <span class="settings-row__label">${t('share_shades')}</span>
+            <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+          </button>
+          <button class="settings-row" id="add-friend-qr-row" onclick="_toggleAddFriendQR()">
+            <span class="settings-row__icon">${_QR_ICON_SVG}</span>
+            <span class="settings-row__label">${t('add_friend_qr')}</span>
+            <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+          </button>
+          <div id="qr-card-host" class="qr-card-host" hidden></div>
+        </div>
+      </div>
+
+      <div>
         <div class="settings-group-label">Innstillinger</div>
         <div class="settings-group">
           <div class="settings-row pref-row">
@@ -2361,6 +2378,109 @@ async function _copyFriendInviteLink() {
     result.textContent = t('invite_link_copied');
     result.className = 'friend-add-result success';
   }
+}
+
+// ── QR rows: Share Shades + Add as friend ─────────────────────────────────────
+//
+// Two settings-row entries that expand into an inline QR card. Share Shades
+// always points at the canonical https://findshades.app (NOT location.origin —
+// preview URLs would mint useless QRs). Add as friend mints a one-shot
+// friend-invite token via create_friend_invite_token (sql/041) and shows
+// a QR of `#friend/<uid>/<token>` — same URL shape _copyFriendInviteLink
+// produces, so a scan lands on the same single-use-token RPC path.
+//
+// Token is cached for the session so re-opening the row doesn't burn a fresh
+// token each time. Falls back gracefully if the qrcode-generator CDN script
+// missed (rare) — shows the URL as plain text + a Copy button instead.
+
+const _QR_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="3" width="6" height="6" rx="1"/><rect x="3" y="15" width="6" height="6" rx="1"/><path d="M15 15h2v2h-2zM19 15h2v2h-2zM15 19h2v2h-2zM19 19h2v2h-2z"/></svg>';
+const _FINDSHADES_URL = 'https://findshades.app';
+let _cachedFriendInviteUrl = null;
+let _openQrRow = null; // 'share' | 'friend' | null
+
+function _qrSvgFor(url) {
+  // qrcode-generator CDN script exposes `qrcode` (lowercase) as a global.
+  if (typeof qrcode !== 'function') return null;
+  try {
+    const qr = qrcode(0, 'M'); // type 0 = auto-size; error-correction Medium
+    qr.addData(url);
+    qr.make();
+    // createSvgTag(modulePx, marginPx) — 4px modules / 8px white margin.
+    return qr.createSvgTag(4, 8);
+  } catch (e) {
+    console.warn('[qr] svg gen failed:', e?.message || e);
+    return null;
+  }
+}
+
+function _renderQrInto(host, url, captionKey) {
+  if (!host) return;
+  const svg = _qrSvgFor(url);
+  const caption = (typeof t === 'function') ? t(captionKey) : '';
+  if (svg) {
+    host.innerHTML = `
+      <div class="qr-card">
+        <div class="qr-card-svg">${svg}</div>
+        <div class="qr-card-caption">${_esc ? _esc(caption) : caption}</div>
+        <div class="qr-card-url">${_esc ? _esc(url) : url}</div>
+        <button class="qr-card-copy" type="button" onclick="_qrCopyUrl(this, '${url.replace(/'/g, "\\'")}')">${t('qr_copy')}</button>
+      </div>`;
+  } else {
+    // Fallback: no QR lib available. Surface the URL + copy button anyway.
+    host.innerHTML = `
+      <div class="qr-card qr-card-fallback">
+        <div class="qr-card-caption">${_esc ? _esc(caption) : caption}</div>
+        <div class="qr-card-url">${_esc ? _esc(url) : url}</div>
+        <button class="qr-card-copy" type="button" onclick="_qrCopyUrl(this, '${url.replace(/'/g, "\\'")}')">${t('qr_copy')}</button>
+      </div>`;
+  }
+  host.hidden = false;
+}
+
+function _qrCopyUrl(btn, url) {
+  try { navigator.clipboard?.writeText(url); } catch (e) { /* ignore */ }
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = (typeof t === 'function') ? t('qr_copied') : 'Copied';
+    setTimeout(() => { try { btn.textContent = orig; } catch (e) {} }, 1400);
+  }
+}
+
+function _toggleShareShadesQR() {
+  const host = document.getElementById('qr-card-host');
+  if (!host) return;
+  if (_openQrRow === 'share') {
+    host.hidden = true; host.innerHTML = ''; _openQrRow = null; return;
+  }
+  _renderQrInto(host, _FINDSHADES_URL, 'qr_share_shades_caption');
+  _openQrRow = 'share';
+}
+
+async function _toggleAddFriendQR() {
+  const host = document.getElementById('qr-card-host');
+  if (!host) return;
+  if (_openQrRow === 'friend') {
+    host.hidden = true; host.innerHTML = ''; _openQrRow = null; return;
+  }
+  if (!_currentUser) return;
+  // Cache the minted URL for the session so re-opening doesn't burn a fresh
+  // token. Token TTL is 30 days (sql/041); session lifetime is much shorter.
+  if (!_cachedFriendInviteUrl) {
+    host.hidden = false;
+    host.innerHTML = `<div class="qr-card qr-card-loading">${(typeof t === 'function') ? t('qr_loading') : 'Loading…'}</div>`;
+    let token = null;
+    try {
+      const { data, error } = await _supabase.rpc('create_friend_invite_token');
+      if (!error && data && data.ok) token = data.token;
+      else if (error) console.warn('[friend-invite] mint failed:', error.message);
+    } catch (e) {
+      console.warn('[friend-invite] mint threw:', e?.message || e);
+    }
+    const base = `${_FINDSHADES_URL}/#friend/${_currentUser.id}`;
+    _cachedFriendInviteUrl = token ? `${base}/${token}` : base;
+  }
+  _renderQrInto(host, _cachedFriendInviteUrl, 'qr_add_friend_caption');
+  _openQrRow = 'friend';
 }
 
 // ── Pending count ─────────────────────────────────────────────────────────────
