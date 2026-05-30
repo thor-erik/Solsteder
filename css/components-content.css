@@ -3542,34 +3542,37 @@
   .settings-row.destructive .settings-row__chevron { color: #E47B7B; }
   .settings-row.destructive:hover { background: rgba(228,123,123,0.06); }
 
-  /* QR card host — sits inside .settings-group below the Share Shades /
-     Add as friend rows. Hidden until a row is tapped. The card itself
-     is a cream Tier-1 surface so the QR has high contrast for scanning
-     (dark slate modules on cream). Tightened sizing (PR F v2) per user
-     feedback that the boxes felt too large. */
+  /* QR card host — sits inside the dark .settings-group below the
+     Share / Add-friend rows. Centers the cream card child explicitly
+     via flex so it doesn't drift to the left when the host stretches
+     to the group's full width. */
   .qr-card-host {
-    padding: var(--space-sm) var(--space-md) var(--space-md);
+    padding: var(--space-md);
+    display: flex;
+    justify-content: center;
   }
+  /* Cream Tier-1 surface so the QR (dark modules on cream) reads with
+     full contrast against the surrounding dark .settings-group, and so
+     the dark-ink caption + url + Copy button text stays legible. */
   .qr-card {
     display: flex; flex-direction: column; align-items: center;
     gap: var(--space-sm);
-    background: var(--surface-content);
+    background: var(--content-bg);
     color: var(--panel-text);
     border-radius: var(--radius-lg);
     padding: var(--space-md);
-    max-width: 260px;
-    margin: 0 auto;
+    width: 100%; max-width: 240px; box-sizing: border-box;
   }
-  /* SVG wrapper centers its child explicitly. qrcode-generator emits an
-     <svg> with a viewBox matching the QR's natural module count + a
-     small white margin; clamping width on the SVG scales the whole
-     thing uniformly. */
+  /* SVG wrapper centers the SVG explicitly. qrcode-generator emits an
+     <svg> with width/height attributes baked in; CSS width on the svg
+     overrides them and scales the whole QR via its viewBox. */
   .qr-card-svg {
-    line-height: 0; display: flex; justify-content: center; width: 100%;
+    line-height: 0;
+    display: flex; justify-content: center; width: 100%;
   }
   .qr-card-svg svg {
     display: block; width: 168px; height: 168px;
-    background: var(--surface-content); border-radius: var(--radius-md);
+    background: #fff; border-radius: var(--radius-sm);
   }
   .qr-card-caption {
     font-size: var(--text-caption); font-weight: 600;
