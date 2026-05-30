@@ -120,6 +120,7 @@ function buildMiniSunTimeline(v, dateStr, fromHour) {
       <div class="dprcv-timeline-scrubber-pill"></div>
     </div>
     <canvas class="card-timeline-canvas timeline-track" data-vid="${v.id}"></canvas>
+    <div class="card-timeline-wx" aria-hidden="true"></div>
   </div>`;
 }
 
@@ -278,6 +279,16 @@ function drawAllCardTimelines(root) {
       drawThumb: false,
     });
     ctx.restore();
+    // Weather glyph overlay (detail-panel timeline only). Reuses the
+    // accept-panel renderer so the dp-card bar reads the same set of
+    // icons as the FTS / accept timelines, without duplicating logic.
+    if (isDetailCanvas && typeof _populateTimelineWeather === 'function') {
+      const wxHost = cv.parentElement && cv.parentElement.querySelector('.card-timeline-wx');
+      if (wxHost) {
+        try { _populateTimelineWeather(wxHost, v, dateStr, tlMin, tlMax); }
+        catch (e) { /* ignore */ }
+      }
+    }
   }
   // Labels are positioned by left-percentages already; just resolve overlaps.
   _resolveTimelineLabelCollisions(scope);
@@ -657,11 +668,19 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const moonG  = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>`;
     const clockG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
 
+    // Bigger moon glyph for the closed hero — matches sunG's 20×20 footprint
+    // so the icon+verdict pair reads at the same scale as the open card.
+    const moonGBig = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>`;
+
     // LEFT: section title (top) + the big "X left" verdict (bottom, so it sits
     // level with the lowest event pill). Shadow/done states show the verdict.
+    // Closed venues mirror the open structure (icon + short word) so both
+    // states read at the same scale; the "opens at" time moves into a pill.
     let leftBody;
     if (cur) {
       leftBody = `<div class="dp-sun-now-main">${sunG}<span class="dp-sun-now-val">${fmtDur(Math.max(5/60, cur.end - nowH))}</span> <span class="dp-sun-now-word">${_leftWord}</span></div>`;
+    } else if (dpState?.state === 'closed') {
+      leftBody = `<div class="dp-sun-now-main dp-sun-now-main-closed">${moonGBig}<span class="dp-sun-now-val">${_t('state_closed', null, 'Closed')}</span></div>`;
     } else {
       leftBody = `<div class="dp-sun-now-verdict">${dpState?.mainText || '—'}</div>${dpState?.subText ? `<div class="dp-sun-now-label">${dpState.subText}</div>` : ''}`;
     }
@@ -671,6 +690,14 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     // Each pill names the event ("shade at", "sun from", "closing/sundown") so
     // the bare times read as a sentence, not a row of clocks.
     const evs = [];
+    // Opens-at pill — top of the column when the venue is closed but opens
+    // later today. Carries the time that used to live in the long
+    // "Closed · opens X" verdict so the hero can collapse to just "Closed".
+    let openHForPill = null;
+    try { const _dh2 = getVenueHoursForDay(v, dateStr); if (_dh2 && _dh2.open != null) openHForPill = _dh2.open; } catch (e) { /* no hours */ }
+    if (dpState?.state === 'closed' && openHForPill != null && nowH < openHForPill) {
+      evs.push(`<span class="dp-evt dp-evt-clock">${clockG}${_t('dp_evt_opens_at', { time: fmtH(openHForPill) }, fmtH(openHForPill))}</span>`);
+    }
     if (cur && (sundownH == null || cur.end < sundownH - 0.01)) {
       evs.push(`<span class="dp-evt dp-evt-shade">${shadeG}${_t('dp_evt_shade', { time: fmtH(cur.end) }, fmtH(cur.end))}</span>`);
     } else if (!cur && nextWin) {

@@ -5609,13 +5609,12 @@
     letter-spacing: var(--tracking-display); line-height: 1; color: var(--text);
     white-space: nowrap;
   }
-  /* "igjen / left" — muted suffix on the value's baseline. Stepped down to
-     --text-body + weight 600 (was --text-subtitle / 500) so it homogenizes
-     with the rest of the card's body type while staying clearly secondary
-     to the big value. Still muted. */
+  /* "igjen / left" — same ink color as the value so the phrase reads as
+     one unit; size+weight still step down so the metric dominates. User
+     flagged the previous --ink-muted treatment as visually disjointed. */
   .dp-card .dp-sun-now-word {
     font-size: var(--text-body); font-weight: 600; white-space: nowrap;
-    line-height: 1.1; color: var(--ink-muted);
+    line-height: 1.1; color: var(--text);
   }
   .dp-card .dp-sun-now-verdict {
     font-size: var(--text-title); font-weight: var(--fw-title);
@@ -5647,7 +5646,8 @@
     color: var(--accent-on-light);
   }
   /* Sundown — quiet neutral, the night cap on the column. */
-  .dp-card .dp-evt-moon {
+  .dp-card .dp-evt-moon,
+  .dp-card .dp-evt-clock {
     background: var(--line-l-faint); border: 1px solid var(--line-l);
     color: var(--ink-muted);
   }
@@ -5659,7 +5659,19 @@
   /* Slim the detail sun-card timeline well below the 48px accept-panel bar —
      it's a quiet day-shape strip now (pills carry the times). Still tappable +
      scrubbable; 28px stays >= 16 so the recessed channel (drawIndent) renders. */
-  .dp-card .card-timeline { height: 28px; }
+  .dp-card .card-timeline { height: 28px; position: relative; }
+  /* Weather glyph overlay (dp-card only). Hidden by default on list/hover
+     timelines — they're 16–20px tall and a 14px icon would dominate. The
+     overlay is layered on top of the canvas; .dprcv-timeline-wx-icon dots
+     are positioned by `left:%%` (set by _populateTimelineWeather). */
+  .card-timeline .card-timeline-wx { display: none; }
+  .dp-card .card-timeline .card-timeline-wx {
+    display: block; position: absolute; inset: 0; pointer-events: none;
+    z-index: 2;
+  }
+  .dp-card .card-timeline-wx .dprcv-timeline-wx-icon {
+    width: 14px; height: 14px;
+  }
   /* The scrubber marker spans the bar top-to-bottom; its base height is the
      48px accept-panel bar, so on the slim 28px detail bar the pill overshot
      20px below. Match it to the slim bar. */
