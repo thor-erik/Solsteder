@@ -5609,12 +5609,14 @@
     letter-spacing: var(--tracking-display); line-height: 1; color: var(--text);
     white-space: nowrap;
   }
-  /* "igjen / left" — same ink color as the value so the phrase reads as
-     one unit; size+weight still step down so the metric dominates. User
-     flagged the previous --ink-muted treatment as visually disjointed. */
+  /* "igjen / left" — matches the value's size and ink so the phrase reads
+     as one breath; weight drops to 500 so the number still carries the
+     emphasis. User flagged the smaller-and-muted treatment as visually
+     disjointed; sharing size + color closes that gap. */
   .dp-card .dp-sun-now-word {
-    font-size: var(--text-body); font-weight: 600; white-space: nowrap;
-    line-height: 1.1; color: var(--text);
+    font-size: var(--text-display); font-weight: 500; white-space: nowrap;
+    line-height: 1; color: var(--text);
+    letter-spacing: var(--tracking-display);
   }
   .dp-card .dp-sun-now-verdict {
     font-size: var(--text-title); font-weight: var(--fw-title);

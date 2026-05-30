@@ -731,27 +731,25 @@ function _pillWidth(ctx, time, friendCount) {
   return w;
 }
 
-// Moon glyph for closed-venue ghost pills — crescent matching the lucide
-// moon used in TIMELINE_EVENT_GLYPHS.closed. Built by stroking the outer
-// circle then carving a smaller offset circle so a crescent silhouette
-// remains. Single visual vocabulary for "closed": pin + FTS bar + detail
-// arc all use this shape.
-function _drawMoonIcon(ctx, cx, cy, r, col) {
-  const rr = r * 0.78;
+// Clock glyph for opening-soon ghost pills — outline face + two hands.
+// Opening-soon is a countdown framing (will open at X), so a clock reads
+// better than the moon (which means "closed"). The moon glyph stays in
+// the FTS bar + detail arc, where it marks night/closed ranges.
+function _drawClockIcon(ctx, cx, cy, r, col) {
+  const rr = r * 0.74;
   ctx.save();
   ctx.strokeStyle = col;
-  ctx.lineWidth   = 1.5;
+  ctx.lineWidth   = 1.4;
   ctx.lineCap     = 'round';
   ctx.lineJoin    = 'round';
-  // Build the crescent: outer arc + reversed inner arc forming a closed shape.
-  // Inner circle is offset toward upper-right so the carve sits there.
-  const ox = cx + rr * 0.36;
-  const oy = cy - rr * 0.30;
-  const ir = rr * 0.86;
   ctx.beginPath();
   ctx.arc(cx, cy, rr, 0, Math.PI * 2);
-  ctx.arc(ox, oy, ir, 0, Math.PI * 2, true);
-  ctx.closePath();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, cy - rr * 0.55);
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + rr * 0.42, cy + rr * 0.16);
   ctx.stroke();
   ctx.restore();
 }
@@ -866,10 +864,11 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   ctx.save();
   ctx.shadowColor = 'transparent';
   if (isGhost && !hasFriends && !opts.favorited) {
-    // Ghost: a dark crescent moon glyph instead of a filled category dot —
-    // signals "closed / not available now". One shape for closed across pin,
-    // FTS bar, and detail arc (matches TIMELINE_EVENT_GLYPHS.closed).
-    _drawMoonIcon(ctx, moduleCx, moduleCy, CIRCLE_R, _rgba(TOKENS.bg, 0.80));
+    // Ghost: a dark clock glyph (outline) instead of a filled category dot —
+    // signals "opens later today" (the pill text already carries the time).
+    // Moon would read as "closed / night" which is the wrong metaphor for
+    // a venue that's about to open.
+    _drawClockIcon(ctx, moduleCx, moduleCy, CIRCLE_R, _rgba(TOKENS.bg, 0.80));
   } else if (hasFriends) {
     _drawFriendModule(ctx, moduleCx, moduleCy, friends, dot.fill);
   } else if (opts.favorited) {
