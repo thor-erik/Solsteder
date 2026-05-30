@@ -141,6 +141,8 @@ const _STRINGS = {
     state_sun_in_future:     'Sun at {time}',
     state_no_sun_future:     'No sun',
     state_done:              'Done',
+    state_closed:            'Closed',
+    state_closed_opens:      'Closed · opens {time}',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
     // In-list bucket section headers (between sun-now venues and
     // sun-later venues in the venue-list). Phrased to describe the
@@ -739,6 +741,8 @@ const _STRINGS = {
     state_sun_in_future:     'Sol kl. {time}',
     state_no_sun_future:     'Ingen sol',
     state_done:              'Ferdig',
+    state_closed:            'Stengt',
+    state_closed_opens:      'Stengt · åpner {time}',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
     // In-list bucket section headers
     section_sun_now:            'I sol nå',
@@ -1323,6 +1327,8 @@ const _STRINGS = {
     state_sun_in_future:     'Sol kl. {time}',
     state_no_sun_future:     'Ingen sol',
     state_done:              'Klart',
+    state_closed:            'Stängt',
+    state_closed_opens:      'Stängt · öppnar {time}',
     no_more_today:       'Inget mer idag',
     no_sun_today:        'Ingen sol idag',
     sun_min_left:        '{min} min kvar',
@@ -1783,6 +1789,8 @@ const _STRINGS = {
     state_sun_in_future:     'Sol kl. {time}',
     state_no_sun_future:     'Ingen sol',
     state_done:              'F\u00e6rdigt',
+    state_closed:            'Lukket',
+    state_closed_opens:      'Lukket \u00b7 \u00e5bner {time}',
     no_more_today:       'Ikke mere i dag',
     no_sun_today:        'Ingen sol i dag',
     sun_min_left:        '{min} min tilbage',

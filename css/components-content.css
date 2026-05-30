@@ -737,6 +737,17 @@
     font-weight: 700;
   }
 
+  /* Closed venue (outside opening hours): same muted treatment as state-done.
+     The card reads as "not relevant right now" — no sun/weather narrative,
+     just the closed verdict (rendered by venueState in ui-shared.js). */
+  .venue-card.state-closed {
+    opacity: 0.48;
+  }
+  .venue-card.state-closed .card-new-hero-main {
+    color: var(--muted);
+    font-weight: 700;
+  }
+
   .venue-card.editing {
     box-shadow: 0 0 0 2px rgba(245,194,94,0.55), 2px 4px 18px rgba(0,0,0,0.4);
     border-left-color: var(--accent);
@@ -1641,6 +1652,7 @@
   .ht-status.state-shadow { color: rgba(165,170,178,0.9); }
   .ht-status.state-rain   { color: rgba(156,189,231,0.9); }
   .ht-status.state-done   { color: var(--muted); }
+  .ht-status.state-closed { color: var(--muted); }
 
   .ht-timeline { margin-top: var(--space-md); }
   /* Card timeline reused inside tooltip */
@@ -5362,7 +5374,8 @@
     color: rgba(17,30,56,0.82);
     filter: none;
   }
-  .dp-card.state-done .dp-sun-headline {
+  .dp-card.state-done .dp-sun-headline,
+  .dp-card.state-closed .dp-sun-headline {
     color: rgba(17,30,56,0.55);
     filter: none;
   }
@@ -5513,7 +5526,8 @@
   .dp-sun-chip.state-sun { color: var(--accent); }
   .dp-sun-chip.state-shadow,
   .dp-sun-chip.state-rain { color: rgba(180,205,235,0.95); }
-  .dp-sun-chip.state-done { color: rgba(255,244,224,0.70); }
+  .dp-sun-chip.state-done,
+  .dp-sun-chip.state-closed { color: rgba(255,244,224,0.70); }
 
   /* Hours paired with the sun panel — a quiet ink line right under the card so
      "is it sunny" + "is it open" are answered together. */

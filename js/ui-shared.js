@@ -17,12 +17,39 @@ function venueState(venue, selectedTime) {
   const fromHour = selectedTime ?? 0;
   const isFuture = typeof todayStr === 'function' && dateStr > todayStr();
 
+  // Closed-venue gate (PR A item #4): before any sun/weather narrative,
+  // collapse to a single "Closed" verdict when the venue is outside its
+  // opening hours. Weather/shadow context doesn't matter when the place
+  // isn't open; rendering "Sun until 18:00" on a closed restaurant is wrong.
+  const dh = (typeof getVenueHoursForDay === 'function') ? getVenueHoursForDay(venue, dateStr) : null;
+  if (dh && (fromHour < dh.open || fromHour >= dh.close)) {
+    const opensSoon = fromHour < dh.open;
+    const mainText = opensSoon
+      ? t('state_closed_opens', { time: formatHour(dh.open) })
+      : t('state_closed');
+    return { state: 'closed', mainText, subText: '', className: 'state-closed' };
+  }
+
   const { windows } = computeSunWindows(venue, dateStr);
-  if (!windows.length) return { state: 'done', mainText: t('state_done'), subText: '', className: 'state-done' };
+  if (!windows.length) return { state: 'done', mainText: isFuture ? t('state_no_sun_future') : t('state_no_more_sun'), subText: '', className: 'state-done' };
 
   const currentWindow = windows.find(w => fromHour >= w.start && fromHour < w.end);
   const nextWindow = windows.find(w => w.start > fromHour);
   const lastWindow = windows[windows.length - 1];
+
+  // No-more-sun priority (PR A item #5): when there's no current sun and
+  // no future sun window, return 'done' BEFORE the weather branch. Weather
+  // "overcast" verdict must not override the simpler truth that the sun
+  // geometry is already finished for the day.
+  const hasFutureSun = !!currentWindow || !!nextWindow;
+  if (!hasFutureSun) {
+    return {
+      state: 'done',
+      mainText: isFuture ? t('state_no_sun_future') : t('state_no_more_sun'),
+      subText: '',
+      className: 'state-done',
+    };
+  }
 
   // Debug: log first few venues + problematic venues (130=Michaels, 219=Stranden 30)
   if (venue.id <= 3 || venue.id === 130 || venue.id === 219) {
@@ -55,11 +82,12 @@ function venueState(venue, selectedTime) {
     if (futureSun) {
       return { state: 'rain', mainText, subText: t('state_sun_from', { time: formatHour(futureSun.start) }), className: 'state-rain' };
     }
-    // Currently in a sun window but rain overrides, or all sun passed
+    // Currently in a sun window but rain overrides
     const remaining = windows.find(w => w.end > fromHour);
     if (remaining) {
       return { state: 'rain', mainText, subText: t('state_sun_to', { time: formatHour(remaining.end) }), className: 'state-rain' };
     }
+    // Unreachable now (hasFutureSun guard above), kept defensive.
     return { state: 'rain', mainText, subText: t('state_no_sun_today'), className: 'state-rain' };
   }
 
@@ -92,11 +120,12 @@ function venueState(venue, selectedTime) {
     return { state: 'shadow', mainText, subText, className: 'state-shadow' };
   }
 
-  // Done: no more sun
+  // Unreachable: the hasFutureSun guard above already returned 'done' when
+  // neither currentWindow nor nextWindow exists. Kept defensive.
   return {
     state: 'done',
     mainText: isFuture ? t('state_no_sun_future') : t('state_no_more_sun'),
-    subText: t('state_last_sun', { time: formatHour(lastWindow.end) }),
+    subText: '',
     className: 'state-done'
   };
 }
@@ -911,12 +940,20 @@ function drawTimeline(ctx, opts) {
   if (openHour != null && closeHour != null && closeHour > openHour) {
     if (openHour > minH) {
       const ox = Math.min(Math.round(timeToX(Math.min(openHour, maxH))), BAR_W);
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      // Heavier dim (was 0.45) so the closed portion reads as a single
+      // dark band — weather bands + shadow overlay underneath disappear,
+      // matching the user's intent that closed-location weather/shadow
+      // shouldn't surface.
+      ctx.fillStyle = 'rgba(0,0,0,0.78)';
       ctx.fillRect(0, bleed, ox, TRACK_H);
     }
     if (closeHour < maxH) {
       const cx = Math.max(Math.round(timeToX(Math.max(closeHour, minH))), 0);
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      // Heavier dim (was 0.45) so the closed portion reads as a single
+      // dark band — weather bands + shadow overlay underneath disappear,
+      // matching the user's intent that closed-location weather/shadow
+      // shouldn't surface.
+      ctx.fillStyle = 'rgba(0,0,0,0.78)';
       ctx.fillRect(cx, bleed, BAR_W - cx, TRACK_H);
     }
   }
