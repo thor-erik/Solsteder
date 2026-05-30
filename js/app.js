@@ -9129,14 +9129,14 @@ function _revealCanvasAndChrome() {
     canvasOverlay.style.opacity = '1';
   }
   // Fade locate-me + zoom-jog in. They've been held hidden via
-  // intro-hidden since boot. Use the same 0.5s opacity easing the rest
-  // of the chrome uses so the reveal reads as one unified moment.
+  // intro-hidden since boot. Tightened from 0.5s → 0.32s (PR E) so the
+  // reveal lands in the same beat as the panel slide.
   for (const el of [locateBtn, zoomJog]) {
     if (!el || !el.classList.contains('intro-hidden')) continue;
-    el.style.transition = 'opacity 0.5s ease';
+    el.style.transition = 'opacity 0.32s ease';
     requestAnimationFrame(() => {
       el.classList.remove('intro-hidden');
-      setTimeout(() => { if (el) el.style.transition = ''; }, 600);
+      setTimeout(() => { if (el) el.style.transition = ''; }, 380);
     });
   }
 }
@@ -9147,7 +9147,7 @@ window._revealCanvasAndChrome = _revealCanvasAndChrome;
 // Used to hold the chrome slide-in until the map is fully rendered, since the
 // slide animation otherwise starves the map's tile render (it only completes
 // after the slide ends). Falls back to a cap so a never-quiet map can't strand.
-function _afterMapQuiet(cb, capMs = 2500) {
+function _afterMapQuiet(cb, capMs = 1500) {
   if (typeof map === 'undefined' || !map || typeof map.on !== 'function') { cb(); return; }
   let last = performance.now();
   let done = false;
@@ -9265,9 +9265,9 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     search.style.transform = 'translateY(-72px)';
     search.classList.remove('intro-hidden');
     search.getBoundingClientRect();
-    search.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+    search.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.28s ease';
     search.style.transform = '';
-    setTimeout(() => { if (search) search.style.transition = ''; }, 500);
+    setTimeout(() => { if (search) search.style.transition = ''; }, 380);
   } else if (search) {
     search.classList.remove('intro-hidden');
   }
@@ -9284,9 +9284,9 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     el.style.transform = startTransform;
     el.classList.remove('intro-hidden');
     el.getBoundingClientRect();
-    el.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+    el.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.28s ease';
     el.style.transform = '';
-    setTimeout(() => { if (el) el.style.transition = ''; }, 500);
+    setTimeout(() => { if (el) el.style.transition = ''; }, 380);
   };
 
   if (!isMobile) {
@@ -9301,19 +9301,19 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     // Brand is a bottom-left floating map label now (not the old top-right card)
     // — fade it in rather than slide from the right.
     if (brand) {
-      brand.style.transition = 'opacity 0.5s ease';
+      brand.style.transition = 'opacity 0.32s ease';
       requestAnimationFrame(() => {
         brand.classList.remove('intro-hidden');
-        setTimeout(() => { if (brand) brand.style.transition = ''; }, 600);
+        setTimeout(() => { if (brand) brand.style.transition = ''; }, 380);
       });
     }
     // qc-wrap is the toast strip — fade rather than slide so a queued
     // toast on app-start doesn't appear mid-flight.
     if (qcWrap) {
-      qcWrap.style.transition = 'opacity 0.5s ease';
+      qcWrap.style.transition = 'opacity 0.32s ease';
       requestAnimationFrame(() => {
         qcWrap.classList.remove('intro-hidden');
-        setTimeout(() => { qcWrap.style.transition = ''; }, 600);
+        setTimeout(() => { qcWrap.style.transition = ''; }, 380);
       });
     }
   } else {
@@ -9337,9 +9337,9 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
       topStrip.style.top = '-72px';
       topStrip.classList.remove('intro-hidden');
       topStrip.getBoundingClientRect();
-      topStrip.style.transition = 'top 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+      topStrip.style.transition = 'top 0.32s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.28s ease';
       topStrip.style.top = '';   // clear inline → CSS resting top animates in
-      setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
+      setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 380);
     }
     // brand + qc-wrap reveal with the rest of the chrome. locate-btn and
     // zoom-jog are intentionally HELD until the panel reaches expanded
@@ -9347,10 +9347,10 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     // _revealCanvasAndChrome (called from phase 3 / panel-expand step).
     [brand, qcWrap].forEach(el => {
       if (!el) return;
-      el.style.transition = 'opacity 0.5s ease';
+      el.style.transition = 'opacity 0.32s ease';
       requestAnimationFrame(() => {
         el.classList.remove('intro-hidden');
-        setTimeout(() => { el.style.transition = ''; }, 600);
+        setTimeout(() => { el.style.transition = ''; }, 380);
       });
     });
   }
@@ -9400,10 +9400,10 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {
     const ftsEl = document.getElementById('fts');
     if (ftsEl) {
-      ftsEl.style.transition = 'opacity 0.5s ease';
+      ftsEl.style.transition = 'opacity 0.32s ease';
       requestAnimationFrame(() => {
         ftsEl.classList.remove('intro-hidden');
-        setTimeout(() => { ftsEl.style.transition = ''; }, 600);
+        setTimeout(() => { ftsEl.style.transition = ''; }, 380);
       });
     }
     requestAnimationFrame(() => syncFts());
@@ -9575,11 +9575,12 @@ function _skipIntro(seqId, opts) {
     // Reveal order (ALL platforms): rendered map → pins → UI slide-in.
     // The map finishes painting (above), THEN the pins fade in over it, THEN
     // the chrome + venue panel slide in over the already-populated map.
-    // (Previously the chrome slid in first and pins appeared 550 ms later —
-    // reversed per product direction so the map's content reads before the
-    // UI arrives.) The list is swapped skeleton → real BEFORE the slide, while
-    // the panel is still off-screen, so it slides in showing real cards.
-    const _PIN_BEAT_MS = 450;  // pins visibly settle before the UI slides
+    // Pins + locate-me + zoom-jog + chrome + venue panel all reveal in
+    // lock-step now (PR E). The prior 450 ms pin-beat was added so the
+    // map's content would "read before" the UI slid in, but with the
+    // tighter transition durations (0.32 s slide) the staggered version
+    // felt sluggish on cold-start. Simultaneous reveal lands the whole
+    // app in one ~320 ms moment instead of ~900 ms total.
     _afterMapQuiet(() => {
       if (_introSeqId !== localSeq) return;
       // 1) Pins (+ locate-me / zoom-jog) fade in over the fully-rendered map.
@@ -9589,19 +9590,18 @@ function _skipIntro(seqId, opts) {
       window._revealSkeletonHold = false;
       if (_vlist) delete _vlist.dataset.mounted;
       if (typeof renderList === 'function') { try { renderList(); } catch (e) {} }
-      // 3) Then the chrome + panel (with real cards) slide in.
-      setTimeout(() => {
-        if (_introSeqId !== localSeq) return;
-        _introRevealUI(search, brand, qcWrap, panel);
-        if (panel && isMobileSkip) _syncFtsPosition();
-      }, _PIN_BEAT_MS);
+      // 3) Chrome + panel slide in immediately alongside the pin fade —
+      //    same animation frame, same ease curve, so the eye reads one
+      //    coordinated reveal instead of a two-beat sequence.
+      _introRevealUI(search, brand, qcWrap, panel);
+      if (panel && isMobileSkip) _syncFtsPosition();
       // Wrap-up (after the UI has slid in).
       setTimeout(() => {
         if (_introSeqId !== localSeq) return;
         if (_sharedVenueId) selectVenue(_sharedVenueId, true);
         if (typeof _notifInit === 'function') _notifInit();
         if (typeof pushInit === 'function') pushInit();
-      }, _PIN_BEAT_MS + 1050);
+      }, 700);
     });
     setTimeout(() => { window._revealSkeletonHold = false; }, 5000);  // backstop release
     if (document.documentElement.classList.contains('invite-loading')) {
