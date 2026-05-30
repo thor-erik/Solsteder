@@ -3029,11 +3029,16 @@ function advanceDay(delta, setHour) {
   if (setHour === undefined && delta > 0 && currentSun && currentSun.alt < 0) setHour = 12;
   // Either direction: if the old day was post-sundown and the new day
   // isn't today, snap to that day's earliest sun so the user lands at
-  // a meaningful hour.
+  // a meaningful hour. With the detail panel open, prefer the venue's
+  // first qualifying (shadow + weather + open-hours) window so the
+  // slider lands where the pin says "sun starts".
   if (setHour === undefined && wasPostSundown && newDateStr !== todayStr()) {
-    setHour = (typeof _earliestSunHourFor === 'function')
+    const _selV = (typeof selectedId !== 'undefined' && selectedId != null && typeof VENUES !== 'undefined')
+      ? VENUES.find(v => v.id === selectedId) : null;
+    const venueSun = _selV ? _firstSunWindowStartForVenue(_selV, newDateStr) : null;
+    setHour = venueSun ?? ((typeof _earliestSunHourFor === 'function')
       ? (_earliestSunHourFor(newDateStr) ?? 12)
-      : 12;
+      : 12);
   }
   if (setHour !== undefined) {
     if (nowMode) {
@@ -3488,7 +3493,13 @@ function selectQcDate(dateStr) {
       timeRangeWrap?.classList.remove('now-active');
     }
     setActiveIntentBtn(null);
-    const sunWindow = _firstSunWindowStartFor(dateStr);
+    // Prefer the selected venue's first qualifying sun window (shadow-aware)
+    // when the detail panel is open. Falls through to the day-wide function
+    // if the venue lookup turns up nothing today.
+    const _selV = (typeof selectedId !== 'undefined' && selectedId != null && typeof VENUES !== 'undefined')
+      ? VENUES.find(v => v.id === selectedId) : null;
+    const venueSun = _selV ? _firstSunWindowStartForVenue(_selV, dateStr) : null;
+    const sunWindow = venueSun ?? _firstSunWindowStartFor(dateStr);
     timeFromEl.value = sunWindow != null ? sunWindow : 12;
     // Notify listeners that read timeFromEl via events (e.g. invite sheet
     // confirmation hook). update() handles the main rendering pipeline.
@@ -3556,6 +3567,41 @@ function _firstSunWindowStartFor(dateStr) {
     }
   }
   return sunrise;
+}
+
+/** Venue-aware first-sun jump (PR D item #6). When the detail panel is open
+ *  for a specific venue, prefer the venue's first QUALIFYING sun window —
+ *  which already excludes architectural shadow gaps + weather-blocked hours —
+ *  over the day-wide _firstSunWindowStartFor. computeSunWindows returns
+ *  per-venue post-shadow window slices; qualifyingWindows then layers in
+ *  the same weather / opening-hours / disruption gates the pin tier uses,
+ *  so the slider lands exactly where the pin would say "sun starts".
+ *  Returns null if no qualifying window exists today (caller should fall
+ *  back to the day-wide function). */
+function _firstSunWindowStartForVenue(venue, dateStr) {
+  if (!venue || typeof computeSunWindows !== 'function' || typeof qualifyingWindows !== 'function') return null;
+  let windows;
+  try { ({ windows } = computeSunWindows(venue, dateStr)); }
+  catch (e) { return null; }
+  if (!windows || !windows.length) return null;
+  // Same params used by classifyPin so this matches what the pin shows.
+  const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
+    ? (findSunCrossingFromTable(currentSunTable, false) ?? 22) : 22;
+  const dh = (typeof getVenueHoursForDay === 'function') ? getVenueHoursForDay(venue, dateStr) : null;
+  const wxLookup = (h) => {
+    const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, h) : null;
+    return { rainy: b === 'regn', overcast: b === 'skyer' };
+  };
+  let qual;
+  try {
+    qual = qualifyingWindows(windows, wxLookup, {
+      selectedHour: 0,                       // search from day start
+      sundownHour:  sundownH,
+      openHour:     dh?.open ?? 0,
+      closeHour:    dh?.close ?? 24,
+    });
+  } catch (e) { return null; }
+  return qual?.earliest?.start ?? null;
 }
 
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render

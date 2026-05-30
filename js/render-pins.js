@@ -233,9 +233,13 @@ function _friendColor(userId) {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return _FRIEND_COLORS[h % _FRIEND_COLORS.length];
 }
-function _friendInitial(u) {
+function _friendInitial(u, fallback) {
   const src = (u && (u.name || u.email)) || '';
-  return (src[0] || '?').toUpperCase();
+  // Use the provided fallback letter (typically the venue's first char) when
+  // both name and email are empty. Falling back to '?' read as a bug; a
+  // deterministic letter at least suggests an identity.
+  const fb = (fallback && fallback[0]) || '·';
+  return (src[0] || fb).toUpperCase();
 }
 
 // ── Pin geometry constants ─────────────────────────────────────────────────────
@@ -465,7 +469,21 @@ function _inviteOffsetLabel(offsetMin) {
 function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const attendees = Array.isArray(invitePin.attendees) ? invitePin.attendees : [];
   const declined  = Array.isArray(invitePin.declined)  ? invitePin.declined  : [];
-  if (!attendees.length && !declined.length) return; // nobody responded yet
+  if (!attendees.length && !declined.length) return; // nothing to show
+
+  // PR D item #1: "Waiting for replies" empty state. When the only attendee
+  // is the host (no accepted invitees yet, no declines), the receiver/host
+  // sees a meet-time header + a single muted "Venter på svar" row instead
+  // of a stack of just-the-host's avatar. Doesn't trigger when there's any
+  // decline or any non-host attendee.
+  const _hostOnly = attendees.length === 1 && !!attendees[0]?.isHost && declined.length === 0;
+  // Venue letter fallback for _friendInitial when a profile row lacks both
+  // name and email (rare, but the '?' that appeared before read as a bug).
+  let _venueLetter = '?';
+  try {
+    const v = (typeof venueById === 'function') ? venueById(invitePin.venueId) : null;
+    if (v && v.name) _venueLetter = String(v.name).trim()[0] || '?';
+  } catch (e) { /* ignore */ }
 
   // Entrance animation for a just-added attendee (the receiver, on confirm).
   // Any attendee carrying `_enterAt` fades + slides in while its row height
@@ -500,13 +518,23 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
     : (timeStr ? `${meetLabel} ${timeStr}` : '');
 
   // Measure: card width = max(rows, header) + padding. Each row's width is
-  // pad + avatar + gap + name + (disc ? gap + disc : 0) + pad.
-  const rowDescriptors = visible.map(a => {
-    const first = (a.name || '').trim().split(/\s+/)[0] || '?';
-    const disc = _inviteOffsetLabel(a.offsetMin);
-    return { name: first, disc, declined: false, original: a, enterT: _enterT(a) };
-  });
-  if (overflow > 0) {
+  // pad + avatar + gap + name + (host-badge ? gap + badge : 0)
+  //                     + (disc ? gap + disc : 0) + pad.
+  // Host badge takes the disc slot when isHost; offset disc (rare for a
+  // host) takes precedence — host's own offset is generally 0 anyway.
+  const _hostBadgeText = (typeof t === 'function') ? t('invite_pin_host_badge') : 'Host';
+  const rowDescriptors = _hostOnly
+    ? [{ isWaitingState: true }]
+    : visible.map(a => {
+        const first = (a.name || '').trim().split(/\s+/)[0] || _venueLetter;
+        const offsetDisc = _inviteOffsetLabel(a.offsetMin);
+        // Show the host badge in the disc slot UNLESS the host has an offset
+        // (extremely rare — host is the time reference). Offset wins so the
+        // logistics info isn't hidden behind a label.
+        const disc = offsetDisc || (a.isHost ? _hostBadgeText : '');
+        return { name: first, disc, declined: false, isHost: !!a.isHost, original: a, enterT: _enterT(a) };
+      });
+  if (!_hostOnly && overflow > 0) {
     const moreLabel = (typeof t === 'function') ? t('pin_overflow_more', { count: overflow }) : `+${overflow} more`;
     rowDescriptors.push({ name: moreLabel, disc: '', isOverflow: true });
   }
@@ -522,8 +550,16 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
     rowDescriptors.push({ name: declinedLabel, disc: '', isOverflow: true, declined: true });
   }
 
+  // The waiting-state row has no avatar — it's a centered muted text line.
+  const _waitingText = (typeof t === 'function') ? t('invite_pin_waiting') : 'Waiting for replies';
   let maxRowW = 0;
   for (const r of rowDescriptors) {
+    if (r.isWaitingState) {
+      ctx.font = INVITE_OVERFLOW_FONT;
+      const w = INVITE_CARD_PAD_X * 2 + Math.ceil(ctx.measureText(_waitingText).width);
+      if (w > maxRowW) maxRowW = w;
+      continue;
+    }
     ctx.font = r.isOverflow ? INVITE_OVERFLOW_FONT : INVITE_NAME_FONT;
     let w = INVITE_CARD_PAD_X * 2 + 2 * INVITE_AV_R + INVITE_AV_GAP + Math.ceil(ctx.measureText(r.name).width);
     if (r.disc) {
@@ -598,7 +634,15 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
     const _prevAlpha = ctx.globalAlpha;
     if (rEnterT < 1) ctx.globalAlpha = _prevAlpha * rEnterT;
 
-    if (r.isOverflow) {
+    if (r.isWaitingState) {
+      // Centered muted text — replaces the avatar list when the only
+      // attendee is the host with no accepted invitees yet.
+      ctx.font         = INVITE_OVERFLOW_FONT;
+      ctx.fillStyle    = _rgba(TOKENS.bg, 0.55);
+      ctx.textBaseline = 'middle';
+      ctx.textAlign    = 'center';
+      ctx.fillText(_waitingText, cardX + cardW / 2, rowCy);
+    } else if (r.isOverflow) {
       ctx.font         = INVITE_OVERFLOW_FONT;
       ctx.fillStyle    = _rgba(TOKENS.bg, r.declined ? 0.40 : 0.55);
       ctx.textBaseline = 'middle';
@@ -619,7 +663,7 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
       ctx.fillStyle    = r.declined ? _rgba(TOKENS.bg, 0.45) : _rgba(TOKENS.bg, 0.92);
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'center';
-      ctx.fillText(_friendInitial({ name: original.name }), avCx, rowCy + 0.5);
+      ctx.fillText(_friendInitial({ name: original.name }, _venueLetter), avCx, rowCy + 0.5);
       // Name
       ctx.font         = INVITE_NAME_FONT;
       ctx.fillStyle    = r.declined ? _rgba(TOKENS.bg, 0.45) : _rgba(TOKENS.bg, 0.92);
@@ -637,7 +681,10 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
         ctx.lineWidth = 1.2;
         ctx.stroke();
       }
-      // Discrepancy (right-aligned, deeper amber for contrast).
+      // Discrepancy slot (right-aligned). For the host this is the "Vert"/
+      // "Host" badge; for other attendees with an offset arrival it's the
+      // honey offset label (+10m, +1h). Same color recipe (deep amber)
+      // works for both — small, contrasted, doesn't shout.
       if (r.disc) {
         ctx.font         = INVITE_DISC_FONT;
         ctx.fillStyle    = INVITE_DISC_COLOR;

@@ -6345,6 +6345,12 @@
   .dp-footer-quiet {
     margin-top: var(--space-xl);
     padding-top: var(--space-lg);
+    /* PR D item #10 — generous bottom inset + safe-area so the last
+       interactive elements (the feedback links) sit clear of the iOS
+       home-indicator gesture zone. Was effectively just #dp-scroll's
+       --space-2xl bottom padding; now the footer carries its own
+       breathing room too. */
+    padding-bottom: max(var(--space-2xl), env(safe-area-inset-bottom));
     border-top: 1px solid var(--line-l-faint);  /* ink divider on the frost sheet */
     display: flex;
     align-items: center;

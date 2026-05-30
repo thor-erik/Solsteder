@@ -176,11 +176,18 @@ function openPlanPreview(opts) {
       const inviterUser = (plan && plan.creator) || null;
       const inviterId   = (inviterUser && inviterUser.id) || opts.inviterId || null;
       const inviterRaw  = (inviterUser && (inviterUser.name || inviterUser.email)) || opts.inviterName || '';
-      if (inviterId && (!myId || String(inviterId) !== String(myId))) {
+      // ALWAYS include the inviter (PR D item #1). v1 excluded them when the
+      // viewer === inviter, which made the host's own accept-page render an
+      // empty pin (early-return in _drawInviteAvatarPin) — no signal that
+      // they're attending their own plan. Now the host gets an isHost flag
+      // and stays in the avatar list; receivers see "Host" next to their
+      // name, and the host themselves sees themselves marked.
+      if (inviterId) {
         _pinAttendees.push({
           id:        inviterId,
           name:      String(inviterRaw).split('@')[0].split(' ')[0],
           offsetMin: 0,
+          isHost:    true,
         });
       }
       if (plan && Array.isArray(plan._invitees)) {
