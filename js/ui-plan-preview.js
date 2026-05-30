@@ -2180,16 +2180,19 @@ function _populateTimelineWeather(host, v, dateStr, minH, maxH) {
   host.innerHTML = '';
   if (!(maxH > minH + 0.1)) return;
   if (typeof TIMELINE_EVENT_GLYPHS === 'undefined') return;
+  // Route through canonical wxClassify so glyph segments share boundaries
+  // with the colored canvas bands underneath (drawTimeline paints via the
+  // same classifier). Without this, the in-bar bands and the icon row
+  // disagreed on every hour with sunBlock ∈ [0.25, 0.50] or [0.75, 0.85].
   const wxKeyAt = (h) => {
-    if (typeof getWeatherAt !== 'function') return 'sun';
+    if (typeof wxClassify !== 'function' || typeof getWeatherAt !== 'function') return 'sun';
     const wx = getWeatherAt(dateStr, h + 0.5);
     if (!wx) return 'sun';
-    const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-    if (rain) return 'rain';
-    const cf = wx.sunBlock ?? wx.cloud ?? 0;
-    if (cf < 0.25) return 'sun';
-    if (cf < 0.75) return 'partly';
-    return 'cloud';
+    const cls = wxClassify(wx.sunBlock ?? wx.cloud ?? 0, wx.precip ?? wx.prec ?? 0);
+    if (cls === 'rain')     return 'rain';
+    if (cls === 'overcast') return 'cloud';
+    if (cls === 'partly')   return 'partly';
+    return 'sun'; // clear + clearSoft both → sun glyph
   };
   // Shade lookup — outside any sun window means the seating is in shadow
   // and we want the shade glyph instead of the weather one.
@@ -2201,6 +2204,13 @@ function _populateTimelineWeather(host, v, dateStr, minH, maxH) {
     }
   } catch (e) { /* ignore */ }
   const inSun = (h) => sunWindows.some(w => h >= w.start && h <= w.end);
+  // Opening-hours lookup — outside the venue's window we render a moon
+  // glyph instead of the weather/shade band underneath. Matches the
+  // canvas's heavy closed-zone dim added in PR A v1.
+  let dayHours = null;
+  try {
+    dayHours = (typeof getVenueHoursForDay === 'function') ? getVenueHoursForDay(v, dateStr) : null;
+  } catch (e) { /* ignore */ }
 
   // Step through whole-hour buckets within the visible range, snap state.
   const startH = Math.floor(minH);
@@ -2209,6 +2219,12 @@ function _populateTimelineWeather(host, v, dateStr, minH, maxH) {
   for (let h = startH; h < endH; h++) {
     const mid = h + 0.5;
     if (mid < minH || mid > maxH) { states.push({ h, state: null }); continue; }
+    // Closed beats every other state — the band underneath is uniformly
+    // dark and weather/shade no longer matters to the user.
+    if (dayHours && (mid < dayHours.open || mid >= dayHours.close)) {
+      states.push({ h, state: 'closed' });
+      continue;
+    }
     const state = (sunWindows.length && !inSun(mid)) ? 'shade' : wxKeyAt(h);
     states.push({ h, state });
   }

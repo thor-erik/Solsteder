@@ -898,17 +898,20 @@ function _populateFtsEvents() {
   const glyphs = window.TIMELINE_EVENT_GLYPHS;
   if (!glyphs) return;
 
-  // Weather classification — matches the canvas band thresholds.
+  // Weather classification — route through the canonical wxClassify so
+  // FTS glyph segments match the canvas band boundaries exactly. The
+  // canvas paints in 5 buckets (clear/clearSoft/partly/overcast/rain);
+  // glyph vocab covers 4 (sun/partly/cloud/rain) so clear + clearSoft
+  // both map to 'sun' until a softer-sun glyph ships (plan item #8).
   const wxKeyAt = (h) => {
-    if (typeof getWeatherAt !== 'function') return null;
+    if (typeof wxClassify !== 'function' || typeof getWeatherAt !== 'function') return null;
     const wx = getWeatherAt(dateStr, h + 0.5);
     if (!wx) return null;
-    const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-    if (rain) return 'rain';
-    const cf = wx.sunBlock ?? wx.cloud ?? 0;
-    if (cf < 0.50) return 'sun';
-    if (cf < 0.75) return 'partly';
-    return 'cloud';
+    const cls = wxClassify(wx.sunBlock ?? wx.cloud ?? 0, wx.precip ?? wx.prec ?? 0);
+    if (cls === 'rain')     return 'rain';
+    if (cls === 'overcast') return 'cloud';
+    if (cls === 'partly')   return 'partly';
+    return 'sun'; // clear + clearSoft
   };
 
   // Selected venue — pulls sun windows + open hours so we can compute
