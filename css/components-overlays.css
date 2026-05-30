@@ -1120,9 +1120,14 @@
   .dpinvite-fts-slot:empty { display: none; }
 
   .dpinvite-body {
-    flex: 1;
+    /* Was flex:1 — stretched the body to fill the sheet's 92svh max-height
+       even when content was short, leaving large empty space below the
+       composer and inflating the friend-grid scroll region. flex: 0 1 auto
+       sizes to content; the sheet itself shrinks via height:auto. The
+       parent .dpinvite-sheet's overflow-y:auto + max-height:92svh still
+       handles overflow for long friend lists. */
+    flex: 0 1 auto;
     min-height: 0;
-    overflow-y: auto;
     padding: 0 var(--space-xl) var(--space-lg);
     display: flex;
     flex-direction: column;

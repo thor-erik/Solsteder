@@ -80,6 +80,29 @@ function openPlanPreview(opts) {
     opts.inviterName = opts.inviterName || matchingInvite.plan?.creator?.name || '';
   }
 
+  // PR D v2: own-invite host view. When the viewer opens their OWN plan
+  // (anon share link, push notification, etc.) the auto-detect above
+  // doesn't fire (they're not in _planInvites — they're the creator),
+  // but the caller may still have passed mode='invite' / 'invite-anon'.
+  // Switching to 'preview' surfaces the existing host footer (share
+  // onwards + cancel plan) so the host can manage the plan instead of
+  // RSVPing to themselves. Also tags opts.viewerIsHost so the header can
+  // render a "Vert" / "Host" eyebrow.
+  if ((opts.mode === 'invite' || opts.mode === 'invite-anon')
+      && typeof _currentUser !== 'undefined' && _currentUser && opts.plannedAt
+      && typeof _plans !== 'undefined' && Array.isArray(_plans)) {
+    const targetMs = new Date(opts.plannedAt).getTime();
+    const ownPlan = _plans.find(p => p && p.creator_id === _currentUser.id
+      && String(p.venue_id) === String(opts.venueId)
+      && !isNaN(targetMs)
+      && Math.abs(new Date(p.planned_at).getTime() - targetMs) < 60 * 1000
+      && !p.cancelled_at);
+    if (ownPlan) {
+      opts.mode = 'preview';
+      opts.viewerIsHost = true;
+    }
+  }
+
   const savedTime = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : null;
   const savedDate = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
 
@@ -1249,13 +1272,20 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     eyebrow = opts.inviterName
       ? t('pp_invited_line_named', { name: inviterName })
       : t('pp_invited_line_anon');
+  } else if (opts.viewerIsHost) {
+    // Host opened their own plan — eyebrow flags it clearly so they read
+    // the page as "your plan, manage it" instead of "you've been invited".
+    // The footer below shows Send onwards + Cancel plan via the existing
+    // isPreview branch (mode was switched at the top of openPlanPreview).
+    eyebrow = t('pp_host_eyebrow');
   } else {
     // Fallback so the eyebrow ALWAYS has content. Preview mode (the
-    // creator viewing their own plan) and the rare race where the
-    // invite row hasn't loaded yet would otherwise collapse this row
-    // entirely, shifting venue + meta upward and breaking alignment
-    // against the two-column header. Anon line ("You're invited to")
-    // is the safest fallback — generic enough to fit either mode.
+    // creator viewing their own plan via the legacy detail-panel route)
+    // and the rare race where the invite row hasn't loaded yet would
+    // otherwise collapse this row entirely, shifting venue + meta upward
+    // and breaking alignment against the two-column header. Anon line
+    // ("You're invited to") is the safest fallback — generic enough to
+    // fit either mode.
     eyebrow = t('pp_invited_line_anon');
   }
 

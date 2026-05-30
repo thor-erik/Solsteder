@@ -635,13 +635,15 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
     if (rEnterT < 1) ctx.globalAlpha = _prevAlpha * rEnterT;
 
     if (r.isWaitingState) {
-      // Centered muted text — replaces the avatar list when the only
-      // attendee is the host with no accepted invitees yet.
+      // Left-aligned muted text — matches the row layout pattern used by
+      // avatar / overflow rows so the empty state doesn't read as a
+      // different component. User flagged the centered v1 placement as
+      // visually off.
       ctx.font         = INVITE_OVERFLOW_FONT;
       ctx.fillStyle    = _rgba(TOKENS.bg, 0.55);
       ctx.textBaseline = 'middle';
-      ctx.textAlign    = 'center';
-      ctx.fillText(_waitingText, cardX + cardW / 2, rowCy);
+      ctx.textAlign    = 'left';
+      ctx.fillText(_waitingText, cardX + INVITE_CARD_PAD_X, rowCy);
     } else if (r.isOverflow) {
       ctx.font         = INVITE_OVERFLOW_FONT;
       ctx.fillStyle    = _rgba(TOKENS.bg, r.declined ? 0.40 : 0.55);
