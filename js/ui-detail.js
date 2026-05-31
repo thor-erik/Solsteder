@@ -485,7 +485,6 @@ function _renderSocialComposer(v) {
       </div>
       <div class="dp-composer-action-slot">
         <button class="dp-composer-send" onclick="_dpShareOpen(${v.id})">${plane}<span>${t('send_to_friends')}</span></button>
-        <div class="dp-composer-hint">${t('nar_adjust_hint')} ${dnChev}</div>
       </div>
     </div>
     <div class="dp-action-pager" id="dp-action-pager">

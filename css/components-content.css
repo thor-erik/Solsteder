@@ -5670,12 +5670,16 @@
     letter-spacing: 0.06em; color: var(--ink-muted);
   }
   /* "[sun] 5h 35m left" — number big (display), "left" the lighter trailing
-     word (inline, never a stacked sub-label). */
+     word (inline, never a stacked sub-label). The wrapper's color drives the
+     leading icon's currentColor — PR D v3 swapped it from honey
+     --accent-on-light to dark --text per user feedback ("dark icons/glyphs
+     to the left of the '2h 5m left' info"). Value + word inherit dark from
+     their own rules below, so the swap only affects the icon. */
   .dp-card .dp-sun-now-main {
     /* Bumped gap from --space-2xs (no visible space — "7tigjen") to --space-xs
        so "igjen" breathes off the value. */
     display: flex; align-items: baseline; gap: var(--space-xs); flex-wrap: nowrap;
-    color: var(--accent-on-light);
+    color: var(--text);
   }
   .dp-card .dp-sun-now-main svg { flex-shrink: 0; align-self: center; }
   .dp-card .dp-sun-now-val {
@@ -5827,12 +5831,23 @@
      the same 48px box, cross-fading via opacity. Keeps the composer card
      height stable across Resting / Active / Share so the card doesn't jump
      when state toggles. */
+  /* Action-slot collapses entirely in nar/share modes (PR D v3) — the
+     picker / share page own their own actions. Was a fixed 48px slot
+     with both the Send button and an "adjust day/time" hint inside;
+     hint removed (user feedback: just clutter), slot now only renders
+     the Send in resting state and collapses to 0 elsewhere so the
+     composer card shrinks. transition keeps the collapse smooth. */
   .dp-composer-action-slot {
     position: relative;
     height: 48px;
+    overflow: hidden;
+    transition: height 280ms var(--ease-decelerate);
   }
-  .dp-composer-send,
-  .dp-composer-hint {
+  body.nar-mode .dp-composer-action-slot,
+  body.share-mode .dp-composer-action-slot {
+    height: 0;
+  }
+  .dp-composer-send {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     transition: opacity 280ms var(--ease-decelerate),
                 transform 280ms var(--ease-decelerate);
@@ -5851,24 +5866,11 @@
   .dp-composer-send:hover { box-shadow: var(--shadow-2); }
   .dp-composer-send:active { transform: translateY(1px); box-shadow: none;
                              transition: transform 60ms ease-out, box-shadow 60ms ease-out; }
-  /* "Juster dag og tid..." — Active-state hint, cross-fades over Send. */
-  .dp-composer-hint {
-    display: flex; align-items: center; justify-content: center; gap: var(--space-2xs);
-    font-size: var(--text-label); color: var(--ink-muted);
-    opacity: 0; transform: translateY(6px);
-    pointer-events: none;
-  }
-  .dp-composer-hint svg { flex-shrink: 0; }
-  /* Active: hint visible, Send hidden. Share: both hidden (share page owns
-     the Send overlay). */
-  body.nar-mode .dp-composer-send {
-    opacity: 0; transform: translateY(-6px); pointer-events: none;
-  }
-  body.nar-mode .dp-composer-hint {
-    opacity: 1; transform: translateY(0); pointer-events: auto;
-  }
-  body.share-mode .dp-composer-send,
-  body.share-mode .dp-composer-hint {
+  /* Active / Share: Send hidden — the action-slot itself collapses to 0
+     (see above). The opacity tween here covers the brief moment between
+     class toggle and height transition completing. */
+  body.nar-mode .dp-composer-send,
+  body.share-mode .dp-composer-send {
     opacity: 0; pointer-events: none;
   }
   /* Native button chrome reset that doesn't fight the chip styling above. */

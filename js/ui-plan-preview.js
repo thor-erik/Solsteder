@@ -80,24 +80,34 @@ function openPlanPreview(opts) {
     opts.inviterName = opts.inviterName || matchingInvite.plan?.creator?.name || '';
   }
 
-  // PR D v2: own-invite host view. When the viewer opens their OWN plan
-  // (anon share link, push notification, etc.) the auto-detect above
-  // doesn't fire (they're not in _planInvites — they're the creator),
-  // but the caller may still have passed mode='invite' / 'invite-anon'.
-  // Switching to 'preview' surfaces the existing host footer (share
-  // onwards + cancel plan) so the host can manage the plan instead of
-  // RSVPing to themselves. Also tags opts.viewerIsHost so the header can
-  // render a "Vert" / "Host" eyebrow.
+  // PR D v2 (strengthened in v3): own-invite host view. When the viewer
+  // opens their OWN plan link, switch mode to 'preview' so the existing
+  // host footer (Send onwards + Cancel plan) is shown instead of the
+  // receiver Accept/Decline buttons. Two detection paths because the
+  // share-link can arrive before _plans loads (the deeplink handler
+  // fires 1.5s after page load; loadPlans is also async):
+  //   (a) Fast path — the token's inviterId === _currentUser.id. The
+  //       share-link decoder passes the creator's user_id as opts.inviterId,
+  //       so comparing against the current user proves the viewer IS the
+  //       creator without needing the _plans cache.
+  //   (b) Fallback — match the user's plan by venue + planned_at against
+  //       _plans (when it's loaded).
   if ((opts.mode === 'invite' || opts.mode === 'invite-anon')
-      && typeof _currentUser !== 'undefined' && _currentUser && opts.plannedAt
-      && typeof _plans !== 'undefined' && Array.isArray(_plans)) {
-    const targetMs = new Date(opts.plannedAt).getTime();
-    const ownPlan = _plans.find(p => p && p.creator_id === _currentUser.id
-      && String(p.venue_id) === String(opts.venueId)
-      && !isNaN(targetMs)
-      && Math.abs(new Date(p.planned_at).getTime() - targetMs) < 60 * 1000
-      && !p.cancelled_at);
-    if (ownPlan) {
+      && typeof _currentUser !== 'undefined' && _currentUser) {
+    let isHost = false;
+    if (opts.inviterId && String(opts.inviterId) === String(_currentUser.id)) {
+      isHost = true;
+    } else if (opts.plannedAt
+        && typeof _plans !== 'undefined' && Array.isArray(_plans)) {
+      const targetMs = new Date(opts.plannedAt).getTime();
+      const ownPlan = _plans.find(p => p && p.creator_id === _currentUser.id
+        && String(p.venue_id) === String(opts.venueId)
+        && !isNaN(targetMs)
+        && Math.abs(new Date(p.planned_at).getTime() - targetMs) < 60 * 1000
+        && !p.cancelled_at);
+      if (ownPlan) isHost = true;
+    }
+    if (isHost) {
       opts.mode = 'preview';
       opts.viewerIsHost = true;
     }
@@ -2053,7 +2063,11 @@ window.TIMELINE_EVENT_GLYPHS = {
   </svg>`,
   // Brand shade mark — shared generator in render-helpers.js (unique clipPath
   // id per call so it can repeat across list cards + this timeline safely).
-  shade: (typeof shadeGlyph === 'function') ? shadeGlyph() : '',
+  // Uses the stroke-only FTS variant so the drop-shadow halo lands evenly on
+  // every line, matching the lucide-style weather glyphs on the same row.
+  shade: (typeof shadeGlyphFts === 'function')
+    ? shadeGlyphFts()
+    : ((typeof shadeGlyph === 'function') ? shadeGlyph() : ''),
   // Weather glyphs delegate to the same _wxSvg* set the top-strip /
   // header / date-strip / calendar uses (defined in weather.js). User
   // feedback: FTS popup, thumb, and panel timelines should match the
