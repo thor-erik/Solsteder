@@ -682,7 +682,11 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     } else if (dpState?.state === 'closed') {
       leftBody = `<div class="dp-sun-now-main dp-sun-now-main-closed">${moonGBig}<span class="dp-sun-now-val">${_t('state_closed', null, 'Closed')}</span></div>`;
     } else {
-      leftBody = `<div class="dp-sun-now-verdict">${dpState?.mainText || '—'}</div>${dpState?.subText ? `<div class="dp-sun-now-label">${dpState.subText}</div>` : ''}`;
+      // PR D v7: single-row verdict only — sub-text removed per user
+      // ("Sol igjen 19:55" and any other secondary lines should not
+      // appear in the dp sun-conditions card). The dp card now reads
+      // as one line in every state.
+      leftBody = `<div class="dp-sun-now-verdict">${dpState?.mainText || '—'}</div>`;
     }
     const leftHtml = `<div class="dp-sun-now"><div class="dp-sun-title">${_sunTitle}</div>${leftBody}</div>`;
 

@@ -1560,6 +1560,14 @@ try {
     window._renderListSilent = true;
     try { renderList(); } finally { window._renderListSilent = false; }
     if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines();
+    // PR D v7 — refresh the FTS bar too. Without this, after a date
+    // change the FTS stays on the sync-fallback windows (drawn before
+    // the worker returned). A subsequent scrub coincidentally landed on
+    // the corrected windows because update() → drawFtsCanvas reads the
+    // freshly-cached precise windows. User saw the bar "change" between
+    // date-change and scrub, even though no real state changed; this
+    // closes the gap.
+    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
     // The accept page's in-bar weather row was populated once at initial
     // RAF against the sync-fallback windows; now that the worker has
     // corrected the cache, refresh it so the glyphs re-bucket against the
@@ -4265,17 +4273,20 @@ function _wireDpEventsPopover(cardEl) {
   try { pillsHtml = JSON.parse(payload); } catch (e) { pillsHtml = []; }
   if (!pillsHtml.length) return;
   moreBtn.onclick = (ev) => {
+    ev.preventDefault();
     ev.stopPropagation();
     // Close any other open popover first.
     document.querySelectorAll('.dp-events-popover').forEach(el => el.remove());
     const popover = document.createElement('div');
     popover.className = 'dp-events-popover';
     popover.innerHTML = pillsHtml.join('');
-    // Anchor to the card's offset parent so absolute positioning works,
-    // then place above-or-below the +N pill depending on viewport room.
-    const cardRect = cardEl.getBoundingClientRect();
-    const btnRect  = moreBtn.getBoundingClientRect();
-    document.body.appendChild(popover);
+    // Append to <html> rather than <body> so position:fixed always resolves
+    // against the viewport (some hosts add a transform to body which would
+    // re-anchor a fixed child to the body's box). The detail-panel parent
+    // has transform + contain:layout, which is what made v6's popover
+    // disappear "behind the panel".
+    document.documentElement.appendChild(popover);
+    const btnRect = moreBtn.getBoundingClientRect();
     const popH = popover.offsetHeight;
     const aboveY = btnRect.top - popH - 6;
     const belowY = btnRect.bottom + 6;

@@ -467,57 +467,49 @@ function _inviteOffsetLabel(offsetMin) {
   return r === 0 ? `${sign}${h}h` : `${sign}${h}h ${r}m`;
 }
 
-// Avatar-corner badges (PR D v6). Small filled circle (honey for host,
-// jordy for inviting) overlapped on the avatar bottom-right with a tiny
-// glyph centered inside. Same shape, different fill + glyph, so the
-// host (crown) and inviting (paperplane) reads as one badge vocabulary.
-const INVITE_BADGE_R = 6;
-function _drawAvatarBadge(ctx, ax, ay, kind) {
+// Right-aligned glyph badges in the disc slot (PR D v7 — moved off the
+// avatar per user feedback). Drawn in the same x position as the
+// _inviteOffsetLabel ("+10m") text, so the badge reads as one row
+// element with the avatar + name. Small honey crown for the host, jordy
+// paperplane for an invitee picked but not yet sent.
+function _drawRowBadge(ctx, rightX, cy, kind) {
   if (kind !== 'host' && kind !== 'inviting') return;
-  const bx = ax + INVITE_AV_R - 1;
-  const by = ay + INVITE_AV_R - 1;
-  // White halo ring so the badge separates cleanly from the cream card.
-  ctx.beginPath();
-  ctx.arc(bx, by, INVITE_BADGE_R + 1, 0, Math.PI * 2);
-  ctx.fillStyle = '#FAF1DD';
-  ctx.fill();
-  // Badge body — honey for host, jordy blue for inviting.
-  ctx.beginPath();
-  ctx.arc(bx, by, INVITE_BADGE_R, 0, Math.PI * 2);
-  ctx.fillStyle = kind === 'host' ? (TOKENS.accent || '#F5C25E') : (TOKENS.jordy || '#9CBDE7');
-  ctx.fill();
-  // Glyph — small crown (host) or paperplane (inviting), drawn as paths.
+  const sz = 12;
+  const bx = rightX - sz; // right-edge anchored
+  const by = cy - sz / 2;
   ctx.save();
-  ctx.strokeStyle = _rgba(TOKENS.bg, 0.92);
-  ctx.fillStyle = _rgba(TOKENS.bg, 0.92);
-  ctx.lineWidth = 1.2;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+  ctx.strokeStyle = kind === 'host' ? '#A86F1A' : _rgba(TOKENS.bg, 0.78);
+  ctx.fillStyle   = kind === 'host' ? '#A86F1A' : _rgba(TOKENS.bg, 0.78);
+  ctx.lineWidth   = 1.4;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
   if (kind === 'host') {
-    // Crown: three peaks + base line.
+    // Crown silhouette (filled).
+    const cx = bx + sz / 2;
+    const top = by + 2;
+    const bot = by + sz - 2;
     ctx.beginPath();
-    ctx.moveTo(bx - 3, by + 1.6);
-    ctx.lineTo(bx - 3, by - 0.8);
-    ctx.lineTo(bx - 1.5, by + 0.6);
-    ctx.lineTo(bx,     by - 1.8);
-    ctx.lineTo(bx + 1.5, by + 0.6);
-    ctx.lineTo(bx + 3, by - 0.8);
-    ctx.lineTo(bx + 3, by + 1.6);
+    ctx.moveTo(bx + 1.5, bot);
+    ctx.lineTo(bx + 1.5, top + 3);
+    ctx.lineTo(cx - 2.5, top + 5);
+    ctx.lineTo(cx,       top);
+    ctx.lineTo(cx + 2.5, top + 5);
+    ctx.lineTo(bx + sz - 1.5, top + 3);
+    ctx.lineTo(bx + sz - 1.5, bot);
     ctx.closePath();
     ctx.fill();
   } else {
-    // Paperplane: triangular wedge + a center line, mirrors the
-    // lucide-style paper plane used in the share buttons.
+    // Paperplane (stroked + small fill).
     ctx.beginPath();
-    ctx.moveTo(bx - 2.6, by + 1.2);
-    ctx.lineTo(bx + 2.6, by - 2.2);
-    ctx.lineTo(bx - 0.4, by - 0.4);
+    ctx.moveTo(bx + 1.5, by + sz - 2.5);
+    ctx.lineTo(bx + sz - 1, by + 1.5);
+    ctx.lineTo(bx + 5, by + 5.5);
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(bx - 2.6, by + 1.2);
-    ctx.lineTo(bx - 0.4, by - 0.4);
-    ctx.lineTo(bx + 0.6, by + 1.8);
+    ctx.moveTo(bx + 1.5, by + sz - 2.5);
+    ctx.lineTo(bx + 5,   by + 5.5);
+    ctx.lineTo(bx + 6,   by + sz - 1);
     ctx.stroke();
   }
   ctx.restore();
@@ -735,11 +727,6 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'center';
       ctx.fillText(_friendInitial({ name: original.name }, _venueLetter), avCx, rowCy + 0.5);
-      // Corner badges — host (crown) or selected-for-invite (paperplane).
-      if (!r.declined) {
-        if (r.isHost) _drawAvatarBadge(ctx, avCx, rowCy, 'host');
-        else if (r.isInviting) _drawAvatarBadge(ctx, avCx, rowCy, 'inviting');
-      }
       // Name
       ctx.font         = INVITE_NAME_FONT;
       ctx.fillStyle    = (r.declined || isPending) ? _rgba(TOKENS.bg, 0.55) : _rgba(TOKENS.bg, 0.92);
@@ -766,6 +753,13 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
         ctx.fillStyle    = INVITE_DISC_COLOR;
         ctx.textAlign    = 'right';
         ctx.fillText(r.disc, cardX + cardW - INVITE_CARD_PAD_X, rowCy);
+      } else if (!r.declined) {
+        // Right-aligned host crown / inviting paperplane glyph in the disc
+        // slot when no time-offset is present. Mutually exclusive — a host
+        // with an offset still shows the offset (rare, but offset is
+        // higher-signal).
+        if (r.isHost) _drawRowBadge(ctx, cardX + cardW - INVITE_CARD_PAD_X, rowCy, 'host');
+        else if (r.isInviting) _drawRowBadge(ctx, cardX + cardW - INVITE_CARD_PAD_X, rowCy, 'inviting');
       }
     }
 
