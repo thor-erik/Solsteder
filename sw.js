@@ -21,7 +21,7 @@
  * string is a unique cache key under the same domain).
  */
 
-const CACHE_VERSION = '2026-05-31i';
+const CACHE_VERSION = '2026-06-01a';
 const CACHE_NAME    = `shades-shell-${CACHE_VERSION}`;
 
 // Pre-cache only path-stable resources. Versioned JS/CSS (`?v=...`)

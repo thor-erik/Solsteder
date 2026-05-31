@@ -136,10 +136,7 @@
          room under the system status bar.
        - Browser: env returns 0 too, floor gives 14px. */
     top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
-    /* Mobile (default): edge-to-edge with 12px breathing on both sides.
-       Desktop overrides below cap the width so the strip reads as a
-       discrete control surface, not a chrome bar that flies along the
-       top of the page. */
+    /* Mobile (default): edge-to-edge with 12px breathing on both sides. */
     left: 12px;
     right: 12px;
     /* Below the bell dropdown (1050), calendar (1200) and toasts. */
@@ -149,15 +146,15 @@
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-xs);
-    border-radius: var(--radius-pill);
-    /* Pure-frost glass — matches the accept panel + venue list (alpha-0 Delft
-       base + 22px frost), replacing the earlier Jordy 25% wash + 4px surface. */
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-frost);
-    -webkit-backdrop-filter: var(--glass-blur-frost);
-    border: 1px solid var(--line-l);
-    box-shadow: var(--shadow-1);
+    padding: 0;
+    /* PR C: no shared glass bar — each control floats with its own glass.
+       Calendar pill moved to the filter row; the center column shows just
+       the weather sentence as plain text over the map. */
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    box-shadow: none;
     container-type: inline-size;
     container-name: topstrip;
     /* Slide-up animation — when a takeover state (plan-preview, post-
@@ -326,6 +323,14 @@
   }
   #top-strip .ts-date:hover .ts-chev { opacity: 1; }
   #top-strip .ts-date.active .ts-chev { color: var(--accent-on); opacity: 1; transform: rotate(180deg); }
+  /* PR C — center text now floats over the map (no bar background). Cream
+     ink for legibility; the cream tone alone reads against typical map
+     backgrounds. (No text-shadow halo — would have added a new rgba
+     literal to the budget; we'll revisit if the user finds it too light
+     against mixed map tones.) */
+  #top-strip .ts-center {
+    color: var(--text);
+  }
   #top-strip .ts-center .ts-dot { color: rgba(17,30,56,0.30); font-weight: 400; }
   /* Date and weather icon read as a pair. Margin compensates for the
      tighter date button right padding (5 → was 9, total -4 px) so the
@@ -341,12 +346,12 @@
     line-height: 1.2;
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   }
-  #top-strip .ts-center .ts-meta { color: rgba(17,30,56,0.60); font-weight: 500; font-variant-numeric: tabular-nums; }
+  #top-strip .ts-center .ts-meta { color: rgba(255,244,224,0.95); font-weight: 500; font-variant-numeric: tabular-nums; }
   /* Temperature carries the most decision-load in the strip — bump
      to text color + slight weight bump so it reads cleanly without
      visually competing with the date (which is the primary CTA). */
   #top-strip .ts-center .ts-temp {
-    color: var(--panel-text);
+    color: var(--text);
     font-weight: 600;
     /* Negative margin pulls the temp tight against the weather glyph —
        they read as one unit (icon + value), tighter than the row's
@@ -587,6 +592,20 @@
   /* Tactile press feedback that works on touch (the lens-fx tilt is barely
      visible under a finger). Quick scale-down then snap back. */
   .panel-filter-pill:active { transform: scale(0.94); }
+  /* PR C — calendar pill in the filter row. Inherits all .panel-filter-pill
+     base styles; adds a small leading icon and a slightly heavier weight
+     so the date reads as the row's anchor. Lives outside the
+     .panel-actions-pills horizontal scroller so it stays fully visible
+     even when the category filters scroll. */
+  .panel-filter-pill-date {
+    flex-shrink: 0;
+    font-weight: 600;
+    gap: var(--space-xs);
+  }
+  .panel-filter-pill-date-icon {
+    color: currentColor;
+    flex-shrink: 0;
+  }
   /* Clear residual mouse-focus ring after click; keyboard focus still shows. */
   .panel-filter-pill:focus { outline: none; }
   .panel-filter-pill:focus-visible {

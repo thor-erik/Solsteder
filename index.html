@@ -188,7 +188,7 @@
 </style>
 <link rel="stylesheet" href="css/tokens.css?v=20260529q">
 <link rel="stylesheet" href="css/base.css?v=20260526q">
-<link rel="stylesheet" href="css/components-chrome.css?v=20260529t">
+<link rel="stylesheet" href="css/components-chrome.css?v=20260601a">
 <link rel="stylesheet" href="css/components-content.css?v=20260531f">
 <link rel="stylesheet" href="css/components-overlays.css?v=20260531f">
 
@@ -401,12 +401,9 @@
       </button>
     </div>
     <div class="ts-center" id="ts-center">
-      <button class="ts-date" id="ts-date-btn" onclick="toggleQcPanel('date')" aria-label="Velg dato" type="button">
-        <span id="ts-date-label">I dag</span>
-        <svg class="ts-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 9l6 6 6-6"/>
-        </svg>
-      </button>
+      <!-- Date pill moved to #panel-actions (filter row). The center group now
+           floats just the weather sentence. The original #ts-date-label id is
+           re-hosted on the new pill so existing date-sync code still finds it. -->
       <span class="ts-wx-icon" id="ts-wx-icon">☀️</span>
       <span class="ts-meta ts-temp" id="ts-temp">13°</span>
       <span class="ts-dot ts-wind-dot">·</span>
@@ -652,6 +649,22 @@
          Wiring to actual list/pin filtering happens in a follow-up. -->
     <!-- Action row — filter pills (horizontal scroll) + sort. -->
     <div id="panel-actions">
+      <!-- Calendar pill — moved out of #top-strip in PR C. Same toggleQcPanel
+           target as before; #ts-date-btn id preserved so existing JS that
+           targets the calendar trigger keeps working. The label span (still
+           id="ts-date-label") is the sync target for date-display code in
+           app.js. Calendar icon on the left, no chevron (matches the other
+           filter pills' shape). -->
+      <button class="panel-filter-pill panel-filter-pill-date" id="ts-date-btn"
+              type="button" onclick="toggleQcPanel('date')" aria-label="Velg dato">
+        <svg class="panel-filter-pill-date-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="5"  y1="1.5" x2="5"  y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span id="ts-date-label">I dag</span>
+      </button>
       <div class="panel-actions-pills">
         <button class="panel-filter-pill" data-filter="cafe"
                 onclick="toggleListFilter('cafe', this)">Kafé</button>
