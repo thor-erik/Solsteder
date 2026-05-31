@@ -686,41 +686,80 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     }
     const leftHtml = `<div class="dp-sun-now"><div class="dp-sun-title">${_sunTitle}</div>${leftBody}</div>`;
 
-    // RIGHT (pills): the day's upcoming sun events, same source as the left.
-    // Each pill names the event ("shade at", "sun from", "closing/sundown") so
-    // the bare times read as a sentence, not a row of clocks.
-    const evs = [];
-    // Opens-at pill — top of the column when the venue is closed but opens
-    // later today. Carries the time that used to live in the long
-    // "Closed · opens X" verdict so the hero can collapse to just "Closed".
+    // RIGHT (pills): chronologically-sorted event list, locked to 2 visible
+    // pills (PR D v5 design fix per user). When more than 2 events exist the
+    // second slot becomes a "+N hendelser" overflow pill that opens an
+    // expanded popover on tap. Fixed pill count keeps the card height
+    // stable across FTS scrubs so the playhead never jumps under the user's
+    // finger.
     let openHForPill = null;
     try { const _dh2 = getVenueHoursForDay(v, dateStr); if (_dh2 && _dh2.open != null) openHForPill = _dh2.open; } catch (e) { /* no hours */ }
+    // Collect events as { hour, html } so we can sort + cap deterministically.
+    const eventDescriptors = [];
     if (dpState?.state === 'closed' && openHForPill != null && nowH < openHForPill) {
-      evs.push(`<span class="dp-evt dp-evt-clock">${clockG}${_t('dp_evt_opens_at', { time: fmtH(openHForPill) }, fmtH(openHForPill))}</span>`);
+      eventDescriptors.push({
+        hour: openHForPill,
+        html: `<span class="dp-evt dp-evt-clock">${clockG}${_t('dp_evt_opens_at', { time: fmtH(openHForPill) }, fmtH(openHForPill))}</span>`,
+      });
     }
     if (cur && (sundownH == null || cur.end < sundownH - 0.01)) {
-      evs.push(`<span class="dp-evt dp-evt-shade">${shadeG}${_t('dp_evt_shade', { time: fmtH(cur.end) }, fmtH(cur.end))}</span>`);
+      eventDescriptors.push({
+        hour: cur.end,
+        html: `<span class="dp-evt dp-evt-shade">${shadeG}${_t('dp_evt_shade', { time: fmtH(cur.end) }, fmtH(cur.end))}</span>`,
+      });
     } else if (!cur && nextWin) {
-      evs.push(`<span class="dp-evt dp-evt-bonus">${sunSm}${_t('state_sun_from', { time: fmtH(nextWin.start) }, fmtH(nextWin.start))}</span>`);
+      eventDescriptors.push({
+        hour: nextWin.start,
+        html: `<span class="dp-evt dp-evt-bonus">${sunSm}${_t('state_sun_from', { time: fmtH(nextWin.start) }, fmtH(nextWin.start))}</span>`,
+      });
     }
     wins.filter(w => w.start > ((cur ? cur.end : (nextWin ? nextWin.start : nowH)) + 0.01)).slice(0, 2).forEach(w => {
       const oppTxt = (typeof t === 'function')
         ? t('card_opp_one', { dur: fmtDur(w.end - w.start), time: fmtH(w.start) })
         : `+${fmtDur(w.end - w.start)} fra ${fmtH(w.start)}`;
-      evs.push(`<span class="dp-evt dp-evt-bonus">${oppTxt}</span>`);
+      eventDescriptors.push({
+        hour: w.start,
+        html: `<span class="dp-evt dp-evt-bonus">${oppTxt}</span>`,
+      });
     });
-    // End-of-day pill: "closing at X" ONLY if the venue shuts before the sun
-    // sets (closing is the binding limit); otherwise "sundown X". Whichever
-    // comes first is what actually ends your sun here.
     if (closeH != null && (sundownH == null || closeH < sundownH - 0.01)) {
-      evs.push(`<span class="dp-evt dp-evt-moon">${clockG}${_t('dp_evt_closing', { time: fmtH(closeH) }, fmtH(closeH))}</span>`);
+      eventDescriptors.push({
+        hour: closeH,
+        html: `<span class="dp-evt dp-evt-moon">${clockG}${_t('dp_evt_closing', { time: fmtH(closeH) }, fmtH(closeH))}</span>`,
+      });
     } else if (sundownH != null) {
-      evs.push(`<span class="dp-evt dp-evt-moon">${moonG}${_t('dp_evt_sundown', { time: fmtH(sundownH) }, fmtH(sundownH))}</span>`);
+      eventDescriptors.push({
+        hour: sundownH,
+        html: `<span class="dp-evt dp-evt-moon">${moonG}${_t('dp_evt_sundown', { time: fmtH(sundownH) }, fmtH(sundownH))}</span>`,
+      });
     }
+    // Sort chronologically and cap to 2 slots. If more exist, the 2nd slot
+    // becomes the overflow pill; full list lives in data-dp-events for the
+    // expand popover.
+    eventDescriptors.sort((a, b) => a.hour - b.hour);
+    let evs = [];
+    if (eventDescriptors.length <= 2) {
+      evs = eventDescriptors.map(e => e.html);
+    } else {
+      const moreCount = eventDescriptors.length - 1;
+      const moreLabel = _t('dp_evt_more', { count: moreCount }, `+${moreCount} mer`);
+      evs = [
+        eventDescriptors[0].html,
+        `<button type="button" class="dp-evt dp-evt-more" data-vid="${v.id}"><span>${moreLabel}</span></button>`,
+      ];
+    }
+    // Serialize the full list onto the wrapper for the click-to-expand
+    // popover handler to pick up — keeps the DOM small and stable while
+    // making the data available without recomputation on tap.
+    const eventsPayload = (typeof JSON !== 'undefined')
+      ? JSON.stringify(eventDescriptors.map(e => e.html))
+      : '';
 
+    // Encode the payload for the data attribute (escape quotes + brackets).
+    const _esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `
       <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}${auditCardCls}"
-           data-vid="${v.id}">
+           data-vid="${v.id}" data-dp-events="${_esc(eventsPayload)}">
         <div class="dp-sun-row">
           ${leftHtml}
           ${evs.length ? `<div class="dp-sun-events">${evs.join('')}</div>` : ''}

@@ -129,12 +129,18 @@ function splitVenueName(v) {
 let _shadeGlyphN = 0;
 function shadeGlyph(size = 14) {
   const id = 'shclip' + (_shadeGlyphN++);
+  // Heavier strokes (was 1.5 / 2) so the brand shade mark reads with the
+  // same visual mass as the lucide weather glyphs sharing its row on the
+  // FTS. With thinner strokes the gaps between the diagonal hatching let
+  // the dark band underneath bleed through, making the glyph read as
+  // partially transparent. 2.2 matches the weather-glyph stroke-width and
+  // closes those gaps without losing the brand metaphor.
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <defs><clipPath id="${id}"><path d="M12 2 A10 10 0 0 1 12 22 Z"/></clipPath></defs>
     <path d="M12 2 A10 10 0 0 0 12 22 Z"/>
     <g clip-path="url(#${id})">
-      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
-      <g stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none">
+      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none">
         <line x1="2" y1="20" x2="20" y2="2"/>
         <line x1="6" y1="22" x2="22" y2="6"/>
         <line x1="10" y1="24" x2="24" y2="10"/>

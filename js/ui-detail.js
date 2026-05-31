@@ -522,6 +522,8 @@ function _renderShareContent(v) {
   const whatsappSvg    = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>`;
   const copyTargetSvg  = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
   const shareTargetSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg>`;
+  const emailTargetSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`;
+  const smsTargetSvg   = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>`;
 
   const avatarsHtml = (typeof _renderInviteAvatarCarousel === 'function')
     ? _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm) : '';
@@ -547,17 +549,25 @@ function _renderShareContent(v) {
 
   const targetsRow = `
     <div class="dpinvite-targets-row" id="dp-share-targets-row">
-      <button type="button" class="dpinvite-target" onclick="_copyInviteLink(${v.id})" aria-label="${t('copy_invite_link')}">
-        <span class="dpinvite-target-circle">${copyTargetSvg}</span>
-        <span class="dpinvite-target-label">${t('invite_target_copy')}</span>
-      </button>
-      <button type="button" class="dpinvite-target" onclick="_shareInviteLink(${v.id})" aria-label="${t('invite_other_apps')}">
-        <span class="dpinvite-target-circle">${shareTargetSvg}</span>
-        <span class="dpinvite-target-label">${t('invite_target_share')}</span>
-      </button>
       <button type="button" class="dpinvite-target" onclick="_shareInviteWhatsApp(${v.id})" aria-label="${t('invite_via_whatsapp')}">
         <span class="dpinvite-target-circle">${whatsappSvg}</span>
         <span class="dpinvite-target-label">${t('invite_via_whatsapp')}</span>
+      </button>
+      <button type="button" class="dpinvite-target" onclick="_shareInviteSms(${v.id})" aria-label="${t('invite_target_sms')}">
+        <span class="dpinvite-target-circle">${smsTargetSvg}</span>
+        <span class="dpinvite-target-label">${t('invite_target_sms')}</span>
+      </button>
+      <button type="button" class="dpinvite-target" onclick="_shareInviteEmail(${v.id})" aria-label="${t('invite_target_email')}">
+        <span class="dpinvite-target-circle">${emailTargetSvg}</span>
+        <span class="dpinvite-target-label">${t('invite_target_email')}</span>
+      </button>
+      <button type="button" class="dpinvite-target" onclick="_shareInviteLink(${v.id})" aria-label="${t('invite_target_share')}">
+        <span class="dpinvite-target-circle">${shareTargetSvg}</span>
+        <span class="dpinvite-target-label">${t('invite_target_share')}</span>
+      </button>
+      <button type="button" class="dpinvite-target" onclick="_copyInviteLink(${v.id})" aria-label="${t('copy_invite_link')}">
+        <span class="dpinvite-target-circle">${copyTargetSvg}</span>
+        <span class="dpinvite-target-label">${t('invite_target_copy')}</span>
       </button>
     </div>`;
 
@@ -2140,23 +2150,33 @@ function _openInviteSheet(venueId) {
   // they read small). Rebuilt at 22px to match the WhatsApp + top-bar icons.
   const copyTargetSvg  = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
   const shareTargetSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg>`;
+  const emailTargetSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`;
+  const smsTargetSvg   = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>`;
   // Share-targets row — IG-style labelled circles. FIXED set (web/Capacitor
   // can't enumerate installed apps): Copy link · More apps (OS share sheet) ·
   // WhatsApp (wa.me deep-link). These are tertiary glass-control circles; the
   // single honey CTA (Send) overlays this row when 1+ friends are picked.
   const targetsRow = `
           <div class="dpinvite-targets-row" id="dpinvite-targets-row">
-            <button type="button" class="dpinvite-target" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
-              <span class="dpinvite-target-circle">${copyTargetSvg}</span>
-              <span class="dpinvite-target-label">${t('invite_target_copy')}</span>
-            </button>
-            <button type="button" class="dpinvite-target" onclick="_shareInviteLink(${venueId})" aria-label="${t('invite_other_apps')}">
-              <span class="dpinvite-target-circle">${shareTargetSvg}</span>
-              <span class="dpinvite-target-label">${t('invite_target_share')}</span>
-            </button>
             <button type="button" class="dpinvite-target" onclick="_shareInviteWhatsApp(${venueId})" aria-label="${t('invite_via_whatsapp')}">
               <span class="dpinvite-target-circle">${whatsappSvg}</span>
               <span class="dpinvite-target-label">${t('invite_via_whatsapp')}</span>
+            </button>
+            <button type="button" class="dpinvite-target" onclick="_shareInviteSms(${venueId})" aria-label="${t('invite_target_sms')}">
+              <span class="dpinvite-target-circle">${smsTargetSvg}</span>
+              <span class="dpinvite-target-label">${t('invite_target_sms')}</span>
+            </button>
+            <button type="button" class="dpinvite-target" onclick="_shareInviteEmail(${venueId})" aria-label="${t('invite_target_email')}">
+              <span class="dpinvite-target-circle">${emailTargetSvg}</span>
+              <span class="dpinvite-target-label">${t('invite_target_email')}</span>
+            </button>
+            <button type="button" class="dpinvite-target" onclick="_shareInviteLink(${venueId})" aria-label="${t('invite_target_share')}">
+              <span class="dpinvite-target-circle">${shareTargetSvg}</span>
+              <span class="dpinvite-target-label">${t('invite_target_share')}</span>
+            </button>
+            <button type="button" class="dpinvite-target" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
+              <span class="dpinvite-target-circle">${copyTargetSvg}</span>
+              <span class="dpinvite-target-label">${t('invite_target_copy')}</span>
             </button>
           </div>`;
   // Bottom slot — the targets row and the honey Send button occupy the SAME
@@ -3111,6 +3131,34 @@ function _toggleInviteFriend(row) {
   row.setAttribute('aria-checked', next ? 'true' : 'false');
   _refreshInvitePrimaryCTA();
   if (typeof _dpShareRefresh === 'function') _dpShareRefresh();
+  // PR D v5: sync the selection into window._friendsPin so the map's
+  // avatar card adds/removes the friend's name with the existing
+  // _enterAt slide-in animation. _friendsPin is populated by
+  // _openInviteSheet with just the host; we mutate its attendees array
+  // here so the pin reflects who'll receive the invite.
+  if (typeof window !== 'undefined' && window._friendsPin && Array.isArray(window._friendsPin.attendees)) {
+    const friendId   = row.getAttribute('data-friend-id') || null;
+    const friendName = row.getAttribute('data-friend-name') || '';
+    const firstName  = friendName.split('@')[0].split(' ')[0];
+    const existingIdx = window._friendsPin.attendees.findIndex(a => a && String(a.id) === String(friendId));
+    if (next && existingIdx === -1) {
+      window._friendsPin.attendees.push({
+        id:        friendId,
+        name:      firstName,
+        offsetMin: 0,
+        _enterAt:  (typeof performance !== 'undefined' ? performance.now() : Date.now()),
+      });
+    } else if (!next && existingIdx !== -1) {
+      window._friendsPin.attendees.splice(existingIdx, 1);
+    }
+    // Repaint so the change lands this frame; _drawInviteAvatarPin's own
+    // _enterAt mechanism keeps painting until the slide-in settles.
+    if (typeof draw === 'function') {
+      try { draw(); } catch (e) { /* ignore */ }
+    } else if (typeof window.triggerRepaint === 'function') {
+      try { window.triggerRepaint(); } catch (e) { /* ignore */ }
+    }
+  }
 }
 
 /** Select-all / clear toggle. Operates on visible (non-filtered) tiles only. */
@@ -3808,6 +3856,36 @@ function _shareInviteWhatsApp(venueId, overrides = {}) {
   if (_isNowSend(d, h)) _deferredCheckInAfterInvite(venueId);
 }
 if (typeof window !== 'undefined') window._shareInviteWhatsApp = _shareInviteWhatsApp;
+
+/** Email share — mailto:?subject=&body=. Works on every platform that has
+ *  a default mail handler registered (every desktop OS, iOS, Android). */
+function _shareInviteEmail(venueId, overrides = {}) {
+  const payload = _prepareInvitePayload(venueId, overrides);
+  if (!payload) return;
+  const { d, h, text } = payload;
+  const subject = (typeof t === 'function') ? t('invite_email_subject') : 'Shades invite';
+  const mailto = 'mailto:?subject=' + encodeURIComponent(subject)
+               + '&body=' + encodeURIComponent(text);
+  window.location.href = mailto;
+  if (_isNowSend(d, h)) _deferredCheckInAfterInvite(venueId);
+}
+if (typeof window !== 'undefined') window._shareInviteEmail = _shareInviteEmail;
+
+/** SMS share — sms:?body= or sms:?&body= depending on platform. iOS uses
+ *  & instead of ? on the body separator; sms:?body= works on Android +
+ *  most desktop SMS bridges. */
+function _shareInviteSms(venueId, overrides = {}) {
+  const payload = _prepareInvitePayload(venueId, overrides);
+  if (!payload) return;
+  const { d, h, text } = payload;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '');
+  const smsUrl = isIOS
+    ? 'sms:&body=' + encodeURIComponent(text)
+    : 'sms:?body=' + encodeURIComponent(text);
+  window.location.href = smsUrl;
+  if (_isNowSend(d, h)) _deferredCheckInAfterInvite(venueId);
+}
+if (typeof window !== 'undefined') window._shareInviteSms = _shareInviteSms;
 
 /** Schedule a check-in to fire after a short notification window during
  *  which the user can tap "Don't check in" to cancel. The notification

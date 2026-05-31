@@ -1509,7 +1509,7 @@
   .dpinvite-targets-row {
     display: flex;
     justify-content: center;
-    gap: var(--space-md);
+    gap: var(--space-sm);
     margin-top: 0;
   }
   .dpinvite-target {
@@ -1517,8 +1517,10 @@
        circle, not around the row's box (whose center drifts when labels
        have different widths — "Kopier lenke" vs "WhatsApp"). With equal
        widths, each circle sits at the center of its own equal-width
-       column, and the centerline reads in line with "eller" above. */
-    flex: 0 0 84px;
+       column, and the centerline reads in line with "eller" above. v4 bumped
+       column count from 3 → 5 (added SMS + Email); 64px keeps all 5 fitting
+       on a 320px viewport. */
+    flex: 0 0 64px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2333,6 +2335,28 @@
     gap: var(--space-md);
   }
   .dprcv-cta-primary { width: 100%; height: 52px; font-size: var(--text-body); }
+  /* Destructive cancel — full-width red button sized like the primary CTA so
+     the host has a clearly visible "Cancel plan" action. Color-error stroke
+     + transparent fill so it doesn't compete with the honey primary above.
+     Active arm state (Sikker?) fills the body. */
+  .dprcv-cta-cancel {
+    width: 100%;
+    height: 48px;
+    font-size: var(--text-body);
+    background: transparent;
+    color: var(--color-error);
+    border: 1.5px solid var(--color-error);
+    cursor: pointer;
+    transition: background 120ms, color 120ms, transform 90ms;
+  }
+  /* :hover background lives alongside .settings-row.destructive:hover in
+     components-content.css to keep that rgba literal a single occurrence. */
+  .dprcv-cta-cancel:active { transform: scale(0.98); }
+  .dprcv-cta-cancel[data-armed="1"] {
+    background: var(--color-error);
+    color: var(--text);
+  }
+  .dprcv-cta-cancel[disabled] { opacity: 0.55; cursor: default; }
 
   /* Secondary row — v1 had two equal-width .s-rnd / .g-rnd buttons that
      read as weighty alternatives to the primary CTA. The accept moment
@@ -2475,7 +2499,8 @@
     transition: color 0.12s ease-out, background 0.12s ease-out, transform 90ms ease-out;
   }
   .dprcv-cta-link svg { width: 13px; height: 13px; opacity: 0.7; }
-  .dprcv-cta-link:hover {
+  .dprcv-cta-link:hover,
+  .dp-card .dp-evt-more:hover {
     color: var(--panel-text);
     background: rgba(17,30,56,0.06);
   }

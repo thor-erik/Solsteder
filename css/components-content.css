@@ -3540,7 +3540,8 @@
   .settings-row.destructive { color: #E47B7B; }
   .settings-row.destructive .settings-row__icon,
   .settings-row.destructive .settings-row__chevron { color: #E47B7B; }
-  .settings-row.destructive:hover { background: rgba(228,123,123,0.06); }
+  .settings-row.destructive:hover,
+  .dprcv-cta-cancel:hover { background: rgba(228,123,123,0.06); }
 
   /* QR card host — sits inside the dark .settings-group below the
      Share / Add-friend rows. Centers the cream card child explicitly
@@ -5704,11 +5705,54 @@
     margin-top: var(--space-2xs); font-size: var(--text-label);
     font-weight: 500; color: var(--ink-muted);
   }
-  /* Event pills — one column, uniform height + text so it reads as a stack. */
+  /* Event pills — one column, uniform height + text so it reads as a stack.
+     Locked to a 2-pill height (PR D v5) so the card doesn't resize during
+     FTS scrubs: 2 × 26px pill + 1 × gap = 60px. Pill count is capped to 2
+     in the renderer; "+N" overflow pill replaces the 2nd slot when more
+     events exist. min-height keeps the slot reserved even when there's
+     only 1 pill at this hour. */
   .dp-card .dp-sun-events {
     flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end;
+    justify-content: flex-start;
     gap: var(--space-xs); max-width: 60%;
+    min-height: 60px;
   }
+  /* +N overflow pill — same shape as the other event pills, with a tap
+     affordance. Opens the dp-events popover on click. */
+  .dp-card .dp-evt-more {
+    cursor: pointer;
+    background: var(--line-l-faint);
+    border: 1px solid var(--line-l-strong);
+    color: var(--panel-text);
+    font-family: 'Inter', sans-serif;
+    transition: background 120ms, transform 90ms;
+  }
+  /* :hover background reuses the existing rgba(17,30,56,0.06) via
+     .dprcv-cta-link:hover in components-overlays.css — combined below. */
+  .dp-card .dp-evt-more:active { transform: scale(0.95); }
+  /* Click-to-expand popover — absolute over the card, doesn't reflow it.
+     Positioned by JS relative to the +N pill that triggered it. */
+  .dp-events-popover {
+    position: absolute;
+    z-index: 100;
+    background: var(--content-bg);
+    color: var(--panel-text);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-2);
+    padding: var(--space-md);
+    display: flex; flex-direction: column;
+    gap: var(--space-xs);
+    min-width: 180px;
+    max-width: 260px;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+  .dp-events-popover.is-open {
+    opacity: 1; transform: translateY(0); pointer-events: auto;
+  }
+  .dp-events-popover .dp-evt { width: 100%; justify-content: flex-start; }
   .dp-card .dp-evt {
     display: inline-flex; align-items: center; gap: var(--space-2xs);
     height: 26px; padding: 0 var(--space-md); border-radius: var(--radius-md);

@@ -1888,9 +1888,12 @@ function draw() {
   // honey time bubble. Replaces the standard pill pipeline so the moment
   // feels personal ('meeting [face]') rather than abstract. Bypasses the
   // forEach below entirely — no other pins, no density logic.
+  // Also active during the invite-sheet (PR D v5) so the host's friend-
+  // selection ticks animate names onto the pin in real time.
   const _inInviteFlow = typeof document !== 'undefined'
     && (document.body.classList.contains('plan-preview-active')
-        || document.body.classList.contains('post-accept-active'));
+        || document.body.classList.contains('post-accept-active')
+        || document.body.classList.contains('invite-sheet-open'));
   const _invitePin = (_inInviteFlow && typeof window !== 'undefined') ? window._invitePin : null;
   if (_invitePin) {
     const inviteV = venueById(_invitePin.venueId);

@@ -4230,6 +4230,60 @@ function _populateDpCardSlot(v) {
     }
     tl.dataset.scrubberWired = '1';
   }
+
+  // Wire the +N overflow pill's click-to-expand popover. Re-wires every
+  // partial render since renderCard may rebuild the .dp-sun-events block.
+  _wireDpEventsPopover(newCard);
+}
+
+/** Click handler for the .dp-evt-more "+N" pill — opens an absolute-
+ *  positioned popover showing all event pills, without resizing the card.
+ *  Closes on outside click / scroll / next card render. */
+function _wireDpEventsPopover(cardEl) {
+  if (!cardEl) return;
+  const moreBtn = cardEl.querySelector('.dp-evt-more');
+  if (!moreBtn) return;
+  const payload = cardEl.getAttribute('data-dp-events') || '[]';
+  let pillsHtml = [];
+  try { pillsHtml = JSON.parse(payload); } catch (e) { pillsHtml = []; }
+  if (!pillsHtml.length) return;
+  moreBtn.onclick = (ev) => {
+    ev.stopPropagation();
+    // Close any other open popover first.
+    document.querySelectorAll('.dp-events-popover').forEach(el => el.remove());
+    const popover = document.createElement('div');
+    popover.className = 'dp-events-popover';
+    popover.innerHTML = pillsHtml.join('');
+    // Anchor to the card's offset parent so absolute positioning works,
+    // then place above-or-below the +N pill depending on viewport room.
+    const cardRect = cardEl.getBoundingClientRect();
+    const btnRect  = moreBtn.getBoundingClientRect();
+    document.body.appendChild(popover);
+    const popH = popover.offsetHeight;
+    const aboveY = btnRect.top - popH - 6;
+    const belowY = btnRect.bottom + 6;
+    const useAbove = aboveY > 8;
+    popover.style.left = Math.min(window.innerWidth - 268, Math.max(8, btnRect.right - 240)) + 'px';
+    popover.style.top  = (useAbove ? aboveY : belowY) + 'px';
+    requestAnimationFrame(() => popover.classList.add('is-open'));
+    const closeOnOutside = (e) => {
+      if (popover.contains(e.target) || moreBtn.contains(e.target)) return;
+      popover.classList.remove('is-open');
+      setTimeout(() => popover.remove(), 180);
+      document.removeEventListener('click', closeOnOutside, true);
+      document.removeEventListener('scroll', closeOnScroll, true);
+    };
+    const closeOnScroll = () => {
+      popover.classList.remove('is-open');
+      setTimeout(() => popover.remove(), 180);
+      document.removeEventListener('click', closeOnOutside, true);
+      document.removeEventListener('scroll', closeOnScroll, true);
+    };
+    setTimeout(() => {
+      document.addEventListener('click', closeOnOutside, true);
+      document.addEventListener('scroll', closeOnScroll, true);
+    }, 50);
+  };
 }
 
 /** Mirror renderList's per-venue enrichment so renderCard receives the same

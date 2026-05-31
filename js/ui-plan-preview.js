@@ -1209,18 +1209,18 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         : null;
       if (ownPlan) { isCreator = true; cancelPlanId = ownPlan.id; }
     } catch (e) { /* leave isCreator from viewerIsHost */ }
-    // Host secondary actions: Endre tid (Change time) + Avlys plan (Cancel).
-    // Change time opens the invite sheet's date/time picker (the existing
-    // _openInviteSheet flow) which is the closest flow we have for editing
-    // when/who. Cancel uses the existing pp-cancel-plan handler when we
-    // know the plan id from _plans.
+    // Host secondary actions: Endre tid (Change time) inline; Avlys plan
+    // (Cancel) is the destructive action and gets its own prominent red
+    // button below the primary CTA per user feedback ("we used to have a
+    // screen like this with a red 'cancel plan' button"). The two-tap
+    // confirm pattern (arm/Sikker?) stays on the button so it's still
+    // mistake-resistant.
     const changeLink = isCreator
       ? `<span class="dprcv-cta-sep" aria-hidden="true">·</span>
          <button class="dprcv-cta-link" id="pp-change-time" data-venue-id="${venue.id}" type="button"><span>${t('host_change_time')}</span></button>`
       : '';
-    const cancelLink = isCreator && cancelPlanId
-      ? `<span class="dprcv-cta-sep" aria-hidden="true">·</span>
-         <button class="dprcv-cta-link is-decline" id="pp-cancel-plan" data-plan-id="${cancelPlanId}" type="button"><span>${t('host_cancel_plan')}</span></button>`
+    const cancelButton = isCreator && cancelPlanId
+      ? `<button class="p-pill dprcv-cta-cancel" id="pp-cancel-plan" data-plan-id="${cancelPlanId}" type="button"><span>${t('host_cancel_plan')}</span></button>`
       : '';
     ctaHtml = `
       <div class="dprcv-footer">
@@ -1228,10 +1228,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           ${sendSvg}
           ${t('preview_share_onwards')}
         </button>
+        ${cancelButton}
         <div class="dprcv-cta-row">
           <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
           ${changeLink}
-          ${cancelLink}
         </div>
       </div>`;
   } else if (isPast) {
