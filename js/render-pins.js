@@ -481,7 +481,9 @@ function _drawRowBadge(ctx, rightX, cy, kind) {
   const x = rightX - sz;          // left edge of the badge box
   const y = Math.round(cy - sz / 2);
   ctx.save();
-  ctx.strokeStyle = kind === 'host' ? '#A86F1A' : (TOKENS.bg || '#111E38');
+  // Both badges in slate ink so the row's visual emphasis stays on the
+  // avatar + name; honey crown was too loud per user feedback.
+  ctx.strokeStyle = TOKENS.bg || '#111E38';
   ctx.fillStyle   = 'transparent';
   ctx.lineWidth   = 1.8;
   ctx.lineCap     = 'round';
