@@ -1288,23 +1288,18 @@
      "share to these people" picker rather than a select-your-fighter
      screen. */
   .dpinvite-avatar-row {
-    display: flex; gap: var(--space-lg);
-    /* Centre the avatars when they fit; scroll when they overflow. `safe center`
-       falls back to flex-start on overflow so the first avatars never get
-       cut off + unreachable (the classic flex+scroll centring bug). */
-    justify-content: center;
-    justify-content: safe center;
-    overflow-x: auto;
-    /* Padding ≥ the selection ring (4.5px) so the first/last avatar's ring
-       isn't shaved by the row's own overflow-x box or the page inset. The
-       negative vertical margin cancels that padding from the flow, so the
-       avatar circles sit one clean page-gap from the label above and the
-       divider below (the padding still clips the ring inside the row box). */
+    /* PR D v8: was a horizontal flex with overflow-x:auto so long friend
+       lists scrolled sideways. Switched to a 4-col grid (max 2 rows = 8
+       tiles) per user spec. The render path caps at 8 + emits a "+N"
+       tile so the grid never exceeds 2 rows. */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md) var(--space-sm);
+    justify-items: center;
     padding: var(--space-sm);
     margin-top: calc(var(--space-sm) * -1);
     margin-bottom: calc(var(--space-sm) * -1);
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
   }
   .dpinvite-avatar-row::-webkit-scrollbar { display: none; }
   .dpinvite-avatar {
@@ -1354,6 +1349,15 @@
   .dpinvite-avatar-init.init-color-5 { background: #2A9C92; }
   .dpinvite-avatar-init.init-color-6 { background: #C4546F; }
   .dpinvite-avatar-init.init-color-7 { background: #7D8FA0; }
+  /* PR D v8 — "+N more" overflow tile, replacing the 8th slot when the
+     friend list overflows the 4×2 grid cap. Muted neutral so it reads
+     as "see all" rather than competing with an actual friend tile. */
+  .dpinvite-avatar-more-init {
+    background: var(--line-l-faint);
+    color: var(--panel-text);
+    font-size: var(--text-subtitle);
+  }
+  .dpinvite-avatar-more { opacity: 0.95; }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-img > img,
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-init {
     /* 2 px cream gap + 2.5 px honey ring reads cleanly at 48 px. Gap =

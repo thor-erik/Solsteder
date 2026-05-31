@@ -5697,9 +5697,13 @@
     line-height: 1; color: var(--text);
     letter-spacing: var(--tracking-display);
   }
+  /* PR D v8: match the .dp-sun-now-val display size + weight so verdicts
+     like "Ingen sol" read at the same scale as "1h 50m". User flagged
+     the previous --text-title (22px / 700) treatment as inconsistent. */
   .dp-card .dp-sun-now-verdict {
-    font-size: var(--text-title); font-weight: var(--fw-title);
-    letter-spacing: var(--tracking-title); line-height: 1.15; color: var(--text);
+    font-size: var(--text-display); font-weight: var(--fw-display);
+    letter-spacing: var(--tracking-display); line-height: 1; color: var(--text);
+    white-space: nowrap;
   }
   .dp-card .dp-sun-now-label {
     margin-top: var(--space-2xs); font-size: var(--text-label);
@@ -5784,6 +5788,15 @@
      it's a quiet day-shape strip now (pills carry the times). Still tappable +
      scrubbable; 28px stays >= 16 so the recessed channel (drawIndent) renders. */
   .dp-card .card-timeline { height: 28px; position: relative; }
+  /* PR D v8: keep the second-row weather info (temp · wind) visible in
+     the dp-card timeline scrubber popup at all times. User reported the
+     "missing second row" — the legacy gating tied secondary to the
+     fts-popup-expanded class which only fires while actively dragging.
+     The detail-panel scrubber benefits from always-on weather context,
+     so override display:none here. */
+  .dp-card .dprcv-timeline-scrubber-label .fts-popup-secondary {
+    display: flex;
+  }
   /* Weather glyph overlay (dp-card only). Hidden by default on list/hover
      timelines — they're 16–20px tall and a 14px icon would dominate. The
      overlay is layered on top of the canvas; .dprcv-timeline-wx-icon dots

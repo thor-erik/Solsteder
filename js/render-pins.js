@@ -467,49 +467,52 @@ function _inviteOffsetLabel(offsetMin) {
   return r === 0 ? `${sign}${h}h` : `${sign}${h}h ${r}m`;
 }
 
-// Right-aligned glyph badges in the disc slot (PR D v7 — moved off the
-// avatar per user feedback). Drawn in the same x position as the
-// _inviteOffsetLabel ("+10m") text, so the badge reads as one row
-// element with the avatar + name. Small honey crown for the host, jordy
-// paperplane for an invitee picked but not yet sent.
+// Right-aligned glyph badges in the disc slot (PR D v7+, refined v8 for
+// legibility). Drawn at the row's right edge in the same spot as the
+// _inviteOffsetLabel ("+10m") would go. Honey crown for the host, jordy
+// paperplane for invitees picked but not yet sent. 16px square — large
+// enough that the shape reads cleanly at typical card scale.
 function _drawRowBadge(ctx, rightX, cy, kind) {
   if (kind !== 'host' && kind !== 'inviting') return;
-  const sz = 12;
-  const bx = rightX - sz; // right-edge anchored
-  const by = cy - sz / 2;
+  const sz = 16;
+  const bx = rightX - sz;
+  const by = Math.round(cy - sz / 2);
   ctx.save();
-  ctx.strokeStyle = kind === 'host' ? '#A86F1A' : _rgba(TOKENS.bg, 0.78);
-  ctx.fillStyle   = kind === 'host' ? '#A86F1A' : _rgba(TOKENS.bg, 0.78);
-  ctx.lineWidth   = 1.4;
+  const color = kind === 'host' ? '#A86F1A' : (TOKENS.bg || '#111E38');
+  ctx.strokeStyle = color;
+  ctx.fillStyle   = color;
+  ctx.lineWidth   = 1.6;
   ctx.lineCap     = 'round';
   ctx.lineJoin    = 'round';
   if (kind === 'host') {
-    // Crown silhouette (filled).
-    const cx = bx + sz / 2;
-    const top = by + 2;
-    const bot = by + sz - 2;
+    // Crown silhouette — three triangular peaks + a base bar.
+    const x = bx, y = by;
     ctx.beginPath();
-    ctx.moveTo(bx + 1.5, bot);
-    ctx.lineTo(bx + 1.5, top + 3);
-    ctx.lineTo(cx - 2.5, top + 5);
-    ctx.lineTo(cx,       top);
-    ctx.lineTo(cx + 2.5, top + 5);
-    ctx.lineTo(bx + sz - 1.5, top + 3);
-    ctx.lineTo(bx + sz - 1.5, bot);
+    ctx.moveTo(x + 2,  y + 5);
+    ctx.lineTo(x + 4,  y + 11);
+    ctx.lineTo(x + 12, y + 11);
+    ctx.lineTo(x + 14, y + 5);
+    ctx.lineTo(x + 11, y + 8);
+    ctx.lineTo(x + 8,  y + 3);
+    ctx.lineTo(x + 5,  y + 8);
     ctx.closePath();
     ctx.fill();
+    // Base bar under the crown.
+    ctx.fillRect(x + 4, y + 12, 8, 1.6);
   } else {
-    // Paperplane (stroked + small fill).
+    // Paperplane — angled wedge + small interior crease line, drawn in
+    // the same vocabulary as the share-button send icon.
+    const x = bx, y = by;
     ctx.beginPath();
-    ctx.moveTo(bx + 1.5, by + sz - 2.5);
-    ctx.lineTo(bx + sz - 1, by + 1.5);
-    ctx.lineTo(bx + 5, by + 5.5);
+    ctx.moveTo(x + 1.5, y + 14.5);
+    ctx.lineTo(x + 14.5, y + 1.5);
+    ctx.lineTo(x + 7,    y + 7);
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(bx + 1.5, by + sz - 2.5);
-    ctx.lineTo(bx + 5,   by + 5.5);
-    ctx.lineTo(bx + 6,   by + sz - 1);
+    ctx.moveTo(x + 1.5,  y + 14.5);
+    ctx.lineTo(x + 7,    y + 7);
+    ctx.lineTo(x + 8.5,  y + 13.5);
     ctx.stroke();
   }
   ctx.restore();
@@ -2577,6 +2580,58 @@ function draw() {
   _scheduleAnim();
 
   // Friends-going pin: drawn last so it stacks ABOVE other pins.
+  // PR D v8: when the invite sheet is open, ALWAYS rebuild
+  // _friendsPin.attendees from the avatar grid's checked state. This is
+  // the source-of-truth recovery layer — if anything (scheduled poll,
+  // re-render, plan-data refresh) clobbered _friendsPin, we restore it
+  // before reading. User-reported "selected friends disappear from the
+  // friend pin after some time" is closed by this sync.
+  if (typeof document !== 'undefined'
+      && document.body.classList.contains('invite-sheet-open')
+      && typeof window !== 'undefined') {
+    const sheet = document.getElementById('invite-sheet');
+    if (sheet && typeof authCurrentUser === 'function') {
+      const me = authCurrentUser();
+      if (me) {
+        const rawName = (me.user_metadata && me.user_metadata.name)
+          || (me.email ? me.email.split('@')[0] : '') || 'Du';
+        const newAttendees = [{
+          id: me.id || null,
+          name: String(rawName).split(' ')[0],
+          offsetMin: 0,
+          isHost: true,
+        }];
+        const checked = sheet.querySelectorAll('.dpinvite-avatar[aria-checked="true"]');
+        checked.forEach(row => {
+          const fid = row.getAttribute('data-friend-id') || null;
+          const fnm = (row.getAttribute('data-friend-name') || '').split('@')[0].split(' ')[0];
+          // Preserve _enterAt for already-known attendees so the slide-in
+          // animation doesn't replay on every draw.
+          const prev = window._friendsPin && Array.isArray(window._friendsPin.attendees)
+            ? window._friendsPin.attendees.find(a => String(a.id) === String(fid))
+            : null;
+          newAttendees.push({
+            id: fid,
+            name: fnm,
+            offsetMin: 0,
+            _isInviting: true,
+            _enterAt: prev?._enterAt,
+          });
+        });
+        const venueId = window._inviteSheetVenueId
+          || (window._friendsPin && window._friendsPin.venueId);
+        if (venueId) {
+          window._friendsPin = {
+            venueId,
+            meetHour: (window._friendsPin && window._friendsPin.meetHour) || 12,
+            attendees: newAttendees,
+            declined: [],
+          };
+        }
+      }
+    }
+  }
+
   // Active when the detail panel is open and _updateFriendsCanvasPin
   // (app.js) has populated window._friendsPin. Reuses the same canvas
   // card the invite-flow uses for visual consistency.
