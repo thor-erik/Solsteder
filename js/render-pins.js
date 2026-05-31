@@ -467,52 +467,59 @@ function _inviteOffsetLabel(offsetMin) {
   return r === 0 ? `${sign}${h}h` : `${sign}${h}h ${r}m`;
 }
 
-// Right-aligned glyph badges in the disc slot (PR D v7+, refined v8 for
-// legibility). Drawn at the row's right edge in the same spot as the
-// _inviteOffsetLabel ("+10m") would go. Honey crown for the host, jordy
-// paperplane for invitees picked but not yet sent. 16px square — large
-// enough that the shape reads cleanly at typical card scale.
+// Right-aligned glyph badges in the disc slot. Drawn at the row's right
+// edge in the same spot as the _inviteOffsetLabel ("+10m") would go. Both
+// glyphs are stroke-only (no fill) at 1.8 px / round caps + joins, the
+// same Lucide vocabulary the rest of the app uses (sun, cloud, send, etc).
+//   - host:     lucide "crown" (3 peaks + base bar) — honey
+//   - inviting: lucide "send" (paperplane triangle + crease) — ink
+// Scaled to a 16-px badge: the 24-unit Lucide viewBox maps onto a 16×16
+// canvas square via *= 16/24 ≈ 0.667.
 function _drawRowBadge(ctx, rightX, cy, kind) {
   if (kind !== 'host' && kind !== 'inviting') return;
   const sz = 16;
-  const bx = rightX - sz;
-  const by = Math.round(cy - sz / 2);
+  const x = rightX - sz;          // left edge of the badge box
+  const y = Math.round(cy - sz / 2);
   ctx.save();
-  const color = kind === 'host' ? '#A86F1A' : (TOKENS.bg || '#111E38');
-  ctx.strokeStyle = color;
-  ctx.fillStyle   = color;
-  ctx.lineWidth   = 1.6;
+  ctx.strokeStyle = kind === 'host' ? '#A86F1A' : (TOKENS.bg || '#111E38');
+  ctx.fillStyle   = 'transparent';
+  ctx.lineWidth   = 1.8;
   ctx.lineCap     = 'round';
   ctx.lineJoin    = 'round';
   if (kind === 'host') {
-    // Crown silhouette — three triangular peaks + a base bar.
-    const x = bx, y = by;
+    // Lucide "crown" — outer outline traces a 3-peak silhouette; a
+    // straight base bar sits underneath. Stroke-only matches the lucide
+    // glyph treatment used in the FTS popup + weather icons.
     ctx.beginPath();
-    ctx.moveTo(x + 2,  y + 5);
-    ctx.lineTo(x + 4,  y + 11);
-    ctx.lineTo(x + 12, y + 11);
-    ctx.lineTo(x + 14, y + 5);
-    ctx.lineTo(x + 11, y + 8);
-    ctx.lineTo(x + 8,  y + 3);
-    ctx.lineTo(x + 5,  y + 8);
-    ctx.closePath();
-    ctx.fill();
-    // Base bar under the crown.
-    ctx.fillRect(x + 4, y + 12, 8, 1.6);
+    ctx.moveTo(x + 1.5, y + 5);    // top of left arm
+    ctx.lineTo(x + 4,   y + 12);   // down to base-left
+    ctx.lineTo(x + 12,  y + 12);   // base bottom edge
+    ctx.lineTo(x + 14.5,y + 5);    // up to right arm
+    ctx.lineTo(x + 11,  y + 7.5);  // dip to right valley
+    ctx.lineTo(x + 8,   y + 2.5);  // center peak
+    ctx.lineTo(x + 5,   y + 7.5);  // dip to left valley
+    ctx.closePath();               // back to top of left arm
+    ctx.stroke();
+    // Crown base bar — a separate short line under the body.
+    ctx.beginPath();
+    ctx.moveTo(x + 3.5, y + 14);
+    ctx.lineTo(x + 12.5,y + 14);
+    ctx.stroke();
   } else {
-    // Paperplane — angled wedge + small interior crease line, drawn in
-    // the same vocabulary as the share-button send icon.
-    const x = bx, y = by;
+    // Lucide "send" paperplane — triangle outline + interior fold line.
+    // Same shape vocabulary the share-button send icon uses (single path
+    // outline + one short line dividing the wing).
     ctx.beginPath();
-    ctx.moveTo(x + 1.5, y + 14.5);
-    ctx.lineTo(x + 14.5, y + 1.5);
-    ctx.lineTo(x + 7,    y + 7);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(x + 14.5, y + 1.5);  // top-right tip
+    ctx.lineTo(x + 1.5,  y + 6);    // far left wing-tip
+    ctx.lineTo(x + 7.5,  y + 8.5);  // body crease point
+    ctx.lineTo(x + 10,   y + 14.5); // bottom of trailing edge
+    ctx.closePath();                 // back to top-right tip
+    ctx.stroke();
+    // Interior fold line — from top-right tip down to body crease.
     ctx.beginPath();
-    ctx.moveTo(x + 1.5,  y + 14.5);
-    ctx.lineTo(x + 7,    y + 7);
-    ctx.lineTo(x + 8.5,  y + 13.5);
+    ctx.moveTo(x + 14.5, y + 1.5);
+    ctx.lineTo(x + 7.5,  y + 8.5);
     ctx.stroke();
   }
   ctx.restore();
