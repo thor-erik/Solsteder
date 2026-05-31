@@ -169,7 +169,11 @@ function openPlanPreview(opts) {
   // going', the panel handles their own RSVP. Only set for invite
   // modes; preview mode (user looking at their own plan) keeps the
   // standard pill.
-  const _isInviteMode = (opts.mode === 'invite' || opts.mode === 'invite-anon');
+  // Treat host-mode the same as invite mode for pin attendees: the host
+  // wants to see who's coming (and who's still pending) on the map. v2's
+  // mode switch routed host to 'preview', which suppressed _invitePin
+  // entirely — host saw the bare venue pin instead of the avatar list.
+  const _isInviteMode = (opts.mode === 'invite' || opts.mode === 'invite-anon') || !!opts.viewerIsHost;
   let _pinAttendees = [];
   if (_isInviteMode) {
     // Resolve attendees from test override OR live plan_invites cache.
@@ -224,8 +228,13 @@ function openPlanPreview(opts) {
         });
       }
       if (plan && Array.isArray(plan._invitees)) {
-        const accepted = plan._invitees.filter(i => i.status === 'accepted');
-        for (const inv of accepted) {
+        // Host view: include accepted AND pending invitees on the pin so the
+        // host can see everyone they've invited, with status differentiated.
+        // Receiver view (regular invite): only accepted (the v1 behavior).
+        const invitees = opts.viewerIsHost
+          ? plan._invitees.filter(i => i.status === 'accepted' || i.status === 'pending')
+          : plan._invitees.filter(i => i.status === 'accepted');
+        for (const inv of invitees) {
           if (myId && inv.user && String(inv.user.id) === String(myId)) continue; // exclude self
           if (inviterId && inv.user && String(inv.user.id) === String(inviterId)) continue; // already added
           const u = inv.user || {};
@@ -237,6 +246,10 @@ function openPlanPreview(opts) {
             id:        u.id || null,
             name:      (u.name || u.email || '').split('@')[0],
             offsetMin: offsetMin,
+            // Host view distinguishes pending invitees from accepted so the
+            // pin can render them in a muted state. Receivers don't see
+            // pending invitees, so the flag is harmless on that path.
+            isPending: inv.status === 'pending',
           });
         }
       }
@@ -1178,12 +1191,12 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         </div>
       </div>`;
   } else if (isPreview) {
-    // Detect creator-of-this-plan to surface the "Avlys plan" link.
-    // In preview mode the user is almost always the creator (the
-    // auto-detect routes invitees to 'invite' mode), but double-check
-    // via _plans so we don't show Cancel to a passerby. The find-by-
-    // venue+time match is the same lookup pattern used elsewhere.
-    let isCreator = false;
+    // Detect creator-of-this-plan to surface the host actions. Fast path:
+    // opts.viewerIsHost is set when openPlanPreview routed the user here
+    // because they're the creator of an invite link. Fallback: lookup
+    // against _plans (legacy non-link callers). The _plans path is also
+    // the source for cancelPlanId — we need the plan row to invoke cancel.
+    let isCreator = !!opts.viewerIsHost;
     let cancelPlanId = null;
     try {
       const planMs = opts.plannedAt ? new Date(opts.plannedAt).getTime() : NaN;
@@ -1195,10 +1208,19 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             && !p.cancelled_at)
         : null;
       if (ownPlan) { isCreator = true; cancelPlanId = ownPlan.id; }
-    } catch (e) { /* leave isCreator false */ }
+    } catch (e) { /* leave isCreator from viewerIsHost */ }
+    // Host secondary actions: Endre tid (Change time) + Avlys plan (Cancel).
+    // Change time opens the invite sheet's date/time picker (the existing
+    // _openInviteSheet flow) which is the closest flow we have for editing
+    // when/who. Cancel uses the existing pp-cancel-plan handler when we
+    // know the plan id from _plans.
+    const changeLink = isCreator
+      ? `<span class="dprcv-cta-sep" aria-hidden="true">·</span>
+         <button class="dprcv-cta-link" id="pp-change-time" data-venue-id="${venue.id}" type="button"><span>${t('host_change_time')}</span></button>`
+      : '';
     const cancelLink = isCreator && cancelPlanId
       ? `<span class="dprcv-cta-sep" aria-hidden="true">·</span>
-         <button class="dprcv-cta-link is-decline" id="pp-cancel-plan" data-plan-id="${cancelPlanId}" type="button"><span>Avlys plan</span></button>`
+         <button class="dprcv-cta-link is-decline" id="pp-cancel-plan" data-plan-id="${cancelPlanId}" type="button"><span>${t('host_cancel_plan')}</span></button>`
       : '';
     ctaHtml = `
       <div class="dprcv-footer">
@@ -1208,6 +1230,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         </button>
         <div class="dprcv-cta-row">
           <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
+          ${changeLink}
           ${cancelLink}
         </div>
       </div>`;
@@ -2023,6 +2046,21 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof _shareInviteLink === 'function') _shareInviteLink(venue.id);
   };
 
+  // Host "Endre tid" — close the preview and open the invite sheet's
+  // date/time picker. That's the existing flow the host already knows
+  // for picking a moment (no separate edit-plan UI today). After picking
+  // a new time + tapping Send, the existing invite flow updates the plan.
+  const changeCta = el.querySelector('#pp-change-time');
+  if (changeCta) changeCta.onclick = () => {
+    const venueId = changeCta.getAttribute('data-venue-id');
+    closePlanPreview({ skipDetailOpen: false });
+    setTimeout(() => {
+      if (typeof _openInviteSheet === 'function' && venueId) {
+        try { _openInviteSheet(parseInt(venueId, 10)); } catch (e) { /* ignore */ }
+      }
+    }, 320);
+  };
+
   // Anon flow: any social CTA → login modal (per user preference: no
   // separate "log in to reply" copy, just open login on tap).
   const anonAccept = el.querySelector('#pp-anon-accept');
@@ -2063,11 +2101,7 @@ window.TIMELINE_EVENT_GLYPHS = {
   </svg>`,
   // Brand shade mark — shared generator in render-helpers.js (unique clipPath
   // id per call so it can repeat across list cards + this timeline safely).
-  // Uses the stroke-only FTS variant so the drop-shadow halo lands evenly on
-  // every line, matching the lucide-style weather glyphs on the same row.
-  shade: (typeof shadeGlyphFts === 'function')
-    ? shadeGlyphFts()
-    : ((typeof shadeGlyph === 'function') ? shadeGlyph() : ''),
+  shade: (typeof shadeGlyph === 'function') ? shadeGlyph() : '',
   // Weather glyphs delegate to the same _wxSvg* set the top-strip /
   // header / date-strip / calendar uses (defined in weather.js). User
   // feedback: FTS popup, thumb, and panel timelines should match the

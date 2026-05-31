@@ -145,29 +145,6 @@ function shadeGlyph(size = 14) {
   </svg>`;
 }
 
-// ── Shade glyph (FTS/timeline variant) ────────────────────────────────────────
-// The brand shadeGlyph is half-filled + half-striped — the filled portion
-// reads as a solid blob next to the lucide-style stroke-only weather glyphs
-// on the FTS bar, and the drop-shadow filter halos only the outer outline
-// instead of every interior line. This variant is stroke-only (matching the
-// lucide vocabulary: outline circle + diagonal lines through the right half),
-// so the filter halos every line uniformly. Used as TIMELINE_EVENT_GLYPHS.shade
-// on surfaces where it shares a row with weather glyphs.
-let _shadeGlyphFtsN = 0;
-function shadeGlyphFts(size = 14) {
-  const id = 'shclipfts' + (_shadeGlyphFtsN++);
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <defs><clipPath id="${id}"><path d="M12 2 A10 10 0 0 1 12 22 Z"/></clipPath></defs>
-    <circle cx="12" cy="12" r="9"/>
-    <g clip-path="url(#${id})">
-      <line x1="3" y1="19" x2="19" y2="3"/>
-      <line x1="7" y1="21" x2="21" y2="7"/>
-      <line x1="11" y1="22" x2="22" y2="11"/>
-      <line x1="15" y1="22" x2="22" y2="15"/>
-    </g>
-  </svg>`;
-}
-
 // ── Clock time formatter ──────────────────────────────────────────────────────
 // Converts an hour-as-float (e.g. 15.75) to a clock string ("15:45").
 // Does NOT round to 5/15-minute intervals — showing 15:47 is more honest than 15:45.

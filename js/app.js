@@ -1221,11 +1221,24 @@ function showFtsPopup(hour) {
   if (dateStr && typeof getWeatherAt === 'function') {
     const wx = getWeatherAt(dateStr, snappedHour);
     if (wx) {
-      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-      const cf   = wx.sunBlock ?? wx.cloud ?? 0;
-      const wxKey = isClosed
-        ? 'closed'
-        : (rain ? 'rain' : (cf < 0.50 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud'));
+      // Route through canonical wxClassify so the popup glyph matches the
+      // FTS bar's colored bands exactly. v1 used inline 0.50/0.75 cutoffs
+      // (cf<0.50→sun / cf<0.75→partly / else cloud), which disagreed with
+      // the bar around cf∈[0.75, 0.85] — the bar painted 'partly' there
+      // (canvas uses wxClassify with a 0.85 cap) while the popup said
+      // 'overcast'. User flagged the mismatch on Wed 12:40.
+      let wxKey;
+      if (isClosed) {
+        wxKey = 'closed';
+      } else if (typeof wxClassify === 'function') {
+        const cls = wxClassify(wx.sunBlock ?? wx.cloud ?? 0, wx.precip ?? wx.prec ?? 0);
+        wxKey = cls === 'rain'     ? 'rain'
+              : cls === 'overcast' ? 'cloud'
+              : cls === 'partly'   ? 'partly'
+              :                      'sun'; // clear + clearSoft
+      } else {
+        wxKey = 'sun';
+      }
       if (wxIconEl) wxIconEl.innerHTML = (window.TIMELINE_EVENT_GLYPHS && window.TIMELINE_EVENT_GLYPHS[wxKey]) || '';
       if (tempEl)   tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
       if (windEl)   windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';

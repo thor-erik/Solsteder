@@ -1509,10 +1509,16 @@
   .dpinvite-targets-row {
     display: flex;
     justify-content: center;
-    gap: var(--space-2xl);
+    gap: var(--space-md);
     margin-top: 0;
   }
   .dpinvite-target {
+    /* Fixed width per target so the row centers around the MIDDLE target's
+       circle, not around the row's box (whose center drifts when labels
+       have different widths — "Kopier lenke" vs "WhatsApp"). With equal
+       widths, each circle sits at the center of its own equal-width
+       column, and the centerline reads in line with "eller" above. */
+    flex: 0 0 84px;
     display: flex;
     flex-direction: column;
     align-items: center;

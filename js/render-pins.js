@@ -651,24 +651,29 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
       ctx.textAlign    = 'left';
       ctx.fillText(r.name, cardX + INVITE_CARD_PAD_X, rowCy);
     } else {
-      // Avatar — full colour for accepted, greyed for declined.
+      // Avatar — full colour for accepted, greyed for declined, partial-
+      // alpha for pending (host view shows invitees who haven't replied
+      // yet, distinct from confirmed attendees).
       const avCx = cardX + INVITE_CARD_PAD_X + INVITE_AV_R;
       const original = r.original;
+      const isPending = !!(original && original.isPending);
       ctx.beginPath();
       ctx.arc(avCx, rowCy, INVITE_AV_R, 0, Math.PI * 2);
       ctx.fillStyle = r.declined
         ? _rgba(TOKENS.bg, 0.20)
-        : _friendColor(original.id || original.name);
+        : isPending
+          ? _rgba(TOKENS.bg, 0.30)
+          : _friendColor(original.id || original.name);
       ctx.fill();
       // Initial
       ctx.font         = INVITE_INITIAL_FONT;
-      ctx.fillStyle    = r.declined ? _rgba(TOKENS.bg, 0.45) : _rgba(TOKENS.bg, 0.92);
+      ctx.fillStyle    = (r.declined || isPending) ? _rgba(TOKENS.bg, 0.55) : _rgba(TOKENS.bg, 0.92);
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'center';
       ctx.fillText(_friendInitial({ name: original.name }, _venueLetter), avCx, rowCy + 0.5);
       // Name
       ctx.font         = INVITE_NAME_FONT;
-      ctx.fillStyle    = r.declined ? _rgba(TOKENS.bg, 0.45) : _rgba(TOKENS.bg, 0.92);
+      ctx.fillStyle    = (r.declined || isPending) ? _rgba(TOKENS.bg, 0.55) : _rgba(TOKENS.bg, 0.92);
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'left';
       const nameX = avCx + INVITE_AV_R + INVITE_AV_GAP;
