@@ -129,25 +129,29 @@ function splitVenueName(v) {
 let _shadeGlyphN = 0;
 function shadeGlyph(size = 14) {
   const id = 'shclip' + (_shadeGlyphN++);
-  // Heavier strokes (was 1.5 / 2) so the brand shade mark reads with the
-  // same visual mass as the lucide weather glyphs sharing its row on the
-  // FTS. With thinner strokes the gaps between the diagonal hatching let
-  // the dark band underneath bleed through, making the glyph read as
-  // partially transparent. 2.2 matches the weather-glyph stroke-width and
-  // closes those gaps without losing the brand metaphor.
+  // PR D v6 redraw: wrap everything in an OUTER circle clip so the
+  // diagonal hatching never pokes past the circle outline (the v5
+  // artifact users noticed: line endpoints with stroke-linecap:round
+  // leaked tiny halos outside the disk). The outline circle is drawn
+  // OUTSIDE the clip as a crisp stroke. Filled left half stays as the
+  // brand mark; hatched right half reads with the same visual mass as
+  // the lucide weather glyphs (matched stroke-width 2.2).
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <defs><clipPath id="${id}"><path d="M12 2 A10 10 0 0 1 12 22 Z"/></clipPath></defs>
-    <path d="M12 2 A10 10 0 0 0 12 22 Z"/>
-    <g clip-path="url(#${id})">
-      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/>
-      <g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none">
-        <line x1="2" y1="20" x2="20" y2="2"/>
-        <line x1="6" y1="22" x2="22" y2="6"/>
-        <line x1="10" y1="24" x2="24" y2="10"/>
-        <line x1="14" y1="24" x2="24" y2="14"/>
-        <line x1="18" y1="24" x2="24" y2="18"/>
+    <defs>
+      <clipPath id="${id}-disk"><circle cx="12" cy="12" r="9.5"/></clipPath>
+      <clipPath id="${id}-right"><path d="M12 2.5 A9.5 9.5 0 0 1 12 21.5 Z"/></clipPath>
+    </defs>
+    <g clip-path="url(#${id}-disk)">
+      <path d="M12 2.5 A9.5 9.5 0 0 0 12 21.5 Z"/>
+      <g clip-path="url(#${id}-right)" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none">
+        <line x1="4" y1="18" x2="18" y2="4"/>
+        <line x1="7" y1="20" x2="20" y2="7"/>
+        <line x1="10" y1="21" x2="21" y2="10"/>
+        <line x1="13" y1="21" x2="21" y2="13"/>
+        <line x1="16" y1="21" x2="21" y2="16"/>
       </g>
     </g>
+    <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2"/>
   </svg>`;
 }
 

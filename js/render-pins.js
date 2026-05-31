@@ -466,6 +466,62 @@ function _inviteOffsetLabel(offsetMin) {
   const r = m % 60;
   return r === 0 ? `${sign}${h}h` : `${sign}${h}h ${r}m`;
 }
+
+// Avatar-corner badges (PR D v6). Small filled circle (honey for host,
+// jordy for inviting) overlapped on the avatar bottom-right with a tiny
+// glyph centered inside. Same shape, different fill + glyph, so the
+// host (crown) and inviting (paperplane) reads as one badge vocabulary.
+const INVITE_BADGE_R = 6;
+function _drawAvatarBadge(ctx, ax, ay, kind) {
+  if (kind !== 'host' && kind !== 'inviting') return;
+  const bx = ax + INVITE_AV_R - 1;
+  const by = ay + INVITE_AV_R - 1;
+  // White halo ring so the badge separates cleanly from the cream card.
+  ctx.beginPath();
+  ctx.arc(bx, by, INVITE_BADGE_R + 1, 0, Math.PI * 2);
+  ctx.fillStyle = '#FAF1DD';
+  ctx.fill();
+  // Badge body — honey for host, jordy blue for inviting.
+  ctx.beginPath();
+  ctx.arc(bx, by, INVITE_BADGE_R, 0, Math.PI * 2);
+  ctx.fillStyle = kind === 'host' ? (TOKENS.accent || '#F5C25E') : (TOKENS.jordy || '#9CBDE7');
+  ctx.fill();
+  // Glyph — small crown (host) or paperplane (inviting), drawn as paths.
+  ctx.save();
+  ctx.strokeStyle = _rgba(TOKENS.bg, 0.92);
+  ctx.fillStyle = _rgba(TOKENS.bg, 0.92);
+  ctx.lineWidth = 1.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (kind === 'host') {
+    // Crown: three peaks + base line.
+    ctx.beginPath();
+    ctx.moveTo(bx - 3, by + 1.6);
+    ctx.lineTo(bx - 3, by - 0.8);
+    ctx.lineTo(bx - 1.5, by + 0.6);
+    ctx.lineTo(bx,     by - 1.8);
+    ctx.lineTo(bx + 1.5, by + 0.6);
+    ctx.lineTo(bx + 3, by - 0.8);
+    ctx.lineTo(bx + 3, by + 1.6);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    // Paperplane: triangular wedge + a center line, mirrors the
+    // lucide-style paper plane used in the share buttons.
+    ctx.beginPath();
+    ctx.moveTo(bx - 2.6, by + 1.2);
+    ctx.lineTo(bx + 2.6, by - 2.2);
+    ctx.lineTo(bx - 0.4, by - 0.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx - 2.6, by + 1.2);
+    ctx.lineTo(bx - 0.4, by - 0.4);
+    ctx.lineTo(bx + 0.6, by + 1.8);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const attendees = Array.isArray(invitePin.attendees) ? invitePin.attendees : [];
   const declined  = Array.isArray(invitePin.declined)  ? invitePin.declined  : [];
@@ -528,11 +584,19 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
     : visible.map(a => {
         const first = (a.name || '').trim().split(/\s+/)[0] || _venueLetter;
         const offsetDisc = _inviteOffsetLabel(a.offsetMin);
-        // Show the host badge in the disc slot UNLESS the host has an offset
-        // (extremely rare — host is the time reference). Offset wins so the
-        // logistics info isn't hidden behind a label.
-        const disc = offsetDisc || (a.isHost ? _hostBadgeText : '');
-        return { name: first, disc, declined: false, isHost: !!a.isHost, original: a, enterT: _enterT(a) };
+        // Offset disc wins over the text host badge when set. Host + inviting
+        // states drive an avatar-corner icon instead of a text label.
+        const disc = offsetDisc;
+        return {
+          name: first,
+          disc,
+          declined: false,
+          isHost: !!a.isHost,
+          isInviting: !!a._isInviting,
+          isPending: !!a.isPending,
+          original: a,
+          enterT: _enterT(a),
+        };
       });
   if (!_hostOnly && overflow > 0) {
     const moreLabel = (typeof t === 'function') ? t('pin_overflow_more', { count: overflow }) : `+${overflow} more`;
@@ -671,6 +735,11 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'center';
       ctx.fillText(_friendInitial({ name: original.name }, _venueLetter), avCx, rowCy + 0.5);
+      // Corner badges — host (crown) or selected-for-invite (paperplane).
+      if (!r.declined) {
+        if (r.isHost) _drawAvatarBadge(ctx, avCx, rowCy, 'host');
+        else if (r.isInviting) _drawAvatarBadge(ctx, avCx, rowCy, 'inviting');
+      }
       // Name
       ctx.font         = INVITE_NAME_FONT;
       ctx.fillStyle    = (r.declined || isPending) ? _rgba(TOKENS.bg, 0.55) : _rgba(TOKENS.bg, 0.92);

@@ -1219,8 +1219,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       ? `<span class="dprcv-cta-sep" aria-hidden="true">·</span>
          <button class="dprcv-cta-link" id="pp-change-time" data-venue-id="${venue.id}" type="button"><span>${t('host_change_time')}</span></button>`
       : '';
-    const cancelButton = isCreator && cancelPlanId
-      ? `<button class="p-pill dprcv-cta-cancel" id="pp-cancel-plan" data-plan-id="${cancelPlanId}" type="button"><span>${t('host_cancel_plan')}</span></button>`
+    // Render cancel button whenever the viewer is the creator. When the
+    // _plans cache hasn't loaded yet (share-link cold-start), cancelPlanId
+    // is null; the click handler resolves it lazily then. Without this,
+    // the button only showed for cold-loaded callers — share-link entries
+    // never saw a cancel option.
+    const cancelButton = isCreator
+      ? `<button class="p-pill dprcv-cta-cancel" id="pp-cancel-plan" data-plan-id="${cancelPlanId || ''}" data-venue-id="${venue.id}" data-planned-at="${opts.plannedAt || ''}" type="button"><span>${t('host_cancel_plan')}</span></button>`
       : '';
     ctaHtml = `
       <div class="dprcv-footer">
@@ -2014,8 +2019,33 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
 
   const cancelCta = el.querySelector('#pp-cancel-plan');
   if (cancelCta) cancelCta.onclick = async (ev) => {
-    const planId = cancelCta.getAttribute('data-plan-id');
-    if (!planId) return;
+    // Lazy plan-id resolution: cancelPlanId may be empty if the share
+    // link cold-loaded before _plans hydrated. Resolve at click time by
+    // matching the data-venue-id + data-planned-at against the latest
+    // _plans cache. If still unavailable, surface a warning instead of
+    // silently no-op'ing.
+    let planId = cancelCta.getAttribute('data-plan-id');
+    if (!planId) {
+      const venueIdAttr = cancelCta.getAttribute('data-venue-id');
+      const plannedAtAttr = cancelCta.getAttribute('data-planned-at');
+      if (typeof _plans !== 'undefined' && Array.isArray(_plans) && plannedAtAttr) {
+        const targetMs = new Date(plannedAtAttr).getTime();
+        const meId = (typeof _currentUser !== 'undefined' && _currentUser) ? _currentUser.id : null;
+        const match = _plans.find(p => p && p.creator_id === meId
+          && String(p.venue_id) === String(venueIdAttr)
+          && !isNaN(targetMs)
+          && Math.abs(new Date(p.planned_at).getTime() - targetMs) < 60 * 1000
+          && !p.cancelled_at);
+        if (match) {
+          planId = match.id;
+          cancelCta.setAttribute('data-plan-id', planId);
+        }
+      }
+      if (!planId) {
+        console.warn('[plan-preview] cancel pressed but no matching plan in _plans yet');
+        return;
+      }
+    }
     // Two-tap confirm — first tap arms ("Sikker?"), second tap commits.
     // Keeps the click away from being a destructive single-tap mistake
     // without dragging in a full modal.
@@ -2220,9 +2250,11 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
   for (const e of events) {
     const xPct = ((e.hour - minH) / (maxH - minH)) * 100;
     // Meet anchor is allowed at the bar's left edge (xPct == 0). Other
-    // events skip the edges so they don't crowd the meet / sundown
-    // tips of the bar.
-    if (e.type !== 'meet' && (xPct < 2 || xPct > 98)) continue;
+    // events skip the rounded-cap area so the glyph doesn't clip into
+    // the curve. Tightened in PR D v6 from [2, 98] → [6, 94] to share
+    // the same placement rules as _populateFtsEvents +
+    // _populateTimelineWeather.
+    if (e.type !== 'meet' && (xPct < 6 || xPct > 94)) continue;
     const glyphKey = e.type === 'shade' ? 'shade'
                    : e.type === 'meet'  ? 'meet'
                    : (e.state || 'sun');
@@ -2325,12 +2357,20 @@ function _populateTimelineWeather(host, v, dateStr, minH, maxH) {
     }
   }
   // Render one glyph per band, centred on the visible-clipped band midpoint.
+  // Shared placement rules (PR D v6) so this matches _populateFtsEvents:
+  //   - Skip bands narrower than ~7% of the visible range (icon + halo
+  //     can't sit cleanly in less).
+  //   - Skip bands whose midpoint falls in the rounded caps (<6% or >94%)
+  //     so the icon doesn't clip into the curve.
+  const TOTAL_HOURS = maxH - minH;
+  const MIN_BAND_HOURS = Math.max(1.2, TOTAL_HOURS * 0.07);
   for (const band of bands) {
     const left  = Math.max(band.startH, minH);
     const right = Math.min(band.endH,   maxH);
-    if (right - left < 0.35) continue; // too narrow — would crowd a neighbour
+    if (right - left < MIN_BAND_HOURS) continue;
     const midH = (left + right) / 2;
     const xPct = ((midH - minH) / (maxH - minH)) * 100;
+    if (xPct < 6 || xPct > 94) continue;
     const glyph = TIMELINE_EVENT_GLYPHS[band.state] || TIMELINE_EVENT_GLYPHS.sun;
     const node = document.createElement('div');
     node.className = 'dprcv-timeline-wx-icon';

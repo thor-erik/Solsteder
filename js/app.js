@@ -958,14 +958,29 @@ function _populateFtsEvents() {
   }
   if (curState != null) segs.push({ start: curStart, end: endH + 1, state: curState });
 
-  // Emit one icon per segment at its midpoint.
-  const events = segs.map((seg, i) => ({
-    hour:   (seg.start + seg.end) / 2,
-    state:  seg.state,
-    segKey: `${seg.state}-${i}`,
-    segStart: seg.start,
-    segEnd:   seg.end,
-  }));
+  // Emit one icon per segment at its midpoint, but skip segments that are
+  // too narrow to hold the glyph cleanly. MIN_SEG_HOURS_FOR_GLYPH ≈ 1.5h
+  // → ~7.5% of a 4-24h bar, comfortably larger than the 14px glyph + halo
+  // on any phone width. Also skip when the midpoint falls into either
+  // curved cap (under 6% or over 94%) where the glyph would clip into
+  // the rounded edge.
+  const TOTAL_HOURS = MAX_H_ARC - MIN_H_ARC;
+  const MIN_SEG_HOURS_FOR_GLYPH = Math.max(1.2, TOTAL_HOURS * 0.07);
+  const events = [];
+  segs.forEach((seg, i) => {
+    const segW = seg.end - seg.start;
+    if (segW < MIN_SEG_HOURS_FOR_GLYPH) return;
+    const mid = (seg.start + seg.end) / 2;
+    const midPct = ((mid - MIN_H_ARC) / TOTAL_HOURS) * 100;
+    if (midPct < 6 || midPct > 94) return;
+    events.push({
+      hour: mid,
+      state: seg.state,
+      segKey: `${seg.state}-${i}`,
+      segStart: seg.start,
+      segEnd:   seg.end,
+    });
+  });
 
   // Current thumb hour — raw during drag, snapped otherwise. Used to fade
   // only the icon in the thumb's current segment (not crossing boundaries),
@@ -990,7 +1005,9 @@ function _populateFtsEvents() {
 
   const pctFor = (e) => {
     const x = ((e.hour - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC)) * 100;
-    return Math.max(2, Math.min(98, x));
+    // Stay clear of the rounded caps — was [2, 98], tightened to [6, 94]
+    // so glyphs don't clip into the curve.
+    return Math.max(6, Math.min(94, x));
   };
   // Position via transform (px) so the drop-shadow filter follows on iOS (a
   // `left` transition lagged it). translateX to the track-% position, then
@@ -4479,6 +4496,14 @@ function updateDetailPanel() {
  *  so render-pins.js can reuse _drawInviteAvatarPin verbatim. Cleared
  *  when no friends are going, the panel closes, or auth is anonymous. */
 function _updateFriendsCanvasPin() {
+  // PR D v5: while the invite sheet is open, the host is actively
+  // selecting friends and _toggleInviteFriend mutates _friendsPin
+  // directly. Bailing out here keeps the live selection state intact;
+  // closing the sheet (_closeInviteSheet) restores normal repaint.
+  if (typeof document !== 'undefined'
+      && document.body.classList.contains('invite-sheet-open')) {
+    return;
+  }
   const prev = (typeof window !== 'undefined') ? window._friendsPin : null;
   const dp = document.getElementById('detail-panel');
   const isOpen = dp && dp.classList.contains('open') && selectedId != null;

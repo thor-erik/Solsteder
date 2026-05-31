@@ -2563,6 +2563,9 @@ function _openInviteSheet(venueId) {
           id: me.id || null,
           name: String(rawName).split(' ')[0],
           offsetMin: 0,
+          // PR D v6: host badge on the inviting user so the pin reads as
+          // "I'm the host" while composing.
+          isHost: true,
         }],
         declined: [],
       };
@@ -2985,8 +2988,15 @@ if (typeof window !== 'undefined') window._updateInviteHeader = _updateInviteHea
 
 /** Build the avatar carousel — horizontally scrolling .dpinvite-avatar tiles
  *  with multi-select state via aria-checked. */
-function _renderInviteAvatarCarousel(friends, hashColor, checkSvg) {
-  return friends.map(f => {
+function _renderInviteAvatarCarousel(friends, hashColor, checkSvg, opts = {}) {
+  // Cap to maxVisible (PR D v6 — default 8 for the 4-col × 2-row grid).
+  // When more friends exist, the last visible slot becomes a "+N" tile
+  // that opens the full friends modal for picking from the long tail.
+  const maxVisible = Number.isFinite(opts.maxVisible) ? opts.maxVisible : 8;
+  const showOverflow = friends.length > maxVisible;
+  const visibleFriends = showOverflow ? friends.slice(0, maxVisible - 1) : friends;
+  const overflowCount = friends.length - visibleFriends.length;
+  const tiles = visibleFriends.map(f => {
     const fullName  = f.name || f.email || '';
     const firstName = fullName.split(/\s+/)[0] || fullName || '?';
     const initial   = (fullName || '?')[0].toUpperCase();
@@ -3005,7 +3015,19 @@ function _renderInviteAvatarCarousel(friends, hashColor, checkSvg) {
       </span>
       <span class="dpinvite-avatar-name">${safeFirst}</span>
     </button>`;
-  }).join('');
+  });
+  if (showOverflow) {
+    const moreLabel = (typeof t === 'function')
+      ? t('invite_avatar_more', { count: overflowCount })
+      : `+${overflowCount}`;
+    tiles.push(`<button type="button" class="dpinvite-avatar dpinvite-avatar-more" aria-label="${moreLabel}" onclick="openFriendsModal()">
+      <span class="dpinvite-avatar-img">
+        <div class="dpinvite-avatar-init dpinvite-avatar-more-init">+${overflowCount}</div>
+      </span>
+      <span class="dpinvite-avatar-name">${(typeof t === 'function') ? t('invite_avatar_more_label') : 'More'}</span>
+    </button>`);
+  }
+  return tiles.join('');
 }
 
 /** Build the group-chip strip — "Nylige (n) | Alle (m)". Uses .chip-pill
@@ -3146,6 +3168,10 @@ function _toggleInviteFriend(row) {
         id:        friendId,
         name:      firstName,
         offsetMin: 0,
+        // PR D v6: marks the avatar with a paperplane badge so the host
+        // can see "I'm about to send this person an invite" before the
+        // primary CTA fires.
+        _isInviting: true,
         _enterAt:  (typeof performance !== 'undefined' ? performance.now() : Date.now()),
       });
     } else if (!next && existingIdx !== -1) {

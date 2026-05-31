@@ -5733,8 +5733,8 @@
   /* Click-to-expand popover — absolute over the card, doesn't reflow it.
      Positioned by JS relative to the +N pill that triggered it. */
   .dp-events-popover {
-    position: absolute;
-    z-index: 100;
+    position: fixed;
+    z-index: 99999;
     background: var(--content-bg);
     color: var(--panel-text);
     border-radius: var(--radius-md);
