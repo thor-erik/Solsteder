@@ -1589,6 +1589,47 @@
       },
       "reasoning": "Along the curved western facade of the building, there appears to be a narrow sidewalk zone adjacent to the building entrance where outdoor seating for Café Tekehtopa would typically be placed, though furniture is not clearly distinguishabl"
     },
+    "31": {
+      "polygon": [
+        [
+          59.917831,
+          10.733943
+        ],
+        [
+          59.917834,
+          10.73405
+        ],
+        [
+          59.917784,
+          10.734077
+        ],
+        [
+          59.917764,
+          10.734023
+        ],
+        [
+          59.91776,
+          10.733889
+        ],
+        [
+          59.917804,
+          10.733862
+        ]
+      ],
+      "confidence": 0.45,
+      "notVisible": false,
+      "detectedAt": "2026-05-31T22:21:15.361Z",
+      "model": "claude-sonnet-4-6",
+      "promptHash": "78b11ecb",
+      "source": "ai",
+      "snapshot": {
+        "zoom": 19,
+        "w": 640,
+        "h": 640,
+        "style": "mapbox/satellite-v9"
+      },
+      "reasoning": "A small sidewalk/pavement area adjacent to the building's south facade near St. Olavs Gate where tables and chairs would typically be placed for a restaurant at this address."
+    },
     "32": {
       "polygon": [
         [
