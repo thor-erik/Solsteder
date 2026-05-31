@@ -4507,12 +4507,16 @@ function updateDetailPanel() {
  *  so render-pins.js can reuse _drawInviteAvatarPin verbatim. Cleared
  *  when no friends are going, the panel closes, or auth is anonymous. */
 function _updateFriendsCanvasPin() {
-  // PR D v5: while the invite sheet is open, the host is actively
-  // selecting friends and _toggleInviteFriend mutates _friendsPin
-  // directly. Bailing out here keeps the live selection state intact;
-  // closing the sheet (_closeInviteSheet) restores normal repaint.
-  if (typeof document !== 'undefined'
-      && document.body.classList.contains('invite-sheet-open')) {
+  // PR D v5 + v9: while the invite sheet OR the inline dp-share zone is
+  // open, the host is actively selecting friends and _toggleInviteFriend
+  // mutates _friendsPin directly. Bailing out here keeps the live
+  // selection state intact across both share paths. body.share-mode is
+  // set by _dpShareOpen (dp-composer "Send to friends" → inline zone);
+  // body.invite-sheet-open is set by _openInviteSheet (bottom sheet).
+  if (typeof document !== 'undefined' && (
+        document.body.classList.contains('invite-sheet-open') ||
+        document.body.classList.contains('share-mode')
+      )) {
     return;
   }
   const prev = (typeof window !== 'undefined') ? window._friendsPin : null;

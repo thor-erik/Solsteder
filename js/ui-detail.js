@@ -823,6 +823,35 @@ function _dpShareOpen(venueId) {
     .forEach(a => a.setAttribute('aria-checked', 'false'));
   document.body.classList.add('share-mode');
   zone.removeAttribute('aria-hidden');
+  // PR D v9: seed _friendsPin with the host so the map's avatar card
+  // mirrors the user's selection on this path too (the inline share zone
+  // is one of TWO share entry points — the bottom-sheet _openInviteSheet
+  // is the other and already does this). Without this, the friends pin
+  // wasn't visible during compose, and _toggleInviteFriend's mutation
+  // had nothing to mutate.
+  if (typeof authCurrentUser === 'function' && typeof window !== 'undefined') {
+    const me = authCurrentUser();
+    if (me) {
+      const rawName = (me.user_metadata && me.user_metadata.name)
+        || (me.email ? me.email.split('@')[0] : '') || 'Du';
+      const fromHour = (typeof timeFromEl !== 'undefined' && timeFromEl)
+        ? parseFloat(timeFromEl.value) : 12;
+      window._friendsPin = {
+        venueId: venueId,
+        meetHour: fromHour,
+        attendees: [{
+          id: me.id || null,
+          name: String(rawName).split(' ')[0],
+          offsetMin: 0,
+          isHost: true,
+        }],
+        declined: [],
+      };
+      window._inviteSheetVenueId = venueId;
+      if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+      if (typeof draw === 'function') draw();
+    }
+  }
   // Restart the staggered slide-in by toggling .is-open off→on so the
   // animation re-fires on every reopen (otherwise it only plays once).
   zone.classList.remove('is-open');
@@ -843,6 +872,15 @@ function _dpShareClose() {
   document.body.classList.remove('share-mode');
   zone.classList.remove('is-open');
   zone.setAttribute('aria-hidden', 'true');
+  // Clear the preview pin and let _updateFriendsCanvasPin restore the
+  // real attendee state — mirrors what _closeInviteSheet does for the
+  // bottom-sheet path.
+  if (typeof window !== 'undefined') window._friendsPin = null;
+  if (typeof _updateFriendsCanvasPin === 'function') {
+    try { _updateFriendsCanvasPin(); } catch (e) { /* ignore */ }
+  }
+  if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+  if (typeof draw === 'function') draw();
   if (typeof _dpPagerResize === 'function') _dpPagerResize();
 }
 

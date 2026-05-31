@@ -2580,17 +2580,21 @@ function draw() {
   _scheduleAnim();
 
   // Friends-going pin: drawn last so it stacks ABOVE other pins.
-  // PR D v8: when the invite sheet is open, ALWAYS rebuild
-  // _friendsPin.attendees from the avatar grid's checked state. This is
-  // the source-of-truth recovery layer — if anything (scheduled poll,
-  // re-render, plan-data refresh) clobbered _friendsPin, we restore it
-  // before reading. User-reported "selected friends disappear from the
-  // friend pin after some time" is closed by this sync.
-  if (typeof document !== 'undefined'
-      && document.body.classList.contains('invite-sheet-open')
-      && typeof window !== 'undefined') {
-    const sheet = document.getElementById('invite-sheet');
-    if (sheet && typeof authCurrentUser === 'function') {
+  // PR D v8 + v9: when EITHER share path is active, rebuild
+  // _friendsPin.attendees from the avatar grid's checked state on every
+  // draw. Source-of-truth recovery layer — if anything (scheduled poll,
+  // re-render, plan-data refresh) clobbered _friendsPin between user
+  // actions, we restore it from the DOM before reading. v8 only ran for
+  // the bottom-sheet path (invite-sheet-open); v9 also covers the inline
+  // dp-share zone (share-mode), which is the more refined entry point.
+  const _sharePathOpen = typeof document !== 'undefined' && (
+        document.body.classList.contains('invite-sheet-open') ||
+        document.body.classList.contains('share-mode'));
+  if (_sharePathOpen && typeof window !== 'undefined') {
+    // Find the right host element — bottom-sheet OR inline share zone.
+    const sheetEl = document.getElementById('invite-sheet')
+                 || document.getElementById('dp-share-zone');
+    if (sheetEl && typeof authCurrentUser === 'function') {
       const me = authCurrentUser();
       if (me) {
         const rawName = (me.user_metadata && me.user_metadata.name)
@@ -2601,7 +2605,7 @@ function draw() {
           offsetMin: 0,
           isHost: true,
         }];
-        const checked = sheet.querySelectorAll('.dpinvite-avatar[aria-checked="true"]');
+        const checked = sheetEl.querySelectorAll('.dpinvite-avatar[aria-checked="true"]');
         checked.forEach(row => {
           const fid = row.getAttribute('data-friend-id') || null;
           const fnm = (row.getAttribute('data-friend-name') || '').split('@')[0].split(' ')[0];
