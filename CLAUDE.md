@@ -215,6 +215,7 @@ is suffix-named so a wildcard apply doesn't sweep it in; rename to drop
 | `041-friend-invite-tokens.sql` | One-shot 122-bit friend-invite tokens (single-use, 30 d TTL) + cleanup cron. Restores 1-click share-link UX without re-opening C2. |
 | `042-plan-reminders-skip-orphans.sql` | `process_plan_reminders()` skips plans WHERE `venue_name IS NULL` (defense in depth against future orphan regressions). |
 | `043-events-bind-user-id.sql` | BEFORE INSERT trigger on `events` overrides `NEW.user_id = auth.uid()`. Honest clients (anon → NULL, signed-in → own uid) see no change; forged attribution gets silently corrected. Closes the forge surface left open by the anon_insert RLS policy. |
+| `044-plan-reminders-locale-aware.sql` | `process_plan_reminders()` extended to emit `lead.bodyKey` + `lead.bodyVars` alongside the pre-rendered NO `body`. Bell + toast prefer the structured form via `_bellBodyFromDescriptor` (auth.js) so the row renders in the user's locale; pre-hybrid rows fall back to the server's NO body. Phase 1 of the hybrid payload pattern — friend/invite/cancel triggers convert as they touch. |
 
 ### Realtime
 `plan_invites`, `friendships`, `notifications`, and `suggested_venues`

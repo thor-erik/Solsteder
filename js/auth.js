@@ -1594,13 +1594,28 @@ async function _bellMarkRead(notifId) {
 // is how they reach the client in real time (and across devices). ────────
 let _bellChannel = null;
 
+/** Resolve a bell entry / row's body to a plain string in the current
+ *  locale. Hybrid payload (sql/044+): if lead.bodyKey is present, render
+ *  via t() against the i18n catalog so the same row reads differently
+ *  per user locale. Falls back to the server's pre-rendered body for
+ *  pre-hybrid rows (everything before sql/044). */
+function _bellBodyFromDescriptor(descriptor, fallbackBody) {
+  if (descriptor && descriptor.bodyKey && typeof t === 'function') {
+    try {
+      const rendered = t(descriptor.bodyKey, descriptor.bodyVars || {});
+      if (rendered && rendered !== descriptor.bodyKey) return rendered;
+    } catch { /* fall through to fallback */ }
+  }
+  return fallbackBody || '';
+}
+
 /** Convert a freshly-INSERTed notifications row into a toast notif object,
  *  or null if this row shouldn't ambient-toast. Gated by notif_id prefix —
  *  only events the user explicitly opted into (plan reminders, sun + weather
  *  alerts once their crons land) surface as in-app pop-ups; everything else
  *  goes silently to the bell inbox. */
 function _bellRowToToast(row) {
-  if (!row || !row.notif_id || !row.body) return null;
+  if (!row || !row.notif_id) return null;
   const id = row.notif_id;
 
   // Allowlist of server-driven events that should ambient-toast. Extend
@@ -1619,11 +1634,12 @@ function _bellRowToToast(row) {
     }
   };
 
-  // body is server-rendered HTML containing only <strong> markup (sql/029,
-  // sanitized via _escAllowStrong elsewhere). Strip to plain text for the
-  // toast — _notifShow assigns _rawText via textContent so any markup
-  // would render literally.
-  const plainBody = String(row.body).replace(/<[^>]+>/g, '');
+  // Prefer locale-aware bodyKey from sql/044+; fall back to stripping HTML
+  // from the server's pre-rendered body (NO, from older rows). _notifShow
+  // assigns _rawText via textContent so any markup would render literally.
+  const fallback = String(row.body || '').replace(/<[^>]+>/g, '');
+  const plainBody = _bellBodyFromDescriptor(row.lead, fallback);
+  if (!plainBody) return null;
   const icon = (row.lead && row.lead.icon) || '⏰';
 
   return {
@@ -1838,8 +1854,16 @@ function _renderBellDropdown() {
   //    session gets surfaced here. Real data, real click actions. ──────
   _bellHistory.forEach(entry => {
     const isNew = entry.readAt ? '' : ' bd-row--new';
-    const enriched = _enrichPlanNotificationBody(entry);
-    const body       = enriched ? enriched.body       : entry.body;
+    // sql/044 hybrid payload — render in the user's locale via lead.bodyKey
+    // when present. Falls back to the server's pre-rendered NO body for
+    // older rows. Enrichment still wins (it handles things like the
+    // "+2 har godtatt" tail computation).
+    const localizedBody = _bellBodyFromDescriptor(entry.leadDescriptor, entry.body);
+    const localizedEntry = (entry.leadDescriptor && entry.leadDescriptor.bodyKey)
+      ? { ...entry, body: localizedBody }
+      : entry;
+    const enriched = _enrichPlanNotificationBody(localizedEntry);
+    const body       = enriched ? enriched.body       : localizedBody;
     const pastClass  = enriched ? enriched.pastClass  : '';
     const metaSuffix = enriched ? enriched.metaSuffix : '';
     // Host-side quick-cancel button — surfaces an Avlys-plan shortcut

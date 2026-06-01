@@ -537,6 +537,10 @@ const _STRINGS = {
     // Notifications – P0 Alerts (user-opted-in)
     notif_sun_alert_body:        'Sun on {venue} in {minutes} min',
     notif_plan_reminder_body:    'Your plan at {venue} starts in {minutes} min',
+    // sql/044 hybrid payload — server bell rows carry lead.bodyKey pointing here
+    notif_plan_reminder_creator_body:           'Your plan at {venue} starts in {minutes} min.',
+    notif_plan_reminder_invitee_accepted_body:  "You're heading to {venue} in {minutes} min.",
+    notif_plan_reminder_invitee_pending_body:   "{creator}'s plan at {venue} starts in {minutes} min.",
     notif_cat_alert:             'Sun & plan alerts',
 
     // Notifications – P1 Social
@@ -1146,6 +1150,10 @@ const _STRINGS = {
     // Notifications – P0 Alerts (user-opted-in)
     notif_sun_alert_body:        'Sol på {venue} om {minutes} min',
     notif_plan_reminder_body:    'Planen din på {venue} starter om {minutes} min',
+    // sql/044 hybrid payload — server bell rows carry lead.bodyKey pointing here
+    notif_plan_reminder_creator_body:           'Planen din på {venue} starter om {minutes} min.',
+    notif_plan_reminder_invitee_accepted_body:  'Du skal til {venue} om {minutes} min.',
+    notif_plan_reminder_invitee_pending_body:   '{creator}s plan på {venue} starter om {minutes} min.',
     notif_cat_alert:             'Sol- og planvarsler',
 
     // Notifications – P1 Social
@@ -1655,6 +1663,10 @@ const _STRINGS = {
     // Notifications – P0 Alerts (user-opted-in)
     notif_sun_alert_body:        'Sol på {venue} om {minutes} min',
     notif_plan_reminder_body:    'Din plan på {venue} börjar om {minutes} min',
+    // sql/044 hybrid payload — server bell rows carry lead.bodyKey pointing here
+    notif_plan_reminder_creator_body:           'Din plan på {venue} börjar om {minutes} min.',
+    notif_plan_reminder_invitee_accepted_body:  'Du ska till {venue} om {minutes} min.',
+    notif_plan_reminder_invitee_pending_body:   '{creator}s plan på {venue} börjar om {minutes} min.',
     notif_cat_alert:             'Sol- och planvarningar',
 
     // Notifications – P1 Social
@@ -2126,6 +2138,10 @@ const _STRINGS = {
     // Notifications – P0 Alerts (user-opted-in)
     notif_sun_alert_body:        'Sol på {venue} om {minutes} min',
     notif_plan_reminder_body:    'Din plan på {venue} starter om {minutes} min',
+    // sql/044 hybrid payload — server bell rows carry lead.bodyKey pointing here
+    notif_plan_reminder_creator_body:           'Din plan på {venue} starter om {minutes} min.',
+    notif_plan_reminder_invitee_accepted_body:  'Du skal til {venue} om {minutes} min.',
+    notif_plan_reminder_invitee_pending_body:   '{creator}s plan på {venue} starter om {minutes} min.',
     notif_cat_alert:             'Sol- og planadvarsler',
 
     // Notifications – P1 Social
