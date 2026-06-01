@@ -8085,6 +8085,22 @@ function enterSearchMode() {
   const input = document.getElementById('venue-search');
   if (!strip || !input) return;
   strip.classList.add('searching');
+  // PR C v6 — snapshot the map camera so the small "pan up" the user
+  // sees when the iOS keyboard opens (Mapbox reacts to the
+  // visualViewport shrink even with interactive-widget=overlays-content)
+  // can be undone on exit. Without this, the map drifts a few pixels per
+  // search and never returns.
+  try {
+    if (typeof map !== 'undefined' && map && typeof map.getCenter === 'function') {
+      const _c = map.getCenter();
+      window._searchSavedCamera = {
+        center: [_c.lng, _c.lat],
+        zoom: map.getZoom(),
+        bearing: map.getBearing(),
+        pitch: map.getPitch(),
+      };
+    }
+  } catch (e) { /* ignore */ }
   // Kick off the typewriter so users discover what they can search for.
   // It auto-stops the moment they type anything.
   _startSearchPlaceholderAnim();
@@ -8104,6 +8120,15 @@ function exitSearchMode() {
   input.blur();
   strip.classList.remove('searching');
   _stopSearchPlaceholderAnim();
+  // Restore camera snapshot to undo any visualViewport-driven drift.
+  // jumpTo (not easeTo) so the correction is instant and invisible.
+  try {
+    if (window._searchSavedCamera && typeof map !== 'undefined' && map && typeof map.jumpTo === 'function') {
+      const cam = window._searchSavedCamera;
+      map.jumpTo({ center: cam.center, zoom: cam.zoom, bearing: cam.bearing, pitch: cam.pitch });
+    }
+  } catch (e) { /* ignore */ }
+  window._searchSavedCamera = null;
 }
 
 // ── Search placeholder typewriter ────────────────────────────────────────────

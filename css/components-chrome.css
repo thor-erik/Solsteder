@@ -242,6 +242,15 @@
   }
   #top-strip .ts-btn:focus,
   #top-strip .ts-btn:focus-visible { outline: none; box-shadow: var(--panel-shadow); }
+  /* PR C v6 — expand the tap target to ~44px (iOS HIG min) without
+     changing the visible 38px circle. The ::after sits as an invisible
+     halo around the button so finger taps near the edge still register. */
+  #top-strip .ts-btn::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+  }
   #top-strip .ts-btn:hover { background: var(--glassctl-bg-hover); }
   #top-strip .ts-btn:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
   #top-strip .ts-btn svg { width: 18px; height: 18px; }
@@ -585,11 +594,21 @@
     mask-image: linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%);
   }
   #panel-actions .panel-actions-pills::-webkit-scrollbar { display: none; }
+  /* PR C v6 — expand the tap target on every filter pill to ~44px tall
+     (iOS HIG min) without changing the 32px visual height. ::after sits
+     as an invisible halo extending the hit zone above + below. */
+  .panel-filter-pill::after {
+    content: '';
+    position: absolute;
+    top: -6px; bottom: -6px;
+    left: 0; right: 0;
+  }
   .panel-filter-pill {
     flex-shrink: 0;
     height: 32px;
     padding: 0 var(--space-lg);
     border-radius: var(--radius-lg);
+    position: relative;
     /* Outline chip (DESIGN.md Phase 2.3): near-fill-less surface + dark
        silhouette + ink text; selected → honey-dim (below). Was a cream
        --glassctl frosted bubble. No shadow — outline chips read by edge. */

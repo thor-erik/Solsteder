@@ -5725,6 +5725,7 @@
      affordance. Opens the dp-events popover on click. */
   .dp-card .dp-evt-more {
     cursor: pointer;
+    position: relative;
     background: var(--line-l-faint);
     border: 1px solid var(--line-l-strong);
     color: var(--panel-text);
@@ -5734,6 +5735,14 @@
   /* :hover background reuses the existing rgba(17,30,56,0.06) via
      .dprcv-cta-link:hover in components-overlays.css — combined below. */
   .dp-card .dp-evt-more:active { transform: scale(0.95); }
+  /* PR C v6 — expand the tap target on the "+N" overflow pill to
+     ~44px tall (iOS HIG min) without changing the 26px visual height. */
+  .dp-card .dp-evt-more::after {
+    content: '';
+    position: absolute;
+    top: -9px; bottom: -9px;
+    left: -6px; right: -6px;
+  }
   /* Click-to-expand popover — absolute over the card, doesn't reflow it.
      Positioned by JS relative to the +N pill that triggered it. */
   .dp-events-popover {
