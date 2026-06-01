@@ -619,11 +619,15 @@ function _evalPlanReminder() {
   const LEAD_MS = 30 * 60 * 1000;
   const MIN_MS  = 60 * 1000;
 
+  // Track role per candidate so the notif_id matches the server-written
+  // bell row from sql/029 (plan_reminder_creator: vs plan_reminder_invitee:).
+  // Without role-tagged IDs the bell UNIQUE (user_id, notif_id) constraint
+  // can't dedupe and the user sees two rows for the same reminder.
   const candidates = [];
   if (typeof _plans !== 'undefined' && Array.isArray(_plans)) {
     for (const p of _plans) {
       if (p.creator_id !== _currentUser.id) continue;
-      candidates.push({ id: p.id, planned_at: p.planned_at, venue_id: p.venue_id });
+      candidates.push({ id: p.id, role: 'creator', planned_at: p.planned_at, venue_id: p.venue_id });
     }
   }
   if (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites)) {
@@ -631,7 +635,7 @@ function _evalPlanReminder() {
       if (inv.status !== 'accepted') continue;
       const p = inv.plan;
       if (!p) continue;
-      candidates.push({ id: p.id, planned_at: p.planned_at, venue_id: p.venue_id });
+      candidates.push({ id: p.id, role: 'invitee', planned_at: p.planned_at, venue_id: p.venue_id });
     }
   }
 
@@ -659,7 +663,7 @@ function _evalPlanReminder() {
   };
 
   return {
-    id: 'plan_reminder_' + best.id,
+    id: 'plan_reminder_' + best.role + ':' + best.id,
     priority: 0, category: 'alert',
     icon: '⏰',
     bodyKey: 'notif_plan_reminder_body',

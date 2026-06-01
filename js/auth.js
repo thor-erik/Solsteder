@@ -1448,7 +1448,14 @@ function _isServerHandledNotif(id) {
       // invite lands. The new _evalIncomingPlanInvite toast (notifications.js)
       // reuses the same id so bell-row read state can dedupe it across
       // sessions; we skip the client-side bell write to avoid a duplicate.
-      || id.startsWith('plan_invite_pending:');
+      || id.startsWith('plan_invite_pending:')
+      // sql/029 process_plan_reminders writes plan_reminder_creator:<UUID>
+      // and plan_reminder_invitee:<UUID> rows via the cron. The client toast
+      // in _evalPlanReminder (notifications.js) emits matching IDs so the
+      // bell UNIQUE constraint dedupes; we skip the client-side bell write
+      // entirely so Realtime's row is canonical.
+      || id.startsWith('plan_reminder_creator:')
+      || id.startsWith('plan_reminder_invitee:');
 }
 
 /** Public: capture a notification into the bell history when it fires.
