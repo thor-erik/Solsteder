@@ -599,91 +599,10 @@ function _evalSunAlerts() {
   };
 }
 
-/**
- * Plan-starts-soon reminder. Fires 30 min before `planned_at` for plans the
- * user created OR accepted. One-shot per plan id, persisted across sessions.
- *
- * Why P0 + 'alert' category: the user explicitly committed to this plan (by
- * creating it or accepting the invite), so a reminder is opt-in rather than
- * ambient — same shape as sun alerts.
- */
-function _evalPlanReminder() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof VENUES === 'undefined' || !VENUES) return null;
-
-  const KEY = 'solsteder_plan_reminders_fired';
-  let fired = {};
-  try { fired = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
-
-  const now = Date.now();
-  const LEAD_MS = 30 * 60 * 1000;
-  const MIN_MS  = 60 * 1000;
-
-  // Track role per candidate so the notif_id matches the server-written
-  // bell row from sql/029 (plan_reminder_creator: vs plan_reminder_invitee:).
-  // Without role-tagged IDs the bell UNIQUE (user_id, notif_id) constraint
-  // can't dedupe and the user sees two rows for the same reminder.
-  const candidates = [];
-  if (typeof _plans !== 'undefined' && Array.isArray(_plans)) {
-    for (const p of _plans) {
-      if (p.creator_id !== _currentUser.id) continue;
-      candidates.push({ id: p.id, role: 'creator', planned_at: p.planned_at, venue_id: p.venue_id });
-    }
-  }
-  if (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites)) {
-    for (const inv of _planInvites) {
-      if (inv.status !== 'accepted') continue;
-      const p = inv.plan;
-      if (!p) continue;
-      candidates.push({ id: p.id, role: 'invitee', planned_at: p.planned_at, venue_id: p.venue_id });
-    }
-  }
-
-  let best = null;
-  for (const c of candidates) {
-    if (!c.planned_at || fired[c.id]) continue;
-    const planMs = new Date(c.planned_at).getTime();
-    if (!Number.isFinite(planMs)) continue;
-    const msUntil = planMs - now;
-    if (msUntil < MIN_MS || msUntil > LEAD_MS) continue;
-    if (!best || planMs < best.planMs) best = { ...c, planMs, msUntil };
-  }
-  if (!best) return null;
-
-  const venue = VENUES.find(v => String(v.id) === String(best.venue_id));
-  if (!venue) return null;
-  const minutes = Math.max(1, Math.round(best.msUntil / 60000));
-
-  const open = () => {
-    if (typeof openPlanPreview === 'function') {
-      openPlanPreview({ venueId: best.venue_id, plannedAt: best.planned_at });
-    } else if (typeof selectVenue === 'function') {
-      selectVenue(Number(best.venue_id), true);
-    }
-  };
-
-  return {
-    id: 'plan_reminder_' + best.role + ':' + best.id,
-    priority: 0, category: 'alert',
-    icon: '⏰',
-    bodyKey: 'notif_plan_reminder_body',
-    bodyVars: { venue: venue.name, minutes },
-    actionKey: 'notif_open_plan',
-    action: open,
-    bellAction: open,
-    nav: { kind: 'plan', venueId: best.venue_id, plannedAt: best.planned_at },
-    ttl: 600000, dedupe: true,
-    _onShow: () => {
-      try {
-        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-        cur[best.id] = Date.now();
-        const cutoff = Date.now() - 7 * 86400 * 1000;
-        for (const k of Object.keys(cur)) if (cur[k] < cutoff) delete cur[k];
-        localStorage.setItem(KEY, JSON.stringify(cur));
-      } catch {}
-    },
-  };
-}
+// Plan-starts-soon reminders are server-driven now: sql/029 process_plan_reminders
+// pg_cron writes the bell row + fires push 25–35 min before planned_at, and the
+// in-app toast surfaces via auth.js _bellRowToToast (gated to plan_reminder_*
+// prefixes) when the Realtime INSERT lands.
 
 // ── Evaluators: P0 Weather ───────────────���─────────────────────────────���─────
 
@@ -1306,7 +1225,8 @@ function _evalFriendPlanning() {
 const _notifEvaluators = [
   // P0 Alerts (user-opted-in — bypass kill-switch)
   _evalSunAlerts,
-  _evalPlanReminder,
+  // _evalPlanReminder removed — server cron (sql/029) drives push + bell, and
+  // auth.js _bellRowToToast surfaces the in-app toast from the Realtime INSERT.
   // P0 Weather (bell-only)
   _evalNoSunToday,
   _evalBestSunWindow,

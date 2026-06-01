@@ -1450,10 +1450,9 @@ function _isServerHandledNotif(id) {
       // sessions; we skip the client-side bell write to avoid a duplicate.
       || id.startsWith('plan_invite_pending:')
       // sql/029 process_plan_reminders writes plan_reminder_creator:<UUID>
-      // and plan_reminder_invitee:<UUID> rows via the cron. The client toast
-      // in _evalPlanReminder (notifications.js) emits matching IDs so the
-      // bell UNIQUE constraint dedupes; we skip the client-side bell write
-      // entirely so Realtime's row is canonical.
+      // and plan_reminder_invitee:<UUID> rows via the cron. The in-app toast
+      // is surfaced from the Realtime INSERT via _bellRowToToast (this file);
+      // skip the client-side bell write so Realtime's row is canonical.
       || id.startsWith('plan_reminder_creator:')
       || id.startsWith('plan_reminder_invitee:');
 }
@@ -1595,6 +1594,53 @@ async function _bellMarkRead(notifId) {
 // is how they reach the client in real time (and across devices). ────────
 let _bellChannel = null;
 
+/** Convert a freshly-INSERTed notifications row into a toast notif object,
+ *  or null if this row shouldn't ambient-toast. Gated by notif_id prefix —
+ *  only events the user explicitly opted into (plan reminders, sun + weather
+ *  alerts once their crons land) surface as in-app pop-ups; everything else
+ *  goes silently to the bell inbox. */
+function _bellRowToToast(row) {
+  if (!row || !row.notif_id || !row.body) return null;
+  const id = row.notif_id;
+
+  // Allowlist of server-driven events that should ambient-toast. Extend
+  // as alert-class evaluators migrate to pg_cron.
+  const isPlanReminder = id.startsWith('plan_reminder_creator:')
+                      || id.startsWith('plan_reminder_invitee:');
+  if (!isPlanReminder) return null;
+
+  const nav = row.nav || {};
+  const venueId = nav.venueId;
+  const open = () => {
+    if (typeof openPlanPreview === 'function' && nav.kind === 'plan') {
+      openPlanPreview({ venueId, plannedAt: nav.plannedAt });
+    } else if (typeof selectVenue === 'function' && venueId != null) {
+      selectVenue(Number(venueId), true);
+    }
+  };
+
+  // body is server-rendered HTML containing only <strong> markup (sql/029,
+  // sanitized via _escAllowStrong elsewhere). Strip to plain text for the
+  // toast — _notifShow assigns _rawText via textContent so any markup
+  // would render literally.
+  const plainBody = String(row.body).replace(/<[^>]+>/g, '');
+  const icon = (row.lead && row.lead.icon) || '⏰';
+
+  return {
+    id,                       // matches the bell row id → _bellRecord skips
+    priority: 0,              // P0: user explicitly committed (created/accepted)
+    category: 'alert',
+    icon,
+    _rawText: plainBody,
+    actionKey: 'notif_open_plan',
+    action: open,
+    bellAction: open,
+    nav,
+    ttl: 600000,
+    dedupe: true,
+  };
+}
+
 function _bellSubscribeRealtime() {
   if (!_currentUser || typeof _supabase === 'undefined') return;
   if (_bellChannel) return;  // already subscribed
@@ -1624,6 +1670,10 @@ function _bellSubscribeRealtime() {
       if (dropdown && dropdown.classList.contains('open')) {
         _renderBellDropdown();
       }
+      // Surface server-driven alert events as ambient toasts. Gated by
+      // notif_id prefix inside _bellRowToToast.
+      const toast = _bellRowToToast(row);
+      if (toast && typeof _notifEnqueue === 'function') _notifEnqueue(toast);
     })
     .subscribe();
 }
