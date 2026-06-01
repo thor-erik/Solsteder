@@ -8614,15 +8614,28 @@ function _restorePreAuthState() {
     setTimeout(() => { if (typeof selectVenue === 'function') selectVenue(saved.venueId, true); }, 300);
   }
 
-  // Replay the post-login intent (e.g. reopen the invite sheet on the
-  // venue the user was about to invite friends to). Run after the venue
-  // has had a moment to open so the invite sheet has a real selectedId
-  // to anchor against.
-  if (saved.intent && saved.intent.type === 'invite_sheet' && saved.intent.venueId != null) {
+  // Replay the post-login intent. Two entry points stash distinct types
+  // so the restore lands on the SAME surface the user was on before
+  // login (PR G):
+  //   - 'invite_sheet'  → bottom-sheet _openInviteSheet (tapped Invite
+  //                       friends in the social zone)
+  //   - 'inline_share'  → inline dp-composer _dpShareOpen (tapped Send
+  //                       to friends in the composer, OR Send after
+  //                       picking a time in the nar picker)
+  // Run after the venue has had a moment to open so the share surface
+  // has a real selectedId + detail panel to mount against.
+  if (saved.intent && saved.intent.venueId != null) {
     const wantedId = saved.intent.venueId;
+    const wantedType = saved.intent.type;
     setTimeout(() => {
-      if (typeof _openInviteSheet === 'function' && typeof authCurrentUser === 'function' && authCurrentUser()) {
-        try { _openInviteSheet(wantedId); } catch (e) { /* ignore */ }
+      if (typeof authCurrentUser === 'function' && authCurrentUser()) {
+        try {
+          if (wantedType === 'inline_share' && typeof _dpShareOpen === 'function') {
+            _dpShareOpen(wantedId);
+          } else if (wantedType === 'invite_sheet' && typeof _openInviteSheet === 'function') {
+            _openInviteSheet(wantedId);
+          }
+        } catch (e) { /* ignore */ }
       }
       if (typeof window !== 'undefined') window._postLoginIntent = null;
     }, 700);

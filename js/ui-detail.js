@@ -810,7 +810,14 @@ if (typeof window !== 'undefined') {
 function _dpShareOpen(venueId) {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
     if (typeof window !== 'undefined') {
-      window._postLoginIntent = { type: 'invite_sheet', venueId };
+      // PR G — distinct intent type so _restorePreAuthState routes back
+      // to the inline composer share zone (where the user actually was
+      // before login), not the bottom sheet. Previously both share
+      // entry points set the same 'invite_sheet' intent and login
+      // bounced the user to the bottom-sheet's "WHEN" page even though
+      // they'd already picked a time via the inline picker and were
+      // about to tap Send.
+      window._postLoginIntent = { type: 'inline_share', venueId };
     }
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
     return;
