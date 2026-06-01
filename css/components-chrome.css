@@ -411,24 +411,32 @@
      transition feels smooth (display:none/flex would snap). */
   #top-strip .ts-search-input {
     position: absolute;
-    inset: 4px;
+    /* PR C v4 — animate WIDTH (was clip-path) so the box-shadow renders
+       cleanly during expansion. clip-path was clipping the shadow too,
+       leaving a faded inset look on the bottom-left and top corner
+       (user-reported). The element grows from a 38px sliver pinned at
+       the right edge to the full strip width. */
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 38px;
     display: flex;
     align-items: center;
     gap: var(--space-md);
     padding: 0 var(--space-sm) 0 var(--space-lg);
     border-radius: var(--radius-pill);
-    background: transparent;
-    border: none;
-    box-shadow: none;
+    /* Glass is always present (only width changes) so the shadow tween
+       reads as the box growing, not as the background fading in. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+    border: var(--glassctl-border);
+    box-shadow: var(--panel-shadow);
+    overflow: hidden;
     opacity: 0;
     pointer-events: none;
-    /* PR C — right-to-left reveal: the input is clipped to a thin sliver
-       at the right edge (where the search button lives) and the clip
-       slides leftward as .searching turns on. clip-path animates cleanly
-       and doesn't distort children the way scaleX would. */
-    clip-path: inset(0 0 0 100%);
     transition: opacity 160ms ease,
-                clip-path 280ms cubic-bezier(0.2, 0.8, 0.3, 1);
+                width 280ms cubic-bezier(0.2, 0.8, 0.3, 1);
   }
   #top-strip .ts-search-input .ts-search-input-icon {
     flex-shrink: 0;
@@ -508,19 +516,8 @@
   #top-strip.searching .ts-search-input {
     opacity: 1;
     pointer-events: auto;
-    /* Reveal fully — the inset clip slides from "fully right-clipped"
-       to "no clip", growing leftward from the search-button position. */
-    clip-path: inset(0 0 0 0);
-    /* Give the search input its own pill glass. The strip lost its
-       shared background, so without this the field would float as bare
-       text over the map. Pure-frost matches the locate-me / button
-       vocabulary so the expanded search reads as one of the app's
-       recognized surfaces. */
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-frost);
-    -webkit-backdrop-filter: var(--glass-blur-frost);
-    border: var(--glassctl-border);
-    box-shadow: var(--panel-shadow);
+    /* Grow from the right-edge sliver to fill the strip. */
+    width: 100%;
   }
   #top-strip.searching .ts-search-input .ts-search-input-icon { opacity: 1; }
 
