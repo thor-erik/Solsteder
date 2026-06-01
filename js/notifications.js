@@ -545,6 +545,18 @@ function _evalSunAlerts() {
   let fired = {};
   try { fired = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
 
+  // Weather gate — same pattern as _firstSunWindowStartForVenue (app.js:3622).
+  // Without this an alert fires whenever the sun would GEOMETRICALLY hit the
+  // venue, regardless of whether it'll be raining/overcast at the time.
+  const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable
+                    && typeof findSunCrossingFromTable === 'function')
+    ? (findSunCrossingFromTable(currentSunTable, false) ?? 22)
+    : 22;
+  const wxLookup = (h) => {
+    const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, h) : null;
+    return { rainy: b === 'regn', overcast: b === 'skyer' };
+  };
+
   // Pick the earliest upcoming window across all alerted venues. The other
   // venues' windows get picked up on subsequent eval cycles within 60s.
   let best = null;
@@ -553,8 +565,23 @@ function _evalSunAlerts() {
     const leadHours = (alert.notify_minutes_before ?? 30) / 60;
     const venue = VENUES.find(v => String(v.id) === String(vidStr));
     if (!venue) continue;
-    const { windows } = computeSunWindows(venue, dateStr) || {};
-    if (!windows || !windows.length) continue;
+    const { windows: rawWindows } = computeSunWindows(venue, dateStr) || {};
+    if (!rawWindows || !rawWindows.length) continue;
+    const dh = (typeof getVenueHoursForDay === 'function')
+      ? getVenueHoursForDay(venue, dateStr) : null;
+    let qual;
+    try {
+      qual = (typeof qualifyingWindows === 'function')
+        ? qualifyingWindows(rawWindows, wxLookup, {
+            selectedHour: now,           // search forward from now
+            sundownHour:  sundownH,
+            openHour:     dh?.open ?? 0,
+            closeHour:    dh?.close ?? 24,
+          })
+        : null;
+    } catch (e) { continue; }
+    const windows = qual?.windows || [];
+    if (!windows.length) continue;
     for (const w of windows) {
       const hoursUntil = w.start - now;
       // Strictly "incoming" — at least a minute out so we never fire after
