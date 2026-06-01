@@ -2027,6 +2027,16 @@ function draw() {
   const _planLockId = (typeof document !== 'undefined'
     && document.body.classList.contains('plan-preview-active')
     && typeof selectedId !== 'undefined') ? selectedId : null;
+  // PR G v3 — during the invite-sheet or inline-share flow, the friend
+  // pin (host avatar + selected friends, drawn AFTER this loop) sits
+  // over the active venue. Skip THAT venue's normal pill here so the
+  // viewport doesn't show two pins on the same dot. The friend pin is
+  // the only one that should render for the selected venue.
+  const _friendPinVenueId = (typeof document !== 'undefined'
+    && (document.body.classList.contains('invite-sheet-open') ||
+        document.body.classList.contains('share-mode'))
+    && typeof window !== 'undefined'
+    && window._friendsPin) ? window._friendsPin.venueId : null;
   VENUES.forEach(v => {
     if (_planLockId != null && v.id !== _planLockId) return;
     if (!bounds.contains([v.lng, v.lat])) return;
@@ -2037,6 +2047,8 @@ function draw() {
         && !window._passesActiveFilters(v)) return;
     // Detail-panel focus mode (non-audit only).
     if (!isAuditMode && selectedId && v.id !== selectedId) return;
+    // Suppress the normal pill on the friend-pin venue (see above).
+    if (_friendPinVenueId != null && String(v.id) === String(_friendPinVenueId)) return;
     // Inside audit mode, reviewed / archived / unsure venues short-circuit
     // to simple-dot rendering — they don't compete for pill space.
     if (isAuditMode) {
