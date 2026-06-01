@@ -142,8 +142,15 @@
     /* Below the bell dropdown (1050), calendar (1200) and toasts. */
     z-index: 900;
     height: 46px;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    /* PR C v3 — switched from grid (auto 1fr auto) to flex with
+       space-between so .ts-left and .ts-right stay anchored to their
+       edges. The previous grid had ts-center occupy the 1fr column;
+       once that column became position:absolute (viewport-centered
+       weather), the grid auto-flow let ts-right collapse leftward.
+       Flex avoids that — ts-left is at flex-start, ts-right at flex-
+       end, and ts-center floats absolutely over the strip's center. */
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: var(--space-sm);
     padding: 0;
