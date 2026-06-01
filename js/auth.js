@@ -1454,7 +1454,11 @@ function _isServerHandledNotif(id) {
       // is surfaced from the Realtime INSERT via _bellRowToToast (this file);
       // skip the client-side bell write so Realtime's row is canonical.
       || id.startsWith('plan_reminder_creator:')
-      || id.startsWith('plan_reminder_invitee:');
+      || id.startsWith('plan_reminder_invitee:')
+      // sql/047 process_sun_alerts writes sun_alert:<date>:<venue>:<startMin>
+      // rows via the every-5-min cron. Same plumbing: toast from Realtime,
+      // client bell write skipped.
+      || id.startsWith('sun_alert:');
 }
 
 /** Public: capture a notification into the bell history when it fires.
@@ -1611,28 +1615,41 @@ function _bellBodyFromDescriptor(descriptor, fallbackBody) {
 
 /** Convert a freshly-INSERTed notifications row into a toast notif object,
  *  or null if this row shouldn't ambient-toast. Gated by notif_id prefix —
- *  only events the user explicitly opted into (plan reminders, sun + weather
- *  alerts once their crons land) surface as in-app pop-ups; everything else
- *  goes silently to the bell inbox. */
+ *  only events the user explicitly opted into (plan reminders, sun alerts)
+ *  surface as in-app pop-ups; everything else goes silently to the bell
+ *  inbox. Action + actionKey + icon vary by event type. */
 function _bellRowToToast(row) {
   if (!row || !row.notif_id) return null;
   const id = row.notif_id;
 
-  // Allowlist of server-driven events that should ambient-toast. Extend
-  // as alert-class evaluators migrate to pg_cron.
   const isPlanReminder = id.startsWith('plan_reminder_creator:')
                       || id.startsWith('plan_reminder_invitee:');
-  if (!isPlanReminder) return null;
+  const isSunAlert     = id.startsWith('sun_alert:');
+  if (!isPlanReminder && !isSunAlert) return null;
 
   const nav = row.nav || {};
   const venueId = nav.venueId;
-  const open = () => {
-    if (typeof openPlanPreview === 'function' && nav.kind === 'plan') {
-      openPlanPreview({ venueId, plannedAt: nav.plannedAt });
-    } else if (typeof selectVenue === 'function' && venueId != null) {
-      selectVenue(Number(venueId), true);
-    }
-  };
+
+  let icon, actionKey, action;
+  if (isSunAlert) {
+    icon = '☀️';
+    actionKey = 'notif_go_to_venue';
+    action = () => {
+      if (typeof selectVenue === 'function' && venueId != null) {
+        selectVenue(Number(venueId), true);
+      }
+    };
+  } else {
+    icon = (row.lead && row.lead.icon) || '⏰';
+    actionKey = 'notif_open_plan';
+    action = () => {
+      if (typeof openPlanPreview === 'function' && nav.kind === 'plan') {
+        openPlanPreview({ venueId, plannedAt: nav.plannedAt });
+      } else if (typeof selectVenue === 'function' && venueId != null) {
+        selectVenue(Number(venueId), true);
+      }
+    };
+  }
 
   // Prefer locale-aware bodyKey from sql/044+; fall back to stripping HTML
   // from the server's pre-rendered body (NO, from older rows). _notifShow
@@ -1640,17 +1657,16 @@ function _bellRowToToast(row) {
   const fallback = String(row.body || '').replace(/<[^>]+>/g, '');
   const plainBody = _bellBodyFromDescriptor(row.lead, fallback);
   if (!plainBody) return null;
-  const icon = (row.lead && row.lead.icon) || '⏰';
 
   return {
     id,                       // matches the bell row id → _bellRecord skips
-    priority: 0,              // P0: user explicitly committed (created/accepted)
+    priority: 0,              // P0: user explicitly committed
     category: 'alert',
     icon,
     _rawText: plainBody,
-    actionKey: 'notif_open_plan',
-    action: open,
-    bellAction: open,
+    actionKey,
+    action,
+    bellAction: action,
     nav,
     ttl: 600000,
     dedupe: true,
@@ -3002,8 +3018,15 @@ async function toggleSunAlert(venueId, evt) {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+    // Denormalize venue_name onto the row so the server cron (sql/047)
+    // can render the push body without joining venues.json (which lives
+    // client-side). Falls back to a generic placeholder if VENUES isn't
+    // loaded for any reason.
+    const venueObj = (typeof VENUES !== 'undefined' && Array.isArray(VENUES))
+      ? VENUES.find(v => String(v.id) === vid) : null;
+    const venueName = (venueObj && venueObj.name) || 'venue';
     const { data, error } = await _supabase.from('sun_alerts').insert({
-      user_id: _currentUser.id, venue_id: vid
+      user_id: _currentUser.id, venue_id: vid, venue_name: venueName
     }).select().single();
     if (!error && data) _alertsMap.set(vid, data);
     _showToast(t('sun_alert_on'));

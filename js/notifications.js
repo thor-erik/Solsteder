@@ -521,110 +521,10 @@ function _notifResumeAfterSearch() {
 
 // ── Evaluators: P0 Alerts (user-opted-in) ────────────────────────────────────
 
-/**
- * Sun-hits-alerted-venue. Fires when a venue the user explicitly subscribed
- * to (via the bell button on the venue detail) is about to be hit by sun
- * within its configured lead time (default 30 min from sql/004-sun-alerts.sql).
- *
- * Dedupe is per (date, venueId, windowStart) and persisted to localStorage so
- * the alert fires exactly once per sun window across sessions/tabs. Once-per-
- * window is the right granularity: a venue with sun 10:00–11:30 + 13:00–14:30
- * should get two alerts on the same day, not one.
- */
-function _evalSunAlerts() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof _alertsMap === 'undefined' || !_alertsMap.size) return null;
-  if (typeof VENUES === 'undefined' || !VENUES) return null;
-  if (typeof datePicker === 'undefined' || !datePicker) return null;
-  // Alerts are about real-time arrival, so only fire while viewing today.
-  if (datePicker.value !== todayStr()) return null;
-
-  const dateStr = todayStr();
-  const now = currentHour();
-  const KEY = 'solsteder_sun_alert_fired';
-  let fired = {};
-  try { fired = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
-
-  // Weather gate — same pattern as _firstSunWindowStartForVenue (app.js:3622).
-  // Without this an alert fires whenever the sun would GEOMETRICALLY hit the
-  // venue, regardless of whether it'll be raining/overcast at the time.
-  const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable
-                    && typeof findSunCrossingFromTable === 'function')
-    ? (findSunCrossingFromTable(currentSunTable, false) ?? 22)
-    : 22;
-  const wxLookup = (h) => {
-    const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, h) : null;
-    return { rainy: b === 'regn', overcast: b === 'skyer' };
-  };
-
-  // Pick the earliest upcoming window across all alerted venues. The other
-  // venues' windows get picked up on subsequent eval cycles within 60s.
-  let best = null;
-  for (const [vidStr, alert] of _alertsMap) {
-    if (alert.enabled === false) continue;
-    const leadHours = (alert.notify_minutes_before ?? 30) / 60;
-    const venue = VENUES.find(v => String(v.id) === String(vidStr));
-    if (!venue) continue;
-    const { windows: rawWindows } = computeSunWindows(venue, dateStr) || {};
-    if (!rawWindows || !rawWindows.length) continue;
-    const dh = (typeof getVenueHoursForDay === 'function')
-      ? getVenueHoursForDay(venue, dateStr) : null;
-    let qual;
-    try {
-      qual = (typeof qualifyingWindows === 'function')
-        ? qualifyingWindows(rawWindows, wxLookup, {
-            selectedHour: now,           // search forward from now
-            sundownHour:  sundownH,
-            openHour:     dh?.open ?? 0,
-            closeHour:    dh?.close ?? 24,
-          })
-        : null;
-    } catch (e) { continue; }
-    const windows = qual?.windows || [];
-    if (!windows.length) continue;
-    for (const w of windows) {
-      const hoursUntil = w.start - now;
-      // Strictly "incoming" — at least a minute out so we never fire after
-      // the window has technically begun.
-      if (hoursUntil < 1/60 || hoursUntil > leadHours) continue;
-      // Minute-resolution key — toFixed(2) on a float risked rounding collisions.
-      const dedupeKey = `${dateStr}:${vidStr}:${Math.round(w.start * 60)}`;
-      if (fired[dedupeKey]) continue;
-      if (!best || w.start < best.windowStart) {
-        best = {
-          venue, vidStr,
-          minutesUntil: Math.max(1, Math.round(hoursUntil * 60)),
-          windowStart: w.start,
-          dedupeKey,
-        };
-      }
-    }
-  }
-  if (!best) return null;
-
-  return {
-    id: 'sun_alert_' + best.dedupeKey,
-    priority: 0, category: 'alert',
-    icon: '☀️',
-    bodyKey: 'notif_sun_alert_body',
-    bodyVars: { venue: best.venue.name, minutes: best.minutesUntil },
-    actionKey: 'notif_go_to_venue',
-    action: () => {
-      if (typeof selectVenue === 'function') selectVenue(Number(best.venue.id), true);
-    },
-    ttl: 600000, dedupe: true,
-    _onShow: () => {
-      try {
-        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-        cur[best.dedupeKey] = Date.now();
-        // Prune entries older than 2 days so the map doesn't grow forever.
-        const cutoff = Date.now() - 2 * 86400 * 1000;
-        for (const k of Object.keys(cur)) if (cur[k] < cutoff) delete cur[k];
-        localStorage.setItem(KEY, JSON.stringify(cur));
-      } catch {}
-    },
-  };
-}
+// Sun alerts are server-driven now: sql/047 process_sun_alerts pg_cron writes
+// the bell row + fires push every 5 min, gated by weather_oslo (sql/046).
+// auth.js _bellRowToToast surfaces the in-app toast from the Realtime INSERT
+// (allowlist includes 'sun_alert:' prefix).
 
 // Plan-starts-soon reminders are server-driven now: sql/029 process_plan_reminders
 // pg_cron writes the bell row + fires push 25–35 min before planned_at, and the
@@ -1251,7 +1151,8 @@ function _evalFriendPlanning() {
 
 const _notifEvaluators = [
   // P0 Alerts (user-opted-in — bypass kill-switch)
-  _evalSunAlerts,
+  // _evalSunAlerts removed — server cron (sql/047) drives push + bell, and
+  // auth.js _bellRowToToast surfaces the in-app toast from the Realtime INSERT.
   // _evalPlanReminder removed — server cron (sql/029) drives push + bell, and
   // auth.js _bellRowToToast surfaces the in-app toast from the Realtime INSERT.
   // P0 Weather (bell-only)

@@ -1,0 +1,32 @@
+name: Update sun windows
+
+on:
+  schedule:
+    - cron: '30 2 * * *'   # 02:30 UTC daily (~03:30/04:30 Oslo). Sun-window pre-bake
+                            # shifts with date, so unlike geometry this must run nightly,
+                            # not weekly. sync-sun-windows pg_cron pulls 1h later.
+  workflow_dispatch:        # manual trigger from Actions tab
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Compute sun windows for next 8 days
+        run: node scripts/precompute-sun-windows.mjs 7
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/sun-windows.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: update sun windows [skip ci]"
+          git push
