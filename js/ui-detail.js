@@ -868,6 +868,18 @@ function _dpShareOpen(venueId) {
   // Resize the pager so its height = the share page's content (or fills the
   // panel content area, whichever is taller — _dpPagerResize handles the math).
   if (typeof _dpPagerResize === 'function') _dpPagerResize();
+  // PR G — re-measure across two more frames + after the share-mode
+  // CSS transition settles. The first pass measures synchronously
+  // while the composer + dp-scroll may still be sliding into their
+  // final positions (especially during post-login restore, where this
+  // runs ~700ms after a fresh detail-panel mount and the layout hasn't
+  // settled). Subsequent passes catch the stable composerRect so the
+  // friends card lands at its intended height instead of a shorter
+  // mid-animation snapshot.
+  if (typeof _dpPagerResize === 'function') {
+    requestAnimationFrame(() => requestAnimationFrame(_dpPagerResize));
+    setTimeout(_dpPagerResize, 320);
+  }
 }
 
 /** Close the inline share zone — drop the body class, drop .is-open, and
