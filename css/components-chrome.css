@@ -231,7 +231,17 @@
     padding: 0;
     position: relative;
     transition: color 120ms, background 120ms, box-shadow 120ms;
+    /* PR C v5 — suppress the default iOS/Android blue tap-highlight
+       rectangle (user-reported "blue square") and the focus outline
+       that some browsers add to buttons. The glass background already
+       provides press feedback via :active. */
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    outline: none;
   }
+  #top-strip .ts-btn:focus,
+  #top-strip .ts-btn:focus-visible { outline: none; box-shadow: var(--panel-shadow); }
   #top-strip .ts-btn:hover { background: var(--glassctl-bg-hover); }
   #top-strip .ts-btn:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
   #top-strip .ts-btn svg { width: 18px; height: 18px; }
@@ -503,15 +513,18 @@
     opacity: 0;
     transition: opacity 200ms ease 120ms;
   }
+  /* PR C v5 — straight fade for the side groups, no translateX slide.
+     The pushing-away motion read as visual noise next to the search
+     pill's clean right-anchored width grow; user asked for a calmer
+     transition. */
   #top-strip.searching .ts-left,
   #top-strip.searching .ts-center {
     opacity: 0;
-    transform: translateX(-12px);
     pointer-events: none;
   }
   #top-strip.searching .ts-right {
-    transform: translateX(-60px);
     opacity: 0;
+    pointer-events: none;
   }
   #top-strip.searching .ts-search-input {
     opacity: 1;
