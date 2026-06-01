@@ -81,11 +81,15 @@ BEGIN
         'bodyVars', jsonb_build_object('venue', sa.venue_name, 'minutes', v_min_until)
       );
 
+      -- category='weather' matches the existing notifications_category_check
+      -- (sql/012). Sun alerts conceptually fit 'weather' on the bell side;
+      -- the toast still uses category='alert' on the client (P0 opt-in
+      -- bypass-kill-switch behavior), which doesn't need to match the DB.
       INSERT INTO public.notifications (user_id, notif_id, category, body, lead, nav)
       VALUES (
         sa.user_id,
         v_notif_id,
-        'alert',
+        'weather',
         v_body,
         v_lead,
         jsonb_build_object('kind', 'venue', 'venueId', sa.venue_id)
