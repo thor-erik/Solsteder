@@ -163,7 +163,9 @@ checked-in (domain-restricted; safe). All persistence + auth + realtime
 | `plan_invites` | Per-invitee status on a plan. `status ∈ pending/accepted/declined`, optional `arrival_time` for off-plan arrivals. |
 | `push_subscriptions` | Web push endpoints + keys. One row per device the user enabled push on. |
 | `notifications` | Per-user notification inbox backing the bell dropdown. `body` is server-rendered HTML containing only `<strong>...</strong>` markup; the client renders via `_escAllowStrong` (auth.js) to preserve emphasis while neutralizing any other tag. |
-| `_app_settings` | Internal key/value config (RLS deny-all). Holds `send_push_url`, `send_push_bearer`, `send_push_secret`. Read by `_do_send_push` (SECURITY DEFINER) from every push-firing trigger. Rotation goes through `UPDATE _app_settings SET value = ... WHERE key = ...`. |
+| `_app_settings` | Internal key/value config (RLS deny-all). Holds `send_push_url`, `send_push_bearer`, `send_push_secret`, and the §5a edge function URLs (`fetch_weather_url`, `sync_sun_windows_url`). Read by `_do_send_push` + `_call_edge` (both SECURITY DEFINER). Rotation goes through `UPDATE _app_settings SET value = ... WHERE key = ...`. |
+| `venue_sun_windows` | Per `(venue_id, for_date)` raw geometric sun windows + opening hours. Populated daily by the `sync-sun-windows` edge function from `data/sun-windows.json` (pre-baked by `scripts/precompute-sun-windows.mjs` in the `update-sun-windows.yml` GH Action). Service-role only; clients still compute windows locally for the visible render. |
+| `weather_oslo` | Hourly met.no forecast for Oslo (~48 rows visible horizon). Populated every 30 min by the `fetch-weather` edge function. `wx_bucket(timestamptz)` returns `'sun'`/`'skyer'`/`'regn'` matching the client wxBucket vocabulary. Stale rows (> 6h old) are purged on each refresh. |
 
 Migrations live in `sql/` (`003`–`042`). They were run manually against
 the prod project. Re-run any time you stand up a fresh project — they
@@ -232,6 +234,9 @@ tabs that drop the channel.
 |-----|----------|------|
 | `plan-reminders` | `*/5 * * * *` | `process_plan_reminders()` — writes inbox rows + fires push for plans starting in 25–35 min |
 | `notifications-ttl-cleanup` | `0 1 * * *` | Deletes `notifications` rows older than 30 days |
+| `fetch-weather` | `*/30 * * * *` | Calls the `fetch-weather` edge function (via `_call_edge`). Pulls met.no, populates `weather_oslo`. |
+| `sync-sun-windows` | `30 3 * * *` | Calls the `sync-sun-windows` edge function. Pulls `data/sun-windows.json` from findshades.app (committed nightly by `update-sun-windows.yml` GH Action), populates `venue_sun_windows`. |
+| `process-sun-alerts` | `*/5 * * * *` | `process_sun_alerts()` — joins `sun_alerts × venue_sun_windows(today) × weather_oslo(window-start hour)`, writes bell row + fires push for windows starting within `notify_minutes_before` AND weather-clear at start. Replaces the client `_evalSunAlerts` 60s loop. |
 
 ### Push (web + native, live in prod)
 One pipeline, three delivery channels — `send-push` edge function
@@ -283,6 +288,16 @@ BadDeviceToken/410, FCM: UNREGISTERED) cause the row to be deleted.
 Edge function: `supabase/functions/send-push/index.ts`. Deployed
 `--no-verify-jwt` (X-Push-Secret is the actual auth gate). Endpoint:
 `https://wxalqodaeqgzahwlovnw.supabase.co/functions/v1/send-push`.
+
+§5a support edge functions (same `--no-verify-jwt` + `X-Push-Secret`
+gating pattern; reuse the same `PUSH_TRIGGER_SECRET`):
+- `supabase/functions/fetch-weather/index.ts` — pulls met.no
+  `locationforecast/2.0/complete` for Oslo, upserts hourly into
+  `weather_oslo`, TTL-purges > 6h. Triggered by pg_cron every 30 min.
+- `supabase/functions/sync-sun-windows/index.ts` — fetches
+  `https://findshades.app/data/sun-windows.json` (committed nightly by
+  `update-sun-windows.yml`), upserts into `venue_sun_windows`. Triggered
+  by pg_cron daily at 03:30 UTC.
 
 Secrets:
 - `PUSH_TRIGGER_SECRET` — matches `_app_settings.value WHERE key='send_push_secret'`
