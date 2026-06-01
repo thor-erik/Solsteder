@@ -381,7 +381,10 @@
     line-height: 1.2;
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   }
-  #top-strip .ts-center .ts-meta { color: rgba(17,30,56,0.60); font-weight: 500; font-variant-numeric: tabular-nums; }
+  /* PR C v8 — wind (.ts-meta) now matches temp at full dark ink so the
+     whole weather sentence reads at one visual weight. User flagged
+     the 0.60 muted treatment as too faint. */
+  #top-strip .ts-center .ts-meta { color: var(--panel-text); font-weight: 500; font-variant-numeric: tabular-nums; }
   /* Temperature carries the most decision-load in the strip — bump
      to text color + slight weight bump so it reads cleanly without
      visually competing with the date (which is the primary CTA). */
