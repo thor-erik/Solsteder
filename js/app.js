@@ -8085,11 +8085,21 @@ function enterSearchMode() {
   const input = document.getElementById('venue-search');
   if (!strip || !input) return;
   strip.classList.add('searching');
-  // PR C v6 — snapshot the map camera so the small "pan up" the user
-  // sees when the iOS keyboard opens (Mapbox reacts to the
-  // visualViewport shrink even with interactive-widget=overlays-content)
-  // can be undone on exit. Without this, the map drifts a few pixels per
-  // search and never returns.
+  // PR C v7 — lock --app-h to the current value so the visualViewport
+  // listener in index.html stops touching it while the keyboard is up.
+  // Without the lock the venue-list panel shrinks when iOS opens the
+  // keyboard, which makes Mapbox auto-pan to keep the user dot above
+  // the (now smaller) panel — user saw this as "the map moves up when
+  // you click search". The lock keeps the layout still.
+  try {
+    const html = document.documentElement;
+    const _curAppH = getComputedStyle(html).getPropertyValue('--app-h');
+    if (_curAppH) html.style.setProperty('--app-h', _curAppH.trim());
+    window._searchModeActive = true;
+  } catch (e) { /* ignore */ }
+  // PR C v6 belt-and-suspenders: snapshot the map camera so any residual
+  // drift (Mapbox auto-resize, etc.) can be undone on exit. With the
+  // --app-h lock above this should rarely be needed, but it's cheap.
   try {
     if (typeof map !== 'undefined' && map && typeof map.getCenter === 'function') {
       const _c = map.getCenter();
@@ -8120,8 +8130,19 @@ function exitSearchMode() {
   input.blur();
   strip.classList.remove('searching');
   _stopSearchPlaceholderAnim();
-  // Restore camera snapshot to undo any visualViewport-driven drift.
-  // jumpTo (not easeTo) so the correction is instant and invisible.
+  // Unlock --app-h and let the visualViewport listener resume updates.
+  // A tap on visibility-state probes the new value so the panel
+  // settles before the keyboard finishes closing.
+  try {
+    window._searchModeActive = false;
+    if (window.visualViewport) {
+      window.visualViewport.dispatchEvent(new Event('resize'));
+    } else {
+      window.dispatchEvent(new Event('resize'));
+    }
+  } catch (e) { /* ignore */ }
+  // Restore camera snapshot to undo any residual visualViewport-driven
+  // drift. jumpTo (not easeTo) so the correction is instant + invisible.
   try {
     if (window._searchSavedCamera && typeof map !== 'undefined' && map && typeof map.jumpTo === 'function') {
       const cam = window._searchSavedCamera;

@@ -83,6 +83,14 @@
   (function () {
     var html = document.documentElement;
     function set() {
+      // PR C v7 — when search mode is active, skip the --app-h update.
+      // iOS shrinks visualViewport when the keyboard opens; without this
+      // guard --app-h would shrink, the venue-list panel would resize
+      // (it sizes off --app-h), and Mapbox would auto-pan to keep the
+      // user dot above the now-smaller panel. User saw it as "the map
+      // moves up when you click search." Locking the value during
+      // search keeps the layout still.
+      if (window._searchModeActive) return;
       var vvh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
       var ih  = window.innerHeight || vvh;
       if (vvh && vvh > 0) html.style.setProperty('--app-h', vvh + 'px');
@@ -129,7 +137,7 @@
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260601f"></script>
+<script defer src="js/app.js?v=20260601g"></script>
 <script defer src="js/render-helpers.js?v=20260531d"></script>
 <script defer src="js/render-seating.js?v=20260528r"></script>
 <script defer src="js/render-editor.js?v=20260528r"></script>
