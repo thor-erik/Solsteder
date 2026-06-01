@@ -152,7 +152,7 @@ checked-in (domain-restricted; safe). All persistence + auth + realtime
 | Table | What |
 |-------|------|
 | `profiles` | One row per auth user. `id` (= auth.users.id), `email`, `name`, `role`, `avatar_url`, `locale`, `created_at`, `last_seen_at`. Auto-created via the `on_auth_user_created` trigger on signup. `name`/`avatar_url` set once at signup from `user_metadata`. |
-| `events` | Analytics event sink. Anon-insert allowed; `events_event_length` + `events_properties_size` CHECK constraints cap per-row size. |
+| `events` | Analytics event sink. Anon-insert allowed; `events_event_length` + `events_properties_size` CHECK constraints cap per-row size; BEFORE INSERT trigger from sql/043 binds `user_id` to `auth.uid()` so attribution can't be forged. |
 | `suggested_venues` | User-submitted venue suggestions, admin-reviewed. |
 | `favorites` | Per-user favorited venues. |
 | `sun_alerts` | Per-user sun-window notification rules. |
@@ -214,6 +214,7 @@ is suffix-named so a wildcard apply doesn't sweep it in; rename to drop
 | `040-plans-immutable-columns.sql` | BEFORE UPDATE trigger blocks writes to `plans.{id, creator_id, venue_id, venue_name, planned_at, created_at}` post-acceptance. |
 | `041-friend-invite-tokens.sql` | One-shot 122-bit friend-invite tokens (single-use, 30 d TTL) + cleanup cron. Restores 1-click share-link UX without re-opening C2. |
 | `042-plan-reminders-skip-orphans.sql` | `process_plan_reminders()` skips plans WHERE `venue_name IS NULL` (defense in depth against future orphan regressions). |
+| `043-events-bind-user-id.sql` | BEFORE INSERT trigger on `events` overrides `NEW.user_id = auth.uid()`. Honest clients (anon → NULL, signed-in → own uid) see no change; forged attribution gets silently corrected. Closes the forge surface left open by the anon_insert RLS policy. |
 
 ### Realtime
 `plan_invites`, `friendships`, `notifications`, and `suggested_venues`
