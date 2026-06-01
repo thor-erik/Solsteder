@@ -541,6 +541,13 @@ const _STRINGS = {
     notif_plan_reminder_creator_body:           'Your plan at {venue} starts in {minutes} min.',
     notif_plan_reminder_invitee_accepted_body:  "You're heading to {venue} in {minutes} min.",
     notif_plan_reminder_invitee_pending_body:   "{creator}'s plan at {venue} starts in {minutes} min.",
+    // sql/048 hybrid payload — friend / plan invite / response / cancel rows
+    notif_friendship_accepted_body:             'You and {name} are now friends.',
+    notif_plan_invite_created_body:             '{name} invited you to {venue} {when}.',
+    notif_plan_invite_response_accepted_body:   '{name}{tail} accepted your invitation to {venue} {when}.',
+    notif_plan_invite_response_declined_body:   '{name}{tail} declined your invitation to {venue} {when}.',
+    notif_plan_cancelled_body:                  '{name} cancelled the plan at {venue} {when}.',
+    notif_when_sep:                             'at',
     notif_cat_alert:             'Sun & plan alerts',
 
     // Notifications – P1 Social
@@ -1154,6 +1161,13 @@ const _STRINGS = {
     notif_plan_reminder_creator_body:           'Planen din på {venue} starter om {minutes} min.',
     notif_plan_reminder_invitee_accepted_body:  'Du skal til {venue} om {minutes} min.',
     notif_plan_reminder_invitee_pending_body:   '{creator}s plan på {venue} starter om {minutes} min.',
+    // sql/048 hybrid payload — friend / plan invite / response / cancel rows
+    notif_friendship_accepted_body:             'Du og {name} er nå venner.',
+    notif_plan_invite_created_body:             '{name} har invitert deg til {venue} {when}.',
+    notif_plan_invite_response_accepted_body:   '{name}{tail} har godtatt invitasjonen din til {venue} {when}.',
+    notif_plan_invite_response_declined_body:   '{name}{tail} har avslått invitasjonen din til {venue} {when}.',
+    notif_plan_cancelled_body:                  '{name} kansellerte planen til {venue} {when}.',
+    notif_when_sep:                             'kl',
     notif_cat_alert:             'Sol- og planvarsler',
 
     // Notifications – P1 Social
@@ -1667,6 +1681,13 @@ const _STRINGS = {
     notif_plan_reminder_creator_body:           'Din plan på {venue} börjar om {minutes} min.',
     notif_plan_reminder_invitee_accepted_body:  'Du ska till {venue} om {minutes} min.',
     notif_plan_reminder_invitee_pending_body:   '{creator}s plan på {venue} börjar om {minutes} min.',
+    // sql/048 hybrid payload — friend / plan invite / response / cancel rows
+    notif_friendship_accepted_body:             'Du och {name} är nu vänner.',
+    notif_plan_invite_created_body:             '{name} har bjudit in dig till {venue} {when}.',
+    notif_plan_invite_response_accepted_body:   '{name}{tail} har tackat ja till din inbjudan till {venue} {when}.',
+    notif_plan_invite_response_declined_body:   '{name}{tail} har tackat nej till din inbjudan till {venue} {when}.',
+    notif_plan_cancelled_body:                  '{name} avbokade planen till {venue} {when}.',
+    notif_when_sep:                             'kl',
     notif_cat_alert:             'Sol- och planvarningar',
 
     // Notifications – P1 Social
@@ -2142,6 +2163,13 @@ const _STRINGS = {
     notif_plan_reminder_creator_body:           'Din plan på {venue} starter om {minutes} min.',
     notif_plan_reminder_invitee_accepted_body:  'Du skal til {venue} om {minutes} min.',
     notif_plan_reminder_invitee_pending_body:   '{creator}s plan på {venue} starter om {minutes} min.',
+    // sql/048 hybrid payload — friend / plan invite / response / cancel rows
+    notif_friendship_accepted_body:             'Du og {name} er nu venner.',
+    notif_plan_invite_created_body:             '{name} har inviteret dig til {venue} {when}.',
+    notif_plan_invite_response_accepted_body:   '{name}{tail} har sagt ja til din invitation til {venue} {when}.',
+    notif_plan_invite_response_declined_body:   '{name}{tail} har sagt nej til din invitation til {venue} {when}.',
+    notif_plan_cancelled_body:                  '{name} aflyste planen til {venue} {when}.',
+    notif_when_sep:                             'kl',
     notif_cat_alert:             'Sol- og planadvarsler',
 
     // Notifications – P1 Social

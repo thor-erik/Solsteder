@@ -1599,18 +1599,39 @@ async function _bellMarkRead(notifId) {
 let _bellChannel = null;
 
 /** Resolve a bell entry / row's body to a plain string in the current
- *  locale. Hybrid payload (sql/044+): if lead.bodyKey is present, render
- *  via t() against the i18n catalog so the same row reads differently
- *  per user locale. Falls back to the server's pre-rendered body for
- *  pre-hybrid rows (everything before sql/044). */
-function _bellBodyFromDescriptor(descriptor, fallbackBody) {
+ *  locale. Hybrid payload (sql/044, sql/047, sql/048): if lead.bodyKey is
+ *  present, render via t() against the i18n catalog so the same row reads
+ *  differently per user locale. Falls back to the server's pre-rendered
+ *  body for pre-hybrid rows. When nav.plannedAt is available, synthesizes
+ *  a locale-aware `{when}` variable so the date/time stays in the user's
+ *  language without baking it into bodyVars server-side. */
+function _bellBodyFromDescriptor(descriptor, fallbackBody, nav) {
   if (descriptor && descriptor.bodyKey && typeof t === 'function') {
     try {
-      const rendered = t(descriptor.bodyKey, descriptor.bodyVars || {});
+      const vars = { ...(descriptor.bodyVars || {}) };
+      if (!vars.when && nav && nav.plannedAt) {
+        vars.when = _renderPlannedWhen(nav.plannedAt);
+      }
+      const rendered = t(descriptor.bodyKey, vars);
       if (rendered && rendered !== descriptor.bodyKey) return rendered;
     } catch { /* fall through to fallback */ }
   }
   return fallbackBody || '';
+}
+
+/** "i morgen kl 14:00" / "tomorrow at 14:00" / "imorgon kl 14:00" — used by
+ *  hybrid bodyKey rows whose template references {when}. _dayLabel handles
+ *  the locale-aware day phrase; the separator and time format follow suit. */
+function _renderPlannedWhen(plannedAt) {
+  if (!plannedAt) return '';
+  const ms = new Date(plannedAt).getTime();
+  if (isNaN(ms)) return '';
+  const dateStr = String(plannedAt).slice(0, 10);
+  const day = (typeof _dayLabel === 'function') ? _dayLabel(dateStr) : dateStr;
+  // 24h time — every locale in this app uses HH:mm; en-GB enforces it.
+  const time = new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const sep  = (typeof t === 'function') ? t('notif_when_sep') : 'kl';
+  return `${day} ${sep} ${time}`;
 }
 
 /** Convert a freshly-INSERTed notifications row into a toast notif object,
@@ -1655,7 +1676,7 @@ function _bellRowToToast(row) {
   // from the server's pre-rendered body (NO, from older rows). _notifShow
   // assigns _rawText via textContent so any markup would render literally.
   const fallback = String(row.body || '').replace(/<[^>]+>/g, '');
-  const plainBody = _bellBodyFromDescriptor(row.lead, fallback);
+  const plainBody = _bellBodyFromDescriptor(row.lead, fallback, row.nav);
   if (!plainBody) return null;
 
   return {
@@ -1870,16 +1891,18 @@ function _renderBellDropdown() {
   //    session gets surfaced here. Real data, real click actions. ──────
   _bellHistory.forEach(entry => {
     const isNew = entry.readAt ? '' : ' bd-row--new';
-    // sql/044 hybrid payload — render in the user's locale via lead.bodyKey
-    // when present. Falls back to the server's pre-rendered NO body for
-    // older rows. Enrichment still wins (it handles things like the
-    // "+2 har godtatt" tail computation).
-    const localizedBody = _bellBodyFromDescriptor(entry.leadDescriptor, entry.body);
-    const localizedEntry = (entry.leadDescriptor && entry.leadDescriptor.bodyKey)
-      ? { ...entry, body: localizedBody }
-      : entry;
+    // sql/044 + sql/048 hybrid payload — render in the user's locale via
+    // lead.bodyKey when present. Falls back to the server's pre-rendered NO
+    // body for older rows. The enricher's constructed bodies are NO-hardcoded
+    // templates, so for hybrid rows we use localizedBody directly and only
+    // pick up enricher's side-info (pastClass / metaSuffix / cancelPlanId).
+    const localizedBody = _bellBodyFromDescriptor(entry.leadDescriptor, entry.body, entry.nav);
+    const isHybrid = !!(entry.leadDescriptor && entry.leadDescriptor.bodyKey);
+    const localizedEntry = isHybrid ? { ...entry, body: localizedBody } : entry;
     const enriched = _enrichPlanNotificationBody(localizedEntry);
-    const body       = enriched ? enriched.body       : localizedBody;
+    const body       = isHybrid
+      ? localizedBody
+      : (enriched ? enriched.body : localizedBody);
     const pastClass  = enriched ? enriched.pastClass  : '';
     const metaSuffix = enriched ? enriched.metaSuffix : '';
     // Host-side quick-cancel button — surfaces an Avlys-plan shortcut
