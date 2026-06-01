@@ -2137,10 +2137,13 @@ window.TIMELINE_EVENT_GLYPHS = {
   // feedback: FTS popup, thumb, and panel timelines should match the
   // top-bar icons, not the other way around. Same currentColor +
   // drop-shadow contract handled via .wx-sky-icon CSS.
-  cloud:  (typeof _wxSvgCloud         === 'function') ? _wxSvgCloud()         : '',
-  partly: (typeof _wxSvgSunCloud      === 'function') ? _wxSvgSunCloud()      : '',
-  rain:   (typeof rainIconSvg         === 'function') ? rainIconSvg()         : '',
-  sun:    (typeof _wxSvgSun           === 'function') ? _wxSvgSun()           : '',
+  cloud:   (typeof _wxSvgCloud        === 'function') ? _wxSvgCloud()        : '',
+  partly:  (typeof _wxSvgSunCloud     === 'function') ? _wxSvgSunCloud()     : '',
+  rain:    (typeof rainIconSvg        === 'function') ? rainIconSvg()        : '',
+  sun:     (typeof _wxSvgSun          === 'function') ? _wxSvgSun()          : '',
+  // PR B item #8 — third sun-tier glyph for the clearSoft band so the
+  // bar's three yellow shades read as three distinct icons.
+  sunSoft: (typeof _wxSvgSunDim       === 'function') ? _wxSvgSunDim()       : '',
   // Closed — moon-shape. Used on the FTS bar for time-of-day ranges
   // before a selected venue opens or after it closes; complements the
   // sun glyph naturally (Shades brand: sun ↔ moon).
@@ -2309,7 +2312,8 @@ function _populateTimelineWeather(host, v, dateStr, minH, maxH) {
     if (cls === 'rain')     return 'rain';
     if (cls === 'overcast') return 'cloud';
     if (cls === 'partly')   return 'partly';
-    return 'sun'; // clear + clearSoft both → sun glyph
+    if (cls === 'clearSoft') return 'sunSoft';
+    return 'sun'; // clear
   };
   // Shade lookup — outside any sun window means the seating is in shadow
   // and we want the shade glyph instead of the weather one.

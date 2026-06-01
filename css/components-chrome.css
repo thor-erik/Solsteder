@@ -1437,7 +1437,10 @@
        between the drag handle and the panel top edge. The compact
        popup overlaps the handle pill area (z-index 10 keeps it on
        top); expanded popup overshoots above the panel as before. */
-    margin: var(--space-xl) var(--space-lg) var(--space-md);
+    /* PR B item #7 — bottom margin bumped from --space-md (16px) to
+       --space-lg (24px) so the FTS bar breathes off the venue-list cards
+       below. Single-token tier change keeps it on the spacing ladder. */
+    margin: var(--space-xl) var(--space-lg) var(--space-lg);
     height: 40px;
     align-items: center;
     gap: var(--space-md);

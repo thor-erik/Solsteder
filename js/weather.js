@@ -242,8 +242,17 @@ function rainIconSvg() { return _wxSvgRain(); }
 function _wxSvgSun() {
   return _wxSvg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>');
 }
-// mostly-sunny + partly both read as cloud-sun
-function _wxSvgSunSmallCloud() { return _wxSvgSunCloud(); }
+// PR B item #8 — softer-sun glyph for the clearSoft tier (sunBlock in
+// [0.20, 0.50)). Lucide "sun-dim" — circle + dot-rays — reads as a
+// quieter sun next to the full-rayed _wxSvgSun. Bridges the FTS bar's
+// three yellow shades (clear / clearSoft / partly) with three distinct
+// glyphs (sun / sunSoft / partly-cloud) instead of conflating clearSoft
+// and clear under one icon.
+function _wxSvgSunDim() {
+  return _wxSvg('<circle cx="12" cy="12" r="4"/><path d="M12 4h.01"/><path d="M20 12h.01"/><path d="M12 20h.01"/><path d="M4 12h.01"/><path d="M17.657 6.343h.01"/><path d="M17.657 17.657h.01"/><path d="M6.343 17.657h.01"/><path d="M6.343 6.343h.01"/>');
+}
+// Back-compat — was an alias for SunCloud, now points to the new dim sun.
+function _wxSvgSunSmallCloud() { return _wxSvgSunDim(); }
 function _wxSvgSunCloud() {
   return _wxSvg('<path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/>');
 }
