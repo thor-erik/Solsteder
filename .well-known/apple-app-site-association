@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["KG3KK5HF42.app.findshades"],
+        "components": [
+          { "/": "/steder/*", "comment": "Venue SEO pages open the app on the venue" }
+        ]
+      }
+    ]
+  }
+}
