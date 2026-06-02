@@ -652,244 +652,18 @@ function _evalCheckinPrompt() {
   };
 }
 
-/**
- * Notify the inviter when an invitee accepts. Walks own plans, finds invitees
- * whose status flipped to 'accepted' since last seen, and queues a P1 toast.
- * Persisted dedupe in localStorage keyed `${plan_id}:${user_id}`.
- */
-function _evalInviteAccepted() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof _plans === 'undefined' || !_plans.length) return null;
-
-  // Dedup via the server-side bell row's read_at, NOT a localStorage
-  // seen-cache. The corresponding row in public.notifications has the
-  // same id as the toast (notif_id = 'social_invite_accepted_<plan_id>').
-  // The sql/030 trigger does ON CONFLICT DO UPDATE that RESETS read_at
-  // to NULL on each new accept, so the toast naturally re-fires when
-  // another invitee accepts the same plan. Prior versions used a
-  // per-(plan, invitee) localStorage map that persisted forever and
-  // could silently suppress legitimate fresh toasts when entries
-  // carried over from earlier test cycles (the bug behind "no toast
-  // when X accepts" even though the bell row was unread).
-  for (const p of _plans) {
-    if (p.creator_id !== _currentUser.id) continue;
-    if (!Array.isArray(p._invitees)) continue;
-    const acceptedAll = p._invitees.filter(i => i.status === 'accepted');
-    if (!acceptedAll.length) continue;
-
-    const notifId = 'social_invite_accepted_' + p.id;
-    if (typeof _bellHistory !== 'undefined' && _bellHistory && _bellHistory.get) {
-      const bellEntry = _bellHistory.get(notifId);
-      if (bellEntry && bellEntry.readAt) continue;
-    }
-
-    const venue = (typeof VENUES !== 'undefined')
-      ? VENUES.find(x => String(x.id) === String(p.venue_id)) : null;
-    if (!venue) continue;
-
-    // Head = the latest accept (last in DB-load order, freshest accept
-    // appears last in the realtime → loadPlans round-trip).
-    const head = acceptedAll[acceptedAll.length - 1];
-    const u = head.user || {};
-    const headName = (u.name || u.email || '').split(' ')[0].split('@')[0] || '…';
-    const extra = Math.max(0, acceptedAll.length - 1);
-
-    // Off-plan-time arrival → include the time in the toast (single-
-    // accept variant only). Skips for the aggregated multi variant
-    // since arrival times would conflict.
-    let arrivalTime = null;
-    if (extra === 0 && head.arrival_time && p.planned_at) {
-      const planMs = new Date(p.planned_at).getTime();
-      const arrMs = new Date(head.arrival_time).getTime();
-      if (Math.abs(arrMs - planMs) >= 5 * 60 * 1000) {
-        const d = new Date(arrMs);
-        arrivalTime = (typeof formatHour === 'function')
-          ? formatHour(d.getHours() + d.getMinutes() / 60)
-          : `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-      }
-    }
-    const bodyKey = extra > 0
-      ? 'notif_invite_accepted_multi'
-      : (arrivalTime ? 'notif_invite_accepted_at' : 'notif_invite_accepted_body');
-
-    return {
-      id: notifId,
-      // P0 — event-driven, interrupts ambient P1 toasts (friends-at-venue,
-      // friend-planning). An invite-accept is a response to an action the
-      // host took; surfacing it behind a "look, friends are at X" ambient
-      // toast hid it for users testing both flows simultaneously.
-      // urgent: bypass time-based rate limits (grace period + early-window
-      // cap) because the matching push has already grabbed the user's
-      // attention — the in-app toast should surface live, not "after a
-      // little while" once the early-window cooldown clears.
-      priority: 0, category: 'social', urgent: true,
-      icon: '☀️',
-      bodyKey,
-      bodyVars: { name: headName, venue: venue.name, extra, time: arrivalTime || '' },
-      actionKey: 'notif_open_plan',
-      action: () => {
-        if (typeof selectVenue === 'function') {
-          selectVenue(Number(p.venue_id), true);
-        }
-      },
-      bellAction: () => {
-        if (typeof openPlanPreview === 'function') {
-          openPlanPreview({ venueId: p.venue_id, plannedAt: p.planned_at });
-        } else if (typeof selectVenue === 'function') {
-          selectVenue(Number(p.venue_id), true);
-        }
-      },
-      nav: { kind: 'plan', venueId: p.venue_id, plannedAt: p.planned_at },
-      ttl: 600000, dedupe: true,
-    };
-  }
-  return null;
-}
-
-/**
- * Inviter-side: an invitee declined one of MY plans. Fires for every
- * decliner — friend or not. Names come from the profiles join when the
- * decliner is authenticated; anon decline rows (no joined profile) fall
- * back to the 'attendee_someone' localized string. Dedupes via the same
- * 'seen_invite_responses' map _evalInviteAccepted uses.
- */
-function _evalInviteDeclined() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof _plans === 'undefined' || !_plans.length) return null;
-
-  // Dedup via the bell row's read_at — same pattern as _evalInviteAccepted
-  // above. The localStorage seen-cache used to handle this; it could
-  // suppress fresh toasts when entries persisted across sessions.
-  for (const p of _plans) {
-    if (p.creator_id !== _currentUser.id) continue;
-    if (!Array.isArray(p._invitees)) continue;
-    const declinedAll = p._invitees.filter(i => i.status === 'declined');
-    if (!declinedAll.length) continue;
-
-    const notifId = 'social_invite_declined_' + p.id;
-    if (typeof _bellHistory !== 'undefined' && _bellHistory && _bellHistory.get) {
-      const bellEntry = _bellHistory.get(notifId);
-      if (bellEntry && bellEntry.readAt) continue;
-    }
-
-    const venue = (typeof VENUES !== 'undefined')
-      ? VENUES.find(x => String(x.id) === String(p.venue_id)) : null;
-    if (!venue) continue;
-
-    // Head = newest decline. Prefer a NAMED decliner over an anonymous
-    // one — anon rows lack a profile, so an "anon" head reads as
-    // "Noen +N har avslått" which is less informative than
-    // "Anna +N har avslått" even when Anna isn't the very newest.
-    const namedHead = [...declinedAll].reverse().find(d => d.user && (d.user.name || d.user.email));
-    const head = namedHead || declinedAll[declinedAll.length - 1];
-    const u = head.user || {};
-    const headName = (u.name || u.email || '').split(' ')[0].split('@')[0]
-      || (declinedAll.length === 1 ? 'Person' : t('attendee_someone'));
-    const extra = Math.max(0, declinedAll.length - 1);
-    const bodyKey = extra > 0 ? 'notif_invite_declined_multi' : 'notif_invite_declined_body';
-
-    return {
-      id: notifId,
-      // P0 + urgent — see _evalInviteAccepted above for rationale.
-      priority: 0, category: 'social', urgent: true,
-      icon: '🙅',
-      bodyKey,
-      bodyVars: { name: headName, venue: venue.name, extra },
-      actionKey: 'notif_open_plan',
-      action: () => {
-        if (typeof selectVenue === 'function') {
-          selectVenue(Number(p.venue_id), true);
-        }
-      },
-      bellAction: () => {
-        if (typeof openPlanPreview === 'function') {
-          openPlanPreview({ venueId: p.venue_id, plannedAt: p.planned_at });
-        } else if (typeof selectVenue === 'function') {
-          selectVenue(Number(p.venue_id), true);
-        }
-      },
-      nav: { kind: 'plan', venueId: p.venue_id, plannedAt: p.planned_at },
-      ttl: 600000, dedupe: true,
-    };
-  }
-  return null;
-}
-
-/**
- * Receiver-side: someone invited ME to a plan. Surfaces a P1 social
- * toast for the freshest pending invite the user hasn't yet read in the
- * bell. Toast id matches the server bell-row id (sql/030
- * notif_on_plan_invite_created writes 'plan_invite_pending:<invite_id>'),
- * so bell-row read state naturally dedupes the toast across sessions.
- * Once the user opens the bell, the row's read_at gets stamped and the
- * toast stops firing for that invite.
- */
-function _evalIncomingPlanInvite() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof _planInvites === 'undefined' || !Array.isArray(_planInvites) || !_planInvites.length) return null;
-
-  // Walk newest-first so the freshest unread invite wins the toast slot.
-  // _planInvites is filtered to FUTURE plans only, so past invites can't
-  // surface a "you were invited" toast for an event that's already happened.
-  for (let i = _planInvites.length - 1; i >= 0; i--) {
-    const inv = _planInvites[i];
-    if (!inv || inv.status !== 'pending' || !inv.plan) continue;
-    if (inv.plan.cancelled_at) continue;
-
-    const notifId = 'plan_invite_pending:' + inv.id;
-    if (typeof _bellHistory !== 'undefined' && _bellHistory && _bellHistory.get) {
-      const bellEntry = _bellHistory.get(notifId);
-      if (bellEntry && bellEntry.readAt) continue;
-    }
-
-    const creator = inv.plan.creator || {};
-    const senderName = (creator.name || creator.email || '').split(' ')[0].split('@')[0] || '…';
-
-    let venueName = '';
-    if (typeof VENUES !== 'undefined' && Array.isArray(VENUES) && inv.plan.venue_id) {
-      const v = VENUES.find(x => String(x.id) === String(inv.plan.venue_id));
-      venueName = (v && v.name) || inv.plan.venue_name || '';
-    } else {
-      venueName = inv.plan.venue_name || '';
-    }
-    if (!venueName) continue;
-
-    return {
-      id: notifId,
-      // P0 + urgent — event-driven, push counterpart, bypass rate limits.
-      priority: 0, category: 'social', urgent: true,
-      icon: '📅',
-      bodyKey: 'notif_invite_received_body',
-      bodyVars: { name: senderName, venue: venueName },
-      actionKey: 'notif_open_plan',
-      action: () => {
-        if (typeof openPlanPreview === 'function') {
-          openPlanPreview({
-            venueId:     inv.plan.venue_id,
-            plannedAt:   inv.plan.planned_at,
-            inviteId:    inv.id,
-            inviterName: senderName,
-            mode:        'invite',
-          });
-        }
-      },
-      bellAction: () => {
-        if (typeof openPlanPreview === 'function') {
-          openPlanPreview({
-            venueId:     inv.plan.venue_id,
-            plannedAt:   inv.plan.planned_at,
-            inviteId:    inv.id,
-            inviterName: senderName,
-            mode:        'invite',
-          });
-        }
-      },
-      nav: { kind: 'plan', venueId: inv.plan.venue_id, plannedAt: inv.plan.planned_at },
-      ttl: 600000, dedupe: true,
-    };
-  }
-  return null;
-}
+// _evalInviteAccepted, _evalInviteDeclined, _evalIncomingPlanInvite removed.
+// All three have server-side bell-row twins from sql/048: the cron writes
+// 'social_invite_accepted_<plan_id>', 'social_invite_declined_<plan_id>',
+// and 'plan_invite_pending:<invite_id>' rows whenever the underlying
+// plan_invites trigger fires. Realtime delivers them; auth.js
+// _bellRowToToast surfaces the toast (gated by the prefixes above) using
+// the lead.bodyKey + lead.bodyVars hybrid payload so the body renders in
+// the user's locale.
+//
+// _bellSubscribeRealtime also listens for UPDATE now, so sql/048's
+// ON CONFLICT DO UPDATE (read_at reset to NULL) re-fires the toast when
+// another invitee responds — no more 60s eval poll needed.
 
 /**
  * Receiver-side: someone sent ME a friend request. Surfaces a P1 social
@@ -988,9 +762,11 @@ const _notifEvaluators = [
   // ambient observational toasts; signal already lives on the arc, date
   // strip, and FTS row.
   // P0 Social — event-driven, take precedence over ambient observations
-  _evalIncomingPlanInvite,
-  _evalInviteAccepted,
-  _evalInviteDeclined,
+  // _evalIncomingPlanInvite removed — server bell row (sql/048) → Realtime
+  //   → _bellRowToToast (auth.js) drives the in-app toast.
+  // _evalInviteAccepted removed — same path, sql/048's ON CONFLICT DO UPDATE
+  //   refreshes the row and the UPDATE listener re-fires the toast.
+  // _evalInviteDeclined removed — same path.
   _evalIncomingFriendRequest,
   // P1 Social — ambient observations (friends nearby, friend's plan)
   _evalFriendsAtVenue,

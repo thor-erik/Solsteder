@@ -1642,24 +1642,29 @@ function _renderPlannedWhen(plannedAt) {
   return `${day} ${sep} ${time}`;
 }
 
-/** Convert a freshly-INSERTed notifications row into a toast notif object,
- *  or null if this row shouldn't ambient-toast. Gated by notif_id prefix —
- *  only events the user explicitly opted into (plan reminders, sun alerts)
- *  surface as in-app pop-ups; everything else goes silently to the bell
- *  inbox. Action + actionKey + icon vary by event type. */
+/** Convert an INSERTed (or freshly-unread-after-UPDATE) notifications row
+ *  into a toast notif object, or null if this row shouldn't ambient-toast.
+ *  Gated by notif_id prefix. Action + actionKey + icon + category vary by
+ *  event type. */
 function _bellRowToToast(row) {
   if (!row || !row.notif_id) return null;
   const id = row.notif_id;
 
-  const isPlanReminder = id.startsWith('plan_reminder_creator:')
-                      || id.startsWith('plan_reminder_invitee:');
-  const isSunAlert     = id.startsWith('sun_alert:');
-  if (!isPlanReminder && !isSunAlert) return null;
+  const isPlanReminder    = id.startsWith('plan_reminder_creator:')
+                         || id.startsWith('plan_reminder_invitee:');
+  const isSunAlert        = id.startsWith('sun_alert:');
+  const isPlanInvite      = id.startsWith('plan_invite_pending:');
+  const isInviteAccepted  = id.startsWith('social_invite_accepted_');
+  const isInviteDeclined  = id.startsWith('social_invite_declined_');
+  if (!isPlanReminder && !isSunAlert && !isPlanInvite && !isInviteAccepted && !isInviteDeclined) return null;
 
   const nav = row.nav || {};
   const venueId = nav.venueId;
+  const lead = row.lead || {};
+  const senderName = lead.name || '';
 
-  let icon, actionKey, action;
+  let icon, actionKey, action, category = 'alert', priority = 0, urgent = false;
+
   if (isSunAlert) {
     icon = '☀️';
     actionKey = 'notif_go_to_venue';
@@ -1668,7 +1673,42 @@ function _bellRowToToast(row) {
         selectVenue(Number(venueId), true);
       }
     };
+  } else if (isPlanInvite) {
+    icon = '📅';
+    category = 'social';
+    urgent = true;  // event-driven, push counterpart, bypass rate limits
+    actionKey = 'notif_open_plan';
+    // notif_id format is 'plan_invite_pending:<invite_id>' — extract the
+    // invite_id so openPlanPreview can land in 'invite' mode with the
+    // Accept/Decline buttons primed.
+    const inviteId = id.substring('plan_invite_pending:'.length);
+    action = () => {
+      if (typeof openPlanPreview === 'function') {
+        openPlanPreview({
+          venueId,
+          plannedAt:   nav.plannedAt,
+          inviteId,
+          inviterName: senderName,
+          mode:        'invite',
+        });
+      } else if (typeof selectVenue === 'function' && venueId != null) {
+        selectVenue(Number(venueId), true);
+      }
+    };
+  } else if (isInviteAccepted || isInviteDeclined) {
+    icon = isInviteAccepted ? '☀️' : '☁️';
+    category = 'social';
+    urgent = true;
+    actionKey = 'notif_open_plan';
+    action = () => {
+      if (typeof openPlanPreview === 'function' && nav.kind === 'plan') {
+        openPlanPreview({ venueId, plannedAt: nav.plannedAt });
+      } else if (typeof selectVenue === 'function' && venueId != null) {
+        selectVenue(Number(venueId), true);
+      }
+    };
   } else {
+    // Plan reminder
     icon = (row.lead && row.lead.icon) || '⏰';
     actionKey = 'notif_open_plan';
     action = () => {
@@ -1689,8 +1729,9 @@ function _bellRowToToast(row) {
 
   return {
     id,                       // matches the bell row id → _bellRecord skips
-    priority: 0,              // P0: user explicitly committed
-    category: 'alert',
+    priority,
+    category,
+    urgent,
     icon,
     _rawText: plainBody,
     actionKey,
@@ -1705,6 +1746,36 @@ function _bellRowToToast(row) {
 function _bellSubscribeRealtime() {
   if (!_currentUser || typeof _supabase === 'undefined') return;
   if (_bellChannel) return;  // already subscribed
+  // Shared handler — INSERT and UPDATE both apply. UPDATE arrives when
+  // sql/048's notif_on_plan_invite_response does ON CONFLICT DO UPDATE
+  // (read_at reset to NULL on each new accept/decline). For those, we
+  // treat the row as freshly unread and re-toast just like an INSERT.
+  const onBellChange = (payload) => {
+    const row = payload.new;
+    if (!row) return;
+    _bellHistory.set(row.notif_id, {
+      id:       row.notif_id,
+      category: row.category,
+      ts:       new Date(row.created_at).getTime(),
+      body:     row.body,
+      lead:     _bellLeadFromDescriptor(row.lead),
+      leadDescriptor: row.lead,
+      nav:      row.nav,
+      readAt:   row.read_at,
+      // No action() for server-delivered rows — fall through to nav.
+    });
+    if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
+    const dropdown = document.getElementById('bell-dropdown');
+    if (dropdown && dropdown.classList.contains('open')) {
+      _renderBellDropdown();
+    }
+    // Surface server-driven events as ambient toasts. Gate on read_at
+    // being NULL so UPDATEs that DON'T reset to unread (e.g. someone
+    // explicitly marked-as-read elsewhere) don't re-fire the toast.
+    if (row.read_at) return;
+    const toast = _bellRowToToast(row);
+    if (toast && typeof _notifEnqueue === 'function') _notifEnqueue(toast);
+  };
   _bellChannel = _supabase
     .channel(`notifications:${_currentUser.id}`)
     .on('postgres_changes', {
@@ -1712,30 +1783,13 @@ function _bellSubscribeRealtime() {
       schema: 'public',
       table:  'notifications',
       filter: `user_id=eq.${_currentUser.id}`,
-    }, (payload) => {
-      const row = payload.new;
-      if (!row) return;
-      _bellHistory.set(row.notif_id, {
-        id:       row.notif_id,
-        category: row.category,
-        ts:       new Date(row.created_at).getTime(),
-        body:     row.body,
-        lead:     _bellLeadFromDescriptor(row.lead),
-        leadDescriptor: row.lead,
-        nav:      row.nav,
-        readAt:   row.read_at,
-        // No action() for server-delivered rows — fall through to nav.
-      });
-      if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
-      const dropdown = document.getElementById('bell-dropdown');
-      if (dropdown && dropdown.classList.contains('open')) {
-        _renderBellDropdown();
-      }
-      // Surface server-driven alert events as ambient toasts. Gated by
-      // notif_id prefix inside _bellRowToToast.
-      const toast = _bellRowToToast(row);
-      if (toast && typeof _notifEnqueue === 'function') _notifEnqueue(toast);
-    })
+    }, onBellChange)
+    .on('postgres_changes', {
+      event:  'UPDATE',
+      schema: 'public',
+      table:  'notifications',
+      filter: `user_id=eq.${_currentUser.id}`,
+    }, onBellChange)
     .subscribe();
 }
 
