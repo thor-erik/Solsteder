@@ -1,0 +1,42 @@
+name: Generate venue SEO pages
+
+# Regenerates the static per-venue SEO pages (steder/) + sitemap.xml.
+# Cadence is intentionally LOW (per the evergreen "typical sun" framing):
+#   - whenever venue data or the generator changes (push to master)
+#   - monthly, to refresh the typical sun windows as the season drifts
+#   - manual dispatch
+# NOT nightly — the pages are framed as typical, not date-stamped, so they
+# stay SEO-stable and don't churn 542 files every night.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'data/venues.json'
+      - 'scripts/generate-venue-pages.mjs'
+  schedule:
+    - cron: '0 4 1 * *'   # 04:00 UTC on the 1st of each month
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generate venue pages + sitemap
+        run: node scripts/generate-venue-pages.mjs
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add steder sitemap.xml
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: regenerate venue SEO pages [skip ci]"
+          git push
