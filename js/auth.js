@@ -1387,11 +1387,6 @@ function _bellLeadFromDescriptor(d) {
   return _bellSysLead('bulb');
 }
 
-/** Choose lead element from a notification (capture-time entry point). */
-function _bellLeadForNotif(notif) {
-  return _bellLeadFromDescriptor(_bellLeadDescriptor(notif));
-}
-
 /** Serializable click descriptor. Used after page reload when the
  *  original action function is no longer in memory. Each notification
  *  rule can set its own `notif.nav` explicitly; otherwise we best-effort
@@ -2377,26 +2372,6 @@ async function _bellQuickCancel(event, planId) {
     await cancelPlan(planId);
     if (typeof _renderBellDropdown === 'function') _renderBellDropdown();
   }
-}
-
-/** Bell row → venue detail. Looks up the venue by name in the global
- *  VENUES array and routes through the existing selectVenue handler. */
-function _bellOpenVenueByName(name) {
-  _closeBellDropdown();
-  if (!name || typeof VENUES === 'undefined' || !Array.isArray(VENUES)) return;
-  // Decode HTML entities the sample HTML uses (Hummus &amp; Wine → ...)
-  const decoded = name.replace(/&amp;/g, '&').replace(/&#39;/g, "'");
-  const target = decoded.trim().toLowerCase();
-  const v = VENUES.find(v => v.name && v.name.toLowerCase() === target);
-  if (v && typeof selectVenue === 'function') {
-    selectVenue(Number(v.id), true);
-  }
-}
-
-/** Bell row → friends list. */
-function _bellOpenFriendsModal() {
-  _closeBellDropdown();
-  if (typeof openFriendsModal === 'function') openFriendsModal();
 }
 
 function toggleProfilePanel(e) {
@@ -3639,21 +3614,18 @@ function _subscribeToProfileRole() {
 // ── Periodic social poll ─────────────────────────────────────────────────────
 //
 // Without realtime subscriptions, the inviter has no way to learn that a
-// recipient accepted/declined until they reload or re-auth. Poll plans
-// and friends every 60 s while the app is in the foreground so the
-// '{name} said yes to {venue}' toast, friends pin, and pending-request
-// dot all update within a minute of the receiver's action. Foreground
-// gate via document.visibilityState avoids churn while the user is in
-// another app.
+// Realtime channels are the primary delivery path now (plan_invites,
+// friendships, checkins, notifications INSERT+UPDATE, profile-role).
+// The poll is downgraded to a 5-min safety net for tabs that silently
+// dropped a websocket and never trigger visibilitychange to resubscribe
+// (e.g. long-running foreground sessions on flaky networks). It used to
+// be 60 s when Realtime had less coverage — 5 min cuts the poll-driven
+// load to Supabase by ~5x with effectively zero UX impact.
 let _socialPollTimer = null;
-const _SOCIAL_POLL_MS = 60000;
+const _SOCIAL_POLL_MS = 5 * 60 * 1000;
 function _socialPollTick() {
   if (!_currentUser) return;
   if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-  // Use Promise.all so the eval runs once after both data sets are fresh,
-  // not twice with stale state in between. Realtime is the primary delivery
-  // path for live toasts; this poll is the 60s fallback for tabs that
-  // dropped the websocket — same eval-after-load contract.
   Promise.all([
     loadPlans().catch(() => {}),
     loadFriends().catch(() => {}),

@@ -519,11 +519,7 @@ const _STRINGS = {
     dp_report_problem_alert: 'We are working on a way to report problems.',
     // Notifications – P0 Weather
     notif_no_sun_body:           'No more sun in Oslo today. Try another day?',
-    notif_open_calendar:         'Open calendar',
-    notif_set_time:              'Jump to {hour}',
     notif_best_sun_body:         'Most sun today is between {from} and {to}',
-    notif_see_tomorrow:          'See tomorrow',
-    notif_auto_advance_body:     'Sun has set for today. Showing you tomorrow instead',
     notif_explore_day_switch_body: 'Now showing {day}',
     day_today:                   'today',
     day_tomorrow:                'tomorrow',
@@ -531,7 +527,6 @@ const _STRINGS = {
     pp_past_eyebrow:             'Past · {date}',
     // Notifications – P0 Alerts (user-opted-in)
     notif_sun_alert_body:        'Sun on {venue} in {minutes} min',
-    notif_plan_reminder_body:    'Your plan at {venue} starts in {minutes} min',
     // sql/044 hybrid payload — server bell rows carry lead.bodyKey pointing here
     notif_plan_reminder_creator_body:           'Your plan at {venue} starts in {minutes} min.',
     notif_plan_reminder_invitee_accepted_body:  "You're heading to {venue} in {minutes} min.",
@@ -549,15 +544,7 @@ const _STRINGS = {
     notif_go_to_venue:           'Go to venue',
     notif_checkin_body:          'Are you at {venue}? Check in here',
     notif_checkin_action:        'Check in',
-    notif_invite_accepted_body:  '{name} said yes to {venue}',
-    notif_invite_accepted_at:    '{name} said yes to {venue}, coming at {time}',
-    notif_invite_accepted_multi: '{name} +{extra} said yes to {venue}',
-    notif_invite_declined_body:  '{name} can’t make it to {venue}',
-    notif_invite_declined_multi: '{name} +{extra} can’t make it to {venue}',
-    notif_invite_received_body:  '{name} invited you to {venue}',
     notif_friend_request_body:   '{name} wants to be your friend',
-    notif_friend_request_multi:  '{name} and {extra} more want to be your friend',
-    notif_open_friends:          'View',
     friends_pill_going:          '{count} going',
     friends_pill_declined:       '{count} declined',
     attendee_someone:            'Someone',
@@ -592,12 +579,7 @@ const _STRINGS = {
     your_plans_label:            'Your plans',
     no_invitations_yet:          'No invitations yet',
     // Notifications – P2 Suggestions
-    notif_lunch_body:            'Lunch in the sun? Top terraces have sun right now',
-    notif_sheltered_body:        'Pretty windy today. Look for sheltered places',
     // Notifications – P2 Login
-    notif_login_weather_body:    'Log in to get weather alerts for your favourite spots',
-    notif_login_friends_body:    'Log in to see where your friends are',
-    notif_login_action:          'Log in',
     // Login screen — hero + benefits carousel
     login_hero_title:   'Sign in to get more out of Shades',
     login_slide1_title: 'Save favourites',
@@ -615,8 +597,6 @@ const _STRINGS = {
     notif_cat_weather:           'Weather & sun alerts',
     notif_cat_social:            'Social',
     notif_cat_suggestion:        'Smart suggestions',
-    notif_push_coming_soon:      'Push notifications',
-    notif_coming_soon:           'Coming soon',
     // Settings redesign
     settings_section_account:    'Account',
     settings_section_display:    'Display',
@@ -1131,11 +1111,7 @@ const _STRINGS = {
     dp_report_problem_alert: 'Vi jobber med en måte å melde fra om feil på.',
     // Notifications – P0 Weather
     notif_no_sun_body:           'Ikke mer sol i Oslo i dag. Prøv en annen dag?',
-    notif_open_calendar:         'Åpne kalender',
-    notif_set_time:              'Hopp til {hour}',
     notif_best_sun_body:         'Mest sol i dag er mellom {from} og {to}',
-    notif_see_tomorrow:          'Se i morgen',
-    notif_auto_advance_body:     'Solen har gått ned. Viser deg i morgen i stedet',
     notif_explore_day_switch_body: 'Viser {day} nå',
     day_today:                   'i dag',
     day_tomorrow:                'i morgen',
@@ -1143,7 +1119,6 @@ const _STRINGS = {
     pp_past_eyebrow:             'Tidligere · {date}',
     // Notifications – P0 Alerts (user-opted-in)
     notif_sun_alert_body:        'Sol på {venue} om {minutes} min',
-    notif_plan_reminder_body:    'Planen din på {venue} starter om {minutes} min',
     // sql/044 hybrid payload — server bell rows carry lead.bodyKey pointing here
     notif_plan_reminder_creator_body:           'Planen din på {venue} starter om {minutes} min.',
     notif_plan_reminder_invitee_accepted_body:  'Du skal til {venue} om {minutes} min.',
@@ -1161,15 +1136,7 @@ const _STRINGS = {
     notif_go_to_venue:           'Gå til stedet',
     notif_checkin_body:          'Er du på {venue}? Sjekk inn her',
     notif_checkin_action:        'Sjekk inn',
-    notif_invite_accepted_body:  '{name} sa ja til {venue}',
-    notif_invite_accepted_at:    '{name} sa ja til {venue}, kommer kl. {time}',
-    notif_invite_accepted_multi: '{name} +{extra} sa ja til {venue}',
-    notif_invite_declined_body:  '{name} kan ikke til {venue}',
-    notif_invite_declined_multi: '{name} +{extra} kan ikke til {venue}',
-    notif_invite_received_body:  '{name} har invitert deg til {venue}',
     notif_friend_request_body:   '{name} vil bli venn med deg',
-    notif_friend_request_multi:  '{name} og {extra} til vil bli venn med deg',
-    notif_open_friends:          'Se',
     friends_pill_going:          '{count} kommer',
     friends_pill_declined:       '{count} avslo',
     attendee_someone:            'Noen',
@@ -1204,12 +1171,7 @@ const _STRINGS = {
     your_plans_label:            'Dine planer',
     no_invitations_yet:          'Ingen invitasjoner ennå',
     // Notifications – P2 Suggestions
-    notif_lunch_body:            'Lunsj i solen? Toppterrassene har sol akkurat nå',
-    notif_sheltered_body:        'Ganske mye vind i dag. Se etter steder med ly',
     // Notifications – P2 Login
-    notif_login_weather_body:    'Logg inn for å få værvarsler for favorittstedene dine',
-    notif_login_friends_body:    'Logg inn for å se hvor vennene dine er',
-    notif_login_action:          'Logg inn',
     // Login screen — hero + benefits carousel
     login_hero_title:   'Logg inn for å få mer ut av Shades',
     login_slide1_title: 'Lagre favorittsteder',
@@ -1227,8 +1189,6 @@ const _STRINGS = {
     notif_cat_weather:           'Vær- og solvarsler',
     notif_cat_social:            'Sosialt',
     notif_cat_suggestion:        'Smarte forslag',
-    notif_push_coming_soon:      'Push-varsler',
-    notif_coming_soon:           'Kommer snart',
     // Settings redesign
     settings_section_account:    'Konto',
     settings_section_display:    'Visning',
@@ -1643,11 +1603,7 @@ const _STRINGS = {
     preview_plan:        'Förhandsgranska',
     // Notifications – P0 Weather
     notif_no_sun_body:           'Inte mer sol i Oslo idag. Prova en annan dag?',
-    notif_open_calendar:         'Öppna kalender',
-    notif_set_time:              'Hoppa till {hour}',
     notif_best_sun_body:         'Mest sol idag är mellan {from} och {to}',
-    notif_see_tomorrow:          'Se imorgon',
-    notif_auto_advance_body:     'Solen har gått ner. Visar dig imorgon istället',
     notif_explore_day_switch_body: 'Visar {day} nu',
     day_today:                   'idag',
     day_tomorrow:                'imorgon',
@@ -1655,7 +1611,6 @@ const _STRINGS = {
     pp_past_eyebrow:             'Tidigare · {date}',
     // Notifications – P0 Alerts (user-opted-in)
     notif_sun_alert_body:        'Sol på {venue} om {minutes} min',
-    notif_plan_reminder_body:    'Din plan på {venue} börjar om {minutes} min',
     // sql/044 hybrid payload — server bell rows carry lead.bodyKey pointing here
     notif_plan_reminder_creator_body:           'Din plan på {venue} börjar om {minutes} min.',
     notif_plan_reminder_invitee_accepted_body:  'Du ska till {venue} om {minutes} min.',
@@ -1673,21 +1628,13 @@ const _STRINGS = {
     notif_go_to_venue:           'Gå till stället',
     notif_checkin_body:          'Är du på {venue}? Checka in här',
     notif_checkin_action:        'Checka in',
-    notif_invite_accepted_body:  '{name} sa ja till {venue}',
-    notif_invite_accepted_at:    '{name} sa ja till {venue}, kommer kl. {time}',
-    notif_invite_accepted_multi: '{name} +{extra} sa ja till {venue}',
     notif_open_plan:             'Se planen',
     arrival_at_label:            'Kommer kl.',
     invitations_label:           'Inbjudningar',
     your_plans_label:            'Dina planer',
     no_invitations_yet:          'Inga inbjudningar ännu',
     // Notifications – P2 Suggestions
-    notif_lunch_body:            'Lunch i solen? Topputeserveringarna har sol just nu',
-    notif_sheltered_body:        'Ganska blåsigt idag. Leta efter vindskyddade ställen',
     // Notifications – P2 Login
-    notif_login_weather_body:    'Logga in för att få vädervarningar för dina favoritställen',
-    notif_login_friends_body:    'Logga in för att se var dina vänner är',
-    notif_login_action:          'Logga in',
     // Login screen — hero + benefits carousel
     login_hero_title:   'Logga in för att få mer ut av Shades',
     login_slide1_title: 'Spara favoritställen',
@@ -1705,8 +1652,6 @@ const _STRINGS = {
     notif_cat_weather:           'Väder- och solvarningar',
     notif_cat_social:            'Socialt',
     notif_cat_suggestion:        'Smarta förslag',
-    notif_push_coming_soon:      'Push-aviseringar',
-    notif_coming_soon:           'Kommer snart',
     // Settings redesign
     settings_section_account:    'Konto',
     settings_section_display:    'Visning',
@@ -2117,11 +2062,7 @@ const _STRINGS = {
     preview_plan:        'Forhåndsvis',
     // Notifications – P0 Weather
     notif_no_sun_body:           'Ikke mere sol i Oslo i dag. Prøv en anden dag?',
-    notif_open_calendar:         'Åbn kalender',
-    notif_set_time:              'Hop til {hour}',
     notif_best_sun_body:         'Mest sol i dag er mellem {from} og {to}',
-    notif_see_tomorrow:          'Se i morgen',
-    notif_auto_advance_body:     'Solen er gået ned. Viser dig i morgen i stedet',
     notif_explore_day_switch_body: 'Viser {day} nu',
     day_today:                   'i dag',
     day_tomorrow:                'i morgen',
@@ -2129,7 +2070,6 @@ const _STRINGS = {
     pp_past_eyebrow:             'Tidligere · {date}',
     // Notifications – P0 Alerts (user-opted-in)
     notif_sun_alert_body:        'Sol på {venue} om {minutes} min',
-    notif_plan_reminder_body:    'Din plan på {venue} starter om {minutes} min',
     // sql/044 hybrid payload — server bell rows carry lead.bodyKey pointing here
     notif_plan_reminder_creator_body:           'Din plan på {venue} starter om {minutes} min.',
     notif_plan_reminder_invitee_accepted_body:  'Du skal til {venue} om {minutes} min.',
@@ -2147,21 +2087,13 @@ const _STRINGS = {
     notif_go_to_venue:           'Gå til stedet',
     notif_checkin_body:          'Er du på {venue}? Tjek ind her',
     notif_checkin_action:        'Tjek ind',
-    notif_invite_accepted_body:  '{name} sagde ja til {venue}',
-    notif_invite_accepted_at:    '{name} sagde ja til {venue}, kommer kl. {time}',
-    notif_invite_accepted_multi: '{name} +{extra} sagde ja til {venue}',
     notif_open_plan:             'Se planen',
     arrival_at_label:            'Kommer kl.',
     invitations_label:           'Invitationer',
     your_plans_label:            'Dine planer',
     no_invitations_yet:          'Ingen invitationer endnu',
     // Notifications – P2 Suggestions
-    notif_lunch_body:            'Frokost i solen? Topterrasserne har sol lige nu',
-    notif_sheltered_body:        'Ret blæsende i dag. Kig efter læfyldte steder',
     // Notifications – P2 Login
-    notif_login_weather_body:    'Log ind for at få vejrvarsler for dine favoritsteder',
-    notif_login_friends_body:    'Log ind for at se hvor dine venner er',
-    notif_login_action:          'Log ind',
     // Login screen — hero + benefits carousel
     login_hero_title:   'Log ind for at få mere ud af Shades',
     login_slide1_title: 'Gem favoritsteder',
@@ -2179,8 +2111,6 @@ const _STRINGS = {
     notif_cat_weather:           'Vejr- og soladvarsler',
     notif_cat_social:            'Socialt',
     notif_cat_suggestion:        'Smarte forslag',
-    notif_push_coming_soon:      'Push-notifikationer',
-    notif_coming_soon:           'Kommer snart',
     // Settings redesign
     settings_section_account:    'Konto',
     settings_section_display:    'Visning',

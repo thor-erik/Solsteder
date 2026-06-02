@@ -332,20 +332,6 @@ function _friendsHereChipLabel(checkins) {
 }
 
 /** "Anna er i solen her" / "Anna +2 venner i solen her" — friends card headline. */
-function _friendsInSunHeadline(checkins) {
-  const first = checkins[0]?.user;
-  const firstName = (first?.name || first?.email || '').split(' ')[0] || '';
-  const extra = checkins.length - 1;
-  if (typeof t === 'function') {
-    return extra > 0
-      ? t('friends_in_sun_here_plural', { name: firstName, n: extra })
-      : t('friends_in_sun_here', { name: firstName });
-  }
-  return extra > 0
-    ? `${firstName} +${extra} venner i solen her`
-    : `${firstName} er i solen her`;
-}
-
 /** True when this venue has a plan the user is invited to and hasn't answered.
  *  Drives the invite-CTA demotion below (one honey per screen). */
 function _venueHasPendingInvite(v) {
@@ -651,13 +637,6 @@ function _narDateLabel(dateStr) {
 
 // Keep the card's date label in sync with the global moment (the reparented
 // day-strip + FTS drive datePicker).
-function _narSyncStatus() {
-  const dEl = document.getElementById('nar-date');
-  if (!dEl) return;
-  const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : '';
-  dEl.textContent = _narDateLabel(dateStr);
-}
-
 function _openNarPanel(venueId) {
   // If share-mode is on, the date-chip tap means "go back to the picker" —
   // close share-mode so the pager slides back to compose page A. If the picker
@@ -1296,24 +1275,6 @@ function _handleFriendPromptAdd(inviterId, inviterName) {
   if (banner) banner.remove();
 }
 
-function _handleFriendPromptDismiss(inviterId) {
-  if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'dismissed' });
-  try {
-    const KEY = 'solsteder_dismissed_friend_prompts';
-    const dismissed = JSON.parse(localStorage.getItem(KEY) || '[]');
-    if (!dismissed.includes(inviterId)) dismissed.push(inviterId);
-    localStorage.setItem(KEY, JSON.stringify(dismissed));
-  } catch {}
-  if (typeof userStateAddDismissedPrompt === 'function') userStateAddDismissedPrompt(inviterId);
-  if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
-  const banner = document.getElementById('friend-prompt-banner');
-  if (banner) banner.remove();
-  // After friend-prompt clears, the share nudge (if pending) takes its slot.
-  if (typeof window !== 'undefined' && window._pendingShareNudge && typeof updateDetailPanel === 'function') {
-    updateDetailPanel();
-  }
-}
-
 /** Post-accept share nudge — Del videre action. Routing:
  *    - User has no friends saved, OR every friend has already
  *      accepted this plan → native share (just the link).
@@ -1394,13 +1355,6 @@ function _handleShareNudgeShare(venueId) {
       plannedAt: sn && sn.plannedAt,
     });
   }
-}
-
-function _handleShareNudgeDismiss() {
-  if (typeof _aTrack === 'function') _aTrack('share_nudge', { action: 'dismissed' });
-  if (typeof window !== 'undefined') window._pendingShareNudge = null;
-  const banner = document.getElementById('share-nudge-banner');
-  if (banner) banner.remove();
 }
 
 /** Format a Date as a UTC ICS timestamp (YYYYMMDDTHHMMSSZ). */
@@ -2005,13 +1959,6 @@ function _inviteWhenLabel(dateStr, hour) {
   const dayNum = d.getDate();
   const month = d.toLocaleDateString(locale, { month: 'short' }).replace(/\.$/, '');
   return t('share_when_explicit', { day: weekday, date: `${dayNum}. ${month}`, time: timeLabel });
-}
-
-/** Build the confirmation sentence for the invite. */
-function _fmtInviteConfirm(venueName, dateStr, hour) {
-  const dateLabel = _fmtInviteDate(dateStr);
-  const timeLabel = typeof formatHour === 'function' ? formatHour(hour) : `${Math.floor(hour)}:${String(Math.round((hour % 1) * 60)).padStart(2, '0')}`;
-  return t('invite_confirm', { venue: venueName, date: dateLabel, time: timeLabel });
 }
 
 /** Open the invite sheet — full-height takeover with venue card, chat-bubble
@@ -3090,20 +3037,6 @@ function _renderInviteAvatarCarousel(friends, hashColor, checkSvg, opts = {}) {
 /** Build the group-chip strip — "Nylige (n) | Alle (m)". Uses .chip-pill
  *  primitives. Nylige is hidden when no recent ids exist; "Alle" becomes
  *  the default-active chip. */
-function _renderInviteGroupChips(activeGroup, recentCount, totalCount) {
-  const chips = [];
-  if (recentCount > 0) {
-    chips.push({ id: 'recent', label: t('invite_group_recent'), count: recentCount });
-  }
-  chips.push({ id: 'all', label: t('invite_group_all'), count: totalCount });
-  const effectiveActive = (activeGroup === 'recent' && recentCount === 0) ? 'all' : activeGroup;
-  return chips.map(c => `
-    <button type="button" class="chip-pill${c.id === effectiveActive ? ' is-selected' : ''}" data-group="${c.id}" onclick="_dpinviteApplyGroupFilter('${c.id}')">
-      ${c.label}
-      <span class="count">${c.count}</span>
-    </button>`).join('');
-}
-
 /** Apply a group filter — toggle hidden on .dpinvite-avatar tiles and update
  *  the .is-selected state on the chip strip. Selection state (aria-checked)
  *  is preserved so a friend selected in "Alle" stays selected when filtered
@@ -3146,39 +3079,6 @@ function _recentInvitedFriendIds(friends) {
  *  invite context so it doesn't inherit the muddy --glass-card-bg meant for
  *  in-panel cards). Bright, high-contrast, pinned at the top of the screen
  *  while the sheet is open. */
-function _renderInviteTopCard(v, dateStr, fromHour) {
-  if (!v) return '';
-  const dayHours = (typeof getVenueHoursForDay === 'function')
-    ? getVenueHoursForDay(v, dateStr) : { open: 0, close: 24 };
-  const isOpen = (fromHour >= dayHours.open && fromHour <= dayHours.close);
-  const isOpeningSoon = (!isOpen && (dayHours.open - fromHour) > 0 && (dayHours.open - fromHour) <= 0.75);
-  const metaParts = [v.area, (typeof catLabel === 'function' ? catLabel(v) : null)].filter(Boolean);
-  const metaHtml = metaParts.map((p, i) =>
-    (i > 0 ? '<span class="itc-dot">·</span>' : '') + `<span>${p}</span>`
-  ).join('');
-  if (!isOpen && !isOpeningSoon) {
-    return `<div class="itc-row">
-      <div class="itc-left">
-        <div class="itc-name">${v.name}</div>
-        <div class="itc-meta">${metaHtml}</div>
-      </div>
-      <div class="itc-right itc-closed">${t('opens_at', { time: formatHour(dayHours.open) })}</div>
-    </div>`;
-  }
-  const state = (typeof venueState === 'function')
-    ? venueState(v, fromHour) : { mainText: '', subText: '', className: '' };
-  return `<div class="itc-row ${state.className || ''}">
-    <div class="itc-left">
-      <div class="itc-name">${v.name}</div>
-      <div class="itc-meta">${metaHtml}</div>
-    </div>
-    <div class="itc-right">
-      <div class="itc-main">${state.mainText || ''}</div>
-      <div class="itc-sub">${state.subText || ''}</div>
-    </div>
-  </div>`;
-}
-
 /** Reverse: detach FTS + popup from the invite slot back to body. */
 function _invFtsDetach() {
   const fts = document.getElementById('fts');
@@ -3242,33 +3142,6 @@ function _toggleInviteFriend(row) {
       try { window.triggerRepaint(); } catch (e) { /* ignore */ }
     }
   }
-}
-
-/** Select-all / clear toggle. Operates on visible (non-filtered) tiles only. */
-function _toggleAllInviteFriends() {
-  // Avatars live on the share page inside the single invite sheet.
-  const sheet = document.getElementById('invite-sheet');
-  if (!sheet) return;
-  const visibleRows = Array.from(sheet.querySelectorAll('.dpinvite-avatar')).filter(r => !r.hidden);
-  if (!visibleRows.length) return;
-  const anyUnchecked = visibleRows.some(r => r.getAttribute('aria-checked') !== 'true');
-  visibleRows.forEach(r => r.setAttribute('aria-checked', anyUnchecked ? 'true' : 'false'));
-  _refreshInvitePrimaryCTA();
-}
-
-/** Filter the friends list by a substring of name/email. Legacy — the new
- *  design uses group chips instead of a search input, so this is unused but
- *  kept for safety in case any callers were missed. */
-function _filterInviteFriends(query) {
-  const sheet = document.getElementById('invite-sheet');
-  if (!sheet) return;
-  const q = (query || '').trim().toLowerCase();
-  const rows = sheet.querySelectorAll('.dpinvite-avatar');
-  rows.forEach(r => {
-    const name = (r.getAttribute('data-friend-name') || '').toLowerCase();
-    r.hidden = q && !name.includes(q);
-  });
-  _refreshInvitePrimaryCTA();
 }
 
 /** Dispatch the morphing primary button to the right action based on its

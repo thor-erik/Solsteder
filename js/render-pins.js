@@ -818,36 +818,6 @@ try {
   _mq.addEventListener('change', (e) => { _pulseReduceMotion = e.matches; });
 } catch {}
 
-function _drawPulseRings(ctx, modBounds, now, id) {
-  if (_pulseReduceMotion) return;
-  let start = _pulseStart.get(id);
-  if (start === undefined) { start = now; _pulseStart.set(id, start); }
-  const cx = modBounds.x + modBounds.w / 2;
-  const cy = modBounds.y + modBounds.h / 2;
-  const ringCol = TOKENS.accent || '#F5C25E';
-  for (let r = 0; r < PULSE_RING_COUNT; r++) {
-    const elapsed = (now - start - r * PULSE_STAGGER_MS);
-    if (elapsed < 0) continue;
-    const phase = elapsed % PULSE_PERIOD_MS;
-    if (phase >= PULSE_ACTIVE_MS) continue;
-    const t = phase / PULSE_ACTIVE_MS;
-    const scale = 1 + t * (PULSE_MAX_SCALE - 1);
-    const alpha = (1 - t) * 0.55;
-    if (alpha < 0.03) continue;
-    const w = modBounds.w * scale;
-    const h = modBounds.h * scale;
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = ringCol;
-    ctx.lineWidth   = 1.5;
-    ctx.beginPath();
-    ctx.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2);
-    ctx.stroke();
-    ctx.restore();
-  }
-  _animDirty = true;
-}
-
 // ── Pill width ─────────────────────────────────────────────────────────────────
 // Layout left → right: PAD_L | dot/module | [GAP time] | PAD_R
 function _pillWidth(ctx, time, friendCount) {
