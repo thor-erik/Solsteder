@@ -533,35 +533,10 @@ function _notifResumeAfterSearch() {
 
 // ── Evaluators: P0 Weather ───────────────���─────────────────────────────���─────
 
-function _evalNoSunToday() {
-  if (typeof VENUES === 'undefined' || !VENUES || !VENUES.length) return null;
-  if (typeof datePicker === 'undefined' || !datePicker) return null;
-  if (datePicker.value !== todayStr()) return null;
-  // Only record once per calendar day — don't re-stamp the bell entry
-  const state = _notifLoadState();
-  if (state.noSunShownDate === todayStr()) return null;
-  // Check if ANY venue has sun from now onwards (not the whole day)
-  const now = currentHour();
-  const hasSun = VENUES.some(v => {
-    const { windows } = computeSunWindows(v, datePicker.value);
-    return windows && windows.some(w => w.end > now);
-  });
-  if (hasSun) return null;
-  // Bell-only: the empty venue list already shows "no sun" visually.
-  // A toast would just duplicate the UI. Bell record lets users still
-  // see what happened if they check the inbox.
-  return {
-    id: 'weather_no_sun', priority: 0, category: 'weather',
-    icon: '☁️', bodyKey: 'notif_no_sun_body', actionKey: 'notif_open_calendar',
-    action: () => { if (typeof _openQcPanel === 'function') _openQcPanel(); },
-    ttl: 600000, dedupe: true, bellOnly: true,
-    _onShow: () => {
-      const s = _notifLoadState();
-      s.noSunShownDate = todayStr();
-      _notifSaveState(s);
-    },
-  };
-}
+// _evalNoSunToday removed — server cron (sql/049) writes a bell row for every
+// active user with weather notifs enabled whenever no venue has a window
+// ending after now-hour today. Bell-only (no push, matches the prior client
+// behavior). Realtime delivers the row via _bellSubscribeRealtime.
 
 function _evalSunSettingSoon() {
   if (typeof datePicker === 'undefined' || !datePicker) return null;
@@ -1156,7 +1131,7 @@ const _notifEvaluators = [
   // _evalPlanReminder removed — server cron (sql/029) drives push + bell, and
   // auth.js _bellRowToToast surfaces the in-app toast from the Realtime INSERT.
   // P0 Weather (bell-only)
-  _evalNoSunToday,
+  // _evalNoSunToday removed — server cron (sql/049) drives the bell row.
   _evalBestSunWindow,
   // P0 Weather (toast)
   _evalSunSettingSoon,

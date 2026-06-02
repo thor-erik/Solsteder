@@ -1458,7 +1458,12 @@ function _isServerHandledNotif(id) {
       // sql/047 process_sun_alerts writes sun_alert:<date>:<venue>:<startMin>
       // rows via the every-5-min cron. Same plumbing: toast from Realtime,
       // client bell write skipped.
-      || id.startsWith('sun_alert:');
+      || id.startsWith('sun_alert:')
+      // sql/049 process_weather_no_sun_alerts writes weather_no_sun:<date> rows
+      // once-per-user-per-day. Bell-only (no toast — matches the prior client
+      // bellOnly behavior). Defense in depth: if any stale client still fires
+      // _evalNoSunToday, the bell write is skipped here.
+      || id.startsWith('weather_no_sun:');
 }
 
 /** Public: capture a notification into the bell history when it fires.
