@@ -643,89 +643,11 @@ function _evalRainWindow() {
   };
 }
 
-function _evalBestSunWindow() {
-  if (typeof VENUES === 'undefined' || !VENUES || !VENUES.length) return null;
-  if (typeof datePicker === 'undefined' || !datePicker) return null;
-  const dateStr = datePicker.value;
-  if (dateStr !== todayStr()) return null;
-  // Once-per-day bell record — re-stamping moves the row to the top of
-  // the inbox on every refresh, which reads as spam.
-  const state = _notifLoadState();
-  if (state.bestSunShownDate === todayStr()) return null;
-  const now = currentHour();
-  // Too late in the day for a "peak" to be actionable
-  if (now >= 18) return null;
-  // Count venues with sun per hour
-  let bestHour = -1, bestCount = 0;
-  for (let h = Math.max(6, Math.ceil(now)); h <= 21; h++) {
-    let count = 0;
-    for (const v of VENUES) {
-      const { windows } = computeSunWindows(v, dateStr);
-      if (windows && windows.some(w => w.start <= h && w.end >= h)) count++;
-    }
-    if (count > bestCount) { bestCount = count; bestHour = h; }
-  }
-  if (bestHour < 0 || bestCount < 15) return null; // not enough venues with sun
-  // Suppress when peak hour is overcast or wet — classified through the
-  // canonical wxClassify (ui-shared.js) so this shares one threshold set with
-  // the pins/list/FTS/calendar. (skip gating if no weather data)
-  if (typeof getWeatherAt === 'function' && typeof wxClassify === 'function') {
-    const wx = getWeatherAt(dateStr, bestHour);
-    if (wx) {
-      const c = wxClassify(wx.sunBlock ?? wx.cloud, wx.precip);
-      if (c === 'overcast' || c === 'rain') return null;
-    }
-  }
-  // Find the peak block (contiguous hours with same-ish count)
-  let blockStart = bestHour, blockEnd = bestHour;
-  for (let h = bestHour - 1; h >= Math.ceil(now); h--) {
-    let count = 0;
-    for (const v of VENUES) {
-      const { windows } = computeSunWindows(v, dateStr);
-      if (windows && windows.some(w => w.start <= h && w.end >= h)) count++;
-    }
-    if (count >= bestCount * 0.7) blockStart = h; else break;
-  }
-  for (let h = bestHour + 1; h <= 21; h++) {
-    let count = 0;
-    for (const v of VENUES) {
-      const { windows } = computeSunWindows(v, dateStr);
-      if (windows && windows.some(w => w.start <= h && w.end >= h)) count++;
-    }
-    if (count >= bestCount * 0.7) blockEnd = h; else break;
-  }
-  // Require the peak to be meaningfully better than right now
-  const nowH = Math.ceil(now);
-  let nowCount = 0;
-  for (const v of VENUES) {
-    const { windows } = computeSunWindows(v, dateStr);
-    if (windows && windows.some(w => w.start <= nowH && w.end >= nowH)) nowCount++;
-  }
-  if (bestCount < nowCount * 1.3 && bestCount - nowCount < 5) return null;
-  // Only show if peak is in the future
-  if (blockEnd <= now) return null;
-  // Bell-only: the peak hour is already visible in the slider + arc, and a
-  // toast would preempt a more time-sensitive social/weather alert. The bell
-  // record gives users a tappable "jump to peak" affordance without nagging.
-  return {
-    id: 'weather_best_sun', priority: 0, category: 'weather',
-    icon: '☀️', bodyKey: 'notif_best_sun_body',
-    bodyVars: { from: formatHour(blockStart), to: formatHour(blockEnd), hour: formatHour(blockStart) },
-    actionKey: 'notif_set_time',
-    action: () => {
-      if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-        timeFromEl.value = blockStart;
-        timeFromEl.dispatchEvent(new Event('input'));
-      }
-    },
-    ttl: 600000, dedupe: true, bellOnly: true,
-    _onShow: () => {
-      const s = _notifLoadState();
-      s.bestSunShownDate = todayStr();
-      _notifSaveState(s);
-    },
-  };
-}
+// _evalBestSunWindow removed — server cron (sql/050) writes a bell row for
+// every active user with weather notifs enabled whenever the peak sun hour
+// today (>= 15 venues, weather-clear, meaningfully better than now) is in
+// the future. Bell-only (no push, matches the prior client behavior).
+// Realtime delivers the row via _bellSubscribeRealtime.
 
 
 // ── Evaluators: P1 Social ─────────────────────���───────────────────────────��──
@@ -1131,8 +1053,8 @@ const _notifEvaluators = [
   // _evalPlanReminder removed — server cron (sql/029) drives push + bell, and
   // auth.js _bellRowToToast surfaces the in-app toast from the Realtime INSERT.
   // P0 Weather (bell-only)
-  // _evalNoSunToday removed — server cron (sql/049) drives the bell row.
-  _evalBestSunWindow,
+  // _evalNoSunToday  removed — server cron (sql/049) drives the bell row.
+  // _evalBestSunWindow removed — server cron (sql/050) drives the bell row.
   // P0 Weather (toast)
   _evalSunSettingSoon,
   _evalCloudIncoming,

@@ -1463,7 +1463,10 @@ function _isServerHandledNotif(id) {
       // once-per-user-per-day. Bell-only (no toast — matches the prior client
       // bellOnly behavior). Defense in depth: if any stale client still fires
       // _evalNoSunToday, the bell write is skipped here.
-      || id.startsWith('weather_no_sun:');
+      || id.startsWith('weather_no_sun:')
+      // sql/050 process_weather_best_sun_alerts writes weather_best_sun:<date>
+      // rows once-per-user-per-day. Bell-only.
+      || id.startsWith('weather_best_sun:');
 }
 
 /** Public: capture a notification into the bell history when it fires.
