@@ -34,13 +34,8 @@
 <meta name="twitter:description" content="Hundrevis av uteserveringer. Shades finner den med mest sol. Og vennene dine.">
 <meta name="twitter:image"       content="https://findshades.app/design/og-picture.png">
 <link rel="preload" href="data/venues.json" as="fetch" crossorigin>
-<!-- geometry.json (431KB) + seating-detected.json (70KB) are intentionally NOT
-     preloaded: neither is on the critical path to first paint. The first sun
-     worker dispatch runs pre-geometry (nearbyBuildings:null) and gates the
-     loader hide; geometry/seating only refine shadows + the high-zoom seating
-     overlay afterward. High-priority preloads here raced mapbox-gl.js + tiles
-     for mobile bandwidth and inflated LCP. They load on their own schedule
-     (initFacings / loadSeatingCache) once first paint is done. -->
+<link rel="preload" href="data/geometry.json" as="fetch" crossorigin>
+<link rel="preload" href="data/seating-detected.json" as="fetch" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://api.mapbox.com" crossorigin>
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" media="print" onload="this.media='all'">
@@ -137,7 +132,7 @@
 <script defer src="js/places.js?v=20260602c"></script>
 <script defer src="js/busyness.js?v=20260411b"></script>
 <script defer src="js/solar.js?v=20260411b"></script>
-<script defer src="js/data.js?v=20260602c"></script>
+<script defer src="js/data.js?v=20260528g"></script>
 <script defer src="js/weather.js?v=20260602a"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
