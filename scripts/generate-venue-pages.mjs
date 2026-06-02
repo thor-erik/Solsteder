@@ -264,6 +264,14 @@ mkdirSync(resolve(outDir, 'omrade'), { recursive: true });
 // 1) venue pages
 for (const v of venues) writeFileSync(resolve(outDir, `${v._slug}.html`), venuePage(v));
 
+// 1b) slug -> id map. The Cloudflare edge function (functions/steder/[slug].js)
+// reads this to bounce a HUMAN visitor straight into the web app on the venue
+// (/#<slug>-<id>) instead of showing the static page — while still serving the
+// static HTML to crawlers so the venue stays indexed. Keeps clean /steder/<slug>
+// URLs without baking the id into them.
+const slugMap = Object.fromEntries(venues.map(v => [v._slug, v.id]));
+writeFileSync(resolve(outDir, 'slug-map.json'), JSON.stringify(slugMap));
+
 // 2) area hubs — group venues by area
 const byArea = {};
 for (const v of venues) (byArea[v.area || 'Oslo'] ||= []).push(v);
