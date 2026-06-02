@@ -4426,7 +4426,11 @@ function updateDetailPanel() {
   const dp      = document.getElementById('detail-panel');
   const content = document.getElementById('dp-content');
   if (!dp || !dp.classList.contains('open') || !content) return;
-  if (!authCurrentUser()) return;
+  // The detail panel is open to EVERYONE — login only gates social features,
+  // and those gate themselves per-section (invite/share/check-in). A blanket
+  // `if (!authCurrentUser()) return` used to live here; it stalled every
+  // refresh (sun scrub, worker correction) for logged-out visitors — including
+  // anyone arriving from a Google /steder/<venue> result. Removed.
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
 
