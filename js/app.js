@@ -4072,6 +4072,20 @@ let _panelStateBeforeOpen = null; // 'fullscreen' | 'expanded' | 'peek' — rest
 let _dpRenderedVid = null;
 
 
+// Open a venue by id from a NATIVE deep link (Universal/App Link handled in
+// auth.js's appUrlOpen listener). Works warm (app running) or cold-start —
+// retries briefly until VENUES has loaded, then selectVenue flies to + opens
+// the detail panel. Web deep links use the #<slug>-<id> hash path at boot
+// instead; this is the native equivalent. Harmless/no-op on web (unused).
+window._openVenueById = function _openVenueById(id, attempt = 0) {
+  const ready = typeof VENUES !== 'undefined' && VENUES.length && typeof selectVenue === 'function';
+  if (ready) {
+    const v = VENUES.find(x => x.id === id);
+    if (v) { try { selectVenue(id, true); } catch (e) { console.warn('[deeplink] selectVenue failed', e); } return; }
+  }
+  if (attempt < 40) setTimeout(() => window._openVenueById(id, attempt + 1), 150); // ~6s cold-start grace
+};
+
 function openDetailPanel(v) {
   _aDetailOpenTs = Date.now();
   _aTrack('detail_open', { venue_id: v.id, time_slot: parseFloat(timeFromEl.value) });

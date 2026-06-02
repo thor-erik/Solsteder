@@ -34,6 +34,18 @@
                 <data android:scheme="app.findshades" />
             </intent-filter>
 
+            <!-- App Links: open https://findshades.app/steder/<venue> in the app
+                 (Google-result -> native venue panel). autoVerify checks
+                 /.well-known/assetlinks.json (fill the Play App Signing SHA-256
+                 there before release). The web edge function handles the
+                 not-installed case (redirect into the web app). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="findshades.app" android:pathPrefix="/steder/" />
+            </intent-filter>
+
         </activity>
 
         <provider
