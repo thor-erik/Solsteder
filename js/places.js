@@ -27,21 +27,10 @@ async function initPlaces() {
       }
     });
 
+    const n = VENUES.filter(v => v.photoUrls?.length).length;
+    console.log(`Places: loaded photos for ${n}/${VENUES.length} venues`);
     if (typeof updateDetailPanel === 'function') updateDetailPanel();
   } catch (err) {
     console.warn('Places: venue-photos.json unavailable —', err.message);
   }
 }
-
-// Lazy, memoized photo load. venue-photos.json is ~1 MB and is only consumed
-// by the detail panel, so it MUST stay off the boot/map-load critical path
-// (it was contending for mobile bandwidth and inflating LCP). Callers:
-//   - openDetailPanel (app.js) on first venue open
-//   - a one-shot idle warm-up after the map goes idle (app.js)
-// Both route here; the fetch fires at most once per session.
-let _placesPromise = null;
-function ensurePlaces() {
-  if (!_placesPromise) _placesPromise = initPlaces();
-  return _placesPromise;
-}
-window.ensurePlaces = ensurePlaces;
