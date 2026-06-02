@@ -580,37 +580,9 @@ function _notifResumeAfterSearch() {
 
 // ── Evaluators: P1 Social ─────────────────────���───────────────────────────��──
 
-function _evalFriendsAtVenue() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof _friendCheckins === 'undefined') return null;
-  // Find venue with most friends currently checked in
-  let bestVid = null, bestList = [], bestCount = 0;
-  for (const [vid, list] of _friendCheckins) {
-    // Filter to recent check-ins (last 2 hours)
-    const recent = list.filter(c => {
-      const ts = c.checkin?.created_at || c.created_at;
-      if (!ts) return true; // no timestamp, assume current
-      return Date.now() - new Date(ts).getTime() < 2 * 60 * 60 * 1000;
-    });
-    if (recent.length > bestCount) {
-      bestCount = recent.length;
-      bestVid = vid;
-      bestList = recent;
-    }
-  }
-  if (bestCount === 0 || !bestVid) return null;
-  const venueName = (typeof VENUES !== 'undefined' && VENUES.find(v => String(v.id) === String(bestVid)))?.name || '';
-  const firstName = bestList[0]?.user?.name?.split(' ')[0] || bestList[0]?.user?.email?.split('@')[0] || '';
-  const bodyKey = bestCount === 1 ? 'notif_friend_at_body' : 'notif_friends_at_body';
-  return {
-    id: 'social_friends_at', priority: 1, category: 'social',
-    icon: '👋', bodyKey,
-    bodyVars: { name: firstName, venue: venueName, count: bestCount },
-    actionKey: 'notif_go_to_venue',
-    action: () => { if (typeof selectVenue === 'function') selectVenue(Number(bestVid), true); },
-    ttl: 600000, dedupe: true,
-  };
-}
+// _evalFriendsAtVenue removed — ambient P1 "your friend is at X" toast.
+// Friend check-ins are already surfaced on the venue card and the friend
+// pin on the map, so the toast was redundant noise rather than new info.
 
 function _evalCheckinPrompt() {
   if (typeof _currentUser === 'undefined' || !_currentUser) return null;
@@ -665,86 +637,17 @@ function _evalCheckinPrompt() {
 // ON CONFLICT DO UPDATE (read_at reset to NULL) re-fires the toast when
 // another invitee responds — no more 60s eval poll needed.
 
-/**
- * Receiver-side: someone sent ME a friend request. Surfaces a P1 social
- * toast that persists across sessions until the request is no longer
- * pending (accepted, rejected, or withdrawn). Action opens the Friends
- * modal where the user can Accept inline. Dedupes on the friendship row
- * id so we don't re-fire on every poll for the same request.
- */
-function _evalIncomingFriendRequest() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof _pendingRequests === 'undefined' || !Array.isArray(_pendingRequests) || !_pendingRequests.length) return null;
-  const head = _pendingRequests[0];
-  if (!head || !head.friendshipId) return null;
-  const name = (head.name || head.email || '').split(' ')[0].split('@')[0] || '…';
-  const extra = _pendingRequests.length - 1;
-  const bodyKey = extra > 0 ? 'notif_friend_request_multi' : 'notif_friend_request_body';
-  return {
-    // Stable id (not per-row) so a dismiss covers ALL pending requests
-    // for this session — and the next session re-fires it fresh while
-    // any pending row still exists. The body uses {name} +{extra} so a
-    // single toast represents the whole pending set.
-    id: 'social_friend_request',
-    // P0 + urgent — event-driven, push counterpart, bypass rate limits.
-    priority: 0, category: 'social', urgent: true,
-    icon: '👤',
-    bodyKey,
-    bodyVars: { name, extra },
-    // Inline Accept — single tap turns it into a real friendship; no
-    // round-trip through the Friends modal needed. The 'extra > 0' case
-    // accepts the head request only; the rest stay pending and re-fire
-    // next session.
-    actionKey: extra > 0 ? 'notif_open_friends' : 'notif_friend_request_accept',
-    action: async () => {
-      if (extra > 0) {
-        if (typeof openFriendsModal === 'function') openFriendsModal();
-        else if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
-      } else if (typeof acceptFriendRequest === 'function') {
-        await acceptFriendRequest(head.friendshipId);
-      }
-    },
-    // Don't TTL-out the toast: we want it on every session until handled.
-    // dedupe still prevents multiple copies in the queue at once.
-    dedupe: true,
-    nav: { kind: 'friends' },
-  };
-}
+// _evalIncomingFriendRequest removed — sql/051 extends notify_friend_request
+// to write a friend_request:<friendship_id> bell row (in addition to the
+// existing push), Realtime delivers it, _bellRowToToast surfaces a per-
+// request toast with inline Accept. Each request shows its own toast (no
+// more aggregated +N count), which reads more accurately when multiple
+// land in quick succession.
 
-function _evalFriendPlanning() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof _planInvites === 'undefined' || !_planInvites.length) return null;
-  // Find a friend's plan for today
-  const today = todayStr();
-  const todayPlan = _planInvites.find(inv => {
-    if (!inv.plan) return false;
-    const planDate = inv.plan.planned_at?.slice(0, 10);
-    return planDate === today && inv.status !== 'declined';
-  });
-  if (!todayPlan) return null;
-  const plan = todayPlan.plan;
-  const creator = plan.creator?.name?.split(' ')[0] || plan.creator?.email?.split('@')[0] || '';
-  const venueName = (typeof VENUES !== 'undefined' && VENUES.find(v => String(v.id) === plan.venue_id))?.name || '';
-  const time = plan.planned_at ? formatHour(new Date(plan.planned_at).getHours() + new Date(plan.planned_at).getMinutes() / 60) : '';
-  return {
-    id: 'social_friend_plan', priority: 1, category: 'social',
-    icon: '📅', bodyKey: 'notif_friend_plan_body',
-    bodyVars: { name: creator, venue: venueName, time },
-    actionKey: 'notif_go_to_venue',
-    action: () => { if (typeof selectVenue === 'function') selectVenue(Number(plan.venue_id), true); },
-    // Bell-row override: this is a reminder of YOUR upcoming plan, so
-    // plan-preview reads better than just the venue.
-    bellAction: () => {
-      if (typeof openPlanPreview === 'function') {
-        openPlanPreview({ venueId: plan.venue_id, plannedAt: plan.planned_at });
-      } else if (typeof selectVenue === 'function') {
-        selectVenue(Number(plan.venue_id), true);
-      }
-    },
-    nav: { kind: 'plan', venueId: plan.venue_id, plannedAt: plan.planned_at },
-    ttl: 600000, dedupe: true,
-  };
-}
+// _evalFriendPlanning removed — fired a P1 "friend's plan today" toast.
+// Redundant with the plan_invite_pending: toast at invite time + the
+// plan_reminder_invitee: toast 30 min before. The day-of "reminder" was
+// a third surface for the same information.
 
 // ── Evaluator Registry ───────────────���──────────────────────────────────────���
 
@@ -767,11 +670,12 @@ const _notifEvaluators = [
   // _evalInviteAccepted removed — same path, sql/048's ON CONFLICT DO UPDATE
   //   refreshes the row and the UPDATE listener re-fires the toast.
   // _evalInviteDeclined removed — same path.
-  _evalIncomingFriendRequest,
-  // P1 Social — ambient observations (friends nearby, friend's plan)
-  _evalFriendsAtVenue,
+  // _evalIncomingFriendRequest removed — sql/051 writes the bell row,
+  //   _bellRowToToast surfaces the per-request toast with inline Accept.
+  // P1 Social — proximity-triggered, actionable
+  // _evalFriendsAtVenue removed — same info on the venue card + friend pin.
+  // _evalFriendPlanning  removed — redundant with plan_invite_pending + plan_reminder.
   _evalCheckinPrompt,
-  _evalFriendPlanning,
 ];
 
 // ── Evaluate & Schedule ──────────────────────────────────────────────────────

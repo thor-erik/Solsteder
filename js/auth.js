@@ -1466,7 +1466,10 @@ function _isServerHandledNotif(id) {
       || id.startsWith('weather_no_sun:')
       // sql/050 process_weather_best_sun_alerts writes weather_best_sun:<date>
       // rows once-per-user-per-day. Bell-only.
-      || id.startsWith('weather_best_sun:');
+      || id.startsWith('weather_best_sun:')
+      // sql/051 notify_friend_request writes friend_request:<friendship_id>
+      // rows when a pending request lands. Toast via _bellRowToToast.
+      || id.startsWith('friend_request:');
 }
 
 /** Public: capture a notification into the bell history when it fires.
@@ -1656,7 +1659,9 @@ function _bellRowToToast(row) {
   const isPlanInvite      = id.startsWith('plan_invite_pending:');
   const isInviteAccepted  = id.startsWith('social_invite_accepted_');
   const isInviteDeclined  = id.startsWith('social_invite_declined_');
-  if (!isPlanReminder && !isSunAlert && !isPlanInvite && !isInviteAccepted && !isInviteDeclined) return null;
+  const isFriendRequest   = id.startsWith('friend_request:');
+  if (!isPlanReminder && !isSunAlert && !isPlanInvite
+   && !isInviteAccepted && !isInviteDeclined && !isFriendRequest) return null;
 
   const nav = row.nav || {};
   const venueId = nav.venueId;
@@ -1705,6 +1710,22 @@ function _bellRowToToast(row) {
         openPlanPreview({ venueId, plannedAt: nav.plannedAt });
       } else if (typeof selectVenue === 'function' && venueId != null) {
         selectVenue(Number(venueId), true);
+      }
+    };
+  } else if (isFriendRequest) {
+    icon = '👤';
+    category = 'social';
+    urgent = true;
+    // Inline Accept on the toast — same one-tap UX the old client eval had.
+    // friendshipId comes through the nav (sql/051) so the toast action can
+    // call acceptFriendRequest without a Friends-modal round-trip.
+    actionKey = 'notif_friend_request_accept';
+    action = async () => {
+      const friendshipId = nav && nav.friendshipId;
+      if (friendshipId && typeof acceptFriendRequest === 'function') {
+        await acceptFriendRequest(friendshipId);
+      } else if (typeof openFriendsModal === 'function') {
+        openFriendsModal();
       }
     };
   } else {

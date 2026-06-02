@@ -546,12 +546,9 @@ const _STRINGS = {
     notif_cat_alert:             'Sun & plan alerts',
 
     // Notifications – P1 Social
-    notif_friend_at_body:        '{name} is at {venue} right now',
-    notif_friends_at_body:       '{count} friends at {venue} right now',
     notif_go_to_venue:           'Go to venue',
     notif_checkin_body:          'Are you at {venue}? Check in here',
     notif_checkin_action:        'Check in',
-    notif_friend_plan_body:      '{name} is heading to {venue} at {time}',
     notif_invite_accepted_body:  '{name} said yes to {venue}',
     notif_invite_accepted_at:    '{name} said yes to {venue}, coming at {time}',
     notif_invite_accepted_multi: '{name} +{extra} said yes to {venue}',
@@ -1161,12 +1158,9 @@ const _STRINGS = {
     notif_cat_alert:             'Sol- og planvarsler',
 
     // Notifications – P1 Social
-    notif_friend_at_body:        '{name} er på {venue} nå',
-    notif_friends_at_body:       '{count} venner er på {venue} nå',
     notif_go_to_venue:           'Gå til stedet',
     notif_checkin_body:          'Er du på {venue}? Sjekk inn her',
     notif_checkin_action:        'Sjekk inn',
-    notif_friend_plan_body:      '{name} drar til {venue} kl. {time}',
     notif_invite_accepted_body:  '{name} sa ja til {venue}',
     notif_invite_accepted_at:    '{name} sa ja til {venue}, kommer kl. {time}',
     notif_invite_accepted_multi: '{name} +{extra} sa ja til {venue}',
@@ -1676,12 +1670,9 @@ const _STRINGS = {
     notif_cat_alert:             'Sol- och planvarningar',
 
     // Notifications – P1 Social
-    notif_friend_at_body:        '{name} är på {venue} just nu',
-    notif_friends_at_body:       '{count} vänner är på {venue} just nu',
     notif_go_to_venue:           'Gå till stället',
     notif_checkin_body:          'Är du på {venue}? Checka in här',
     notif_checkin_action:        'Checka in',
-    notif_friend_plan_body:      '{name} ska till {venue} kl. {time}',
     notif_invite_accepted_body:  '{name} sa ja till {venue}',
     notif_invite_accepted_at:    '{name} sa ja till {venue}, kommer kl. {time}',
     notif_invite_accepted_multi: '{name} +{extra} sa ja till {venue}',
@@ -2153,12 +2144,9 @@ const _STRINGS = {
     notif_cat_alert:             'Sol- og planadvarsler',
 
     // Notifications – P1 Social
-    notif_friend_at_body:        '{name} er på {venue} lige nu',
-    notif_friends_at_body:       '{count} venner er på {venue} lige nu',
     notif_go_to_venue:           'Gå til stedet',
     notif_checkin_body:          'Er du på {venue}? Tjek ind her',
     notif_checkin_action:        'Tjek ind',
-    notif_friend_plan_body:      '{name} tager til {venue} kl. {time}',
     notif_invite_accepted_body:  '{name} sagde ja til {venue}',
     notif_invite_accepted_at:    '{name} sagde ja til {venue}, kommer kl. {time}',
     notif_invite_accepted_multi: '{name} +{extra} sagde ja til {venue}',
