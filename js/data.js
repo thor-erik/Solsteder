@@ -160,7 +160,6 @@ async function loadSeatingCache() {
     if (!resp.ok) return;
     const data = await resp.json();
     const records = data.venues ?? {};
-    let applied = 0;
     VENUES.forEach(v => {
       const r = records[String(v.id)] ?? records[v.id];
       if (!r) return;
@@ -168,9 +167,7 @@ async function loadSeatingCache() {
       v.seatingPolygonAi           = aiRings.length ? aiRings : null;
       v.seatingPolygonAiConfidence = typeof r.confidence === 'number' ? r.confidence : null;
       v.seatingNotVisible          = !!r.notVisible;
-      applied++;
     });
-    console.log(`Seating: loaded ${applied}/${VENUES.length} polygon record(s) from data/seating-detected.json`);
   } catch (e) {
     console.warn('seating-detected.json unavailable:', e.message);
   }
@@ -278,10 +275,13 @@ async function loadVenues() {
     v.facingSource = cached.facingSource;
   });
 
-  // AI-detected seating polygons — fetched in parallel with venues.json
-  // would only save a few ms because we already render the map first; loading
-  // here is simple and keeps initialisation linear.
-  await loadSeatingCache();
+  // AI-detected seating polygons are a HIGH-ZOOM overlay — invisible at the
+  // opening city-overview zoom, so they're not needed for first paint. Loading
+  // them off the awaited path keeps seating-detected.json (70KB) from blocking
+  // first render AND the first worker dispatch (both gate the loader hide / LCP).
+  // Fire-and-forget; re-draw when it lands (a no-op at overview zoom, ready by
+  // the time the user zooms to seating-visible levels).
+  loadSeatingCache().then(() => { if (typeof draw === 'function') draw(); });
 
   // Apply the admin's local audit-archive list so archived venues are hidden
   // from the rest of the app before the first render. Inside audit mode they
