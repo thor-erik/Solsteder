@@ -37,17 +37,17 @@ async function initWeather(lat = 59.9125, lng = 10.728) {
   if (_wxFetching || Date.now() < _wxExpiry) return;
   _wxFetching = true;
   try {
-    // /complete (not /compact) carries cloud_area_fraction_{low,medium,high}
-    // and fog_area_fraction, which sunBlock depends on. /compact returns only
-    // the total cloud_area_fraction, so the layer-aware sun assessment would
-    // silently fall back to raw total cloud.
-    // No custom headers: User-Agent is a forbidden request-header in
-    // browsers (silently stripped), and setting it can trigger a CORS
-    // preflight on some engines (iOS Chrome WebView has been seen
-    // failing the OPTIONS check). met.no accepts unauthenticated
-    // browser requests with the browser's own UA.
+    // Route through the /api/weather Cloudflare Pages Function (functions/api/
+    // weather.js). The proxy:
+    //   * sets a single 'Shades (https://findshades.app)' User-Agent so met.no
+    //     can identify the app per their terms-of-use,
+    //   * applies a 30-min Cloudflare edge cache so one met.no call fans out
+    //     to every client in the window,
+    //   * keeps the response shape unchanged so the parsing below is identical.
+    // Same-origin also dodges the iOS Chrome WebView CORS-preflight issue we
+    // saw with direct api.met.no calls.
     const res = await fetch(
-      `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`
+      `/api/weather?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
