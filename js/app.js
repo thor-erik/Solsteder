@@ -1989,6 +1989,16 @@ map.on('load', _onMapStyleReady);
 // fire immediately
 if (map.isStyleLoaded()) _onMapStyleReady();
 
+// Warm the lazy photo load (venue-photos.json, ~1 MB) only AFTER the map has
+// gone idle — i.e. style + first tiles are painted and LCP has settled. This
+// keeps photos warm for the user's first detail-panel open without competing
+// for bandwidth during the critical map load. Fires once.
+map.once('idle', () => {
+  const warm = () => { if (typeof ensurePlaces === 'function') ensurePlaces(); };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(warm, { timeout: 4000 });
+  else setTimeout(warm, 1200);
+});
+
 map.on('error', (e) => {
   console.error('Mapbox GL error:', e.error);
   // If style fails to load, still mark as ready so intro can proceed
@@ -4095,6 +4105,18 @@ function openDetailPanel(v) {
   _dpRenderedVid = v.id; // fresh full build for this venue
   dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');
+  // Photos load lazily (see ensurePlaces in places.js — kept off the boot
+  // critical path). Trigger the fetch now; if it lands while this venue's
+  // panel is still open, force a FULL rebuild so the hero photos appear
+  // (updateDetailPanel's partial mode won't re-inject the photo block).
+  if (typeof ensurePlaces === 'function' && !v.photoUrls) {
+    ensurePlaces().then(() => {
+      if (selectedId === v.id && dp.classList.contains('open')) {
+        _dpRenderedVid = null;
+        updateDetailPanel();
+      }
+    }).catch(() => {});
+  }
   // Seed the locate-button cycle to 'venue' — selectVenue runs _flyToVenue
   // before this, so the camera is currently framed on the venue. First
   // tap on locate then moves to 'fit'. _setLocateBtnState handles the
