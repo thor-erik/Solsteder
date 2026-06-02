@@ -3190,15 +3190,41 @@ function _userStateMerge(remote) {
   }
 }
 
+// True when the most recent _persistUserState() write failed. On the next
+// foregrounding (tab returns, network typically back), we retry once so a
+// transient blip doesn't lose a setting toggle across devices.
+let _userStateNeedsFlush = false;
+
 async function _persistUserState() {
   if (!_currentUser || typeof _supabase === 'undefined') return;
   try {
-    await _supabase.from('user_preferences').upsert({
+    const { error } = await _supabase.from('user_preferences').upsert({
       user_id: _currentUser.id,
       state: _userState,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
-  } catch { /* fire-and-forget */ }
+    if (error) {
+      console.warn('[auth] _persistUserState upsert:', error.message);
+      _userStateNeedsFlush = true;
+      return;
+    }
+    _userStateNeedsFlush = false;
+  } catch (e) {
+    console.warn('[auth] _persistUserState exception:', e?.message || e);
+    _userStateNeedsFlush = true;
+  }
+}
+
+// Retry-on-foreground hook for _persistUserState. Covers the case where the
+// user toggles a setting while offline / mid-auth-blip — the local apply
+// succeeds, the server write fails silently, and the change never reaches
+// the other devices. Re-attempting when the tab comes back catches it.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && _userStateNeedsFlush) {
+      _persistUserState();
+    }
+  });
 }
 
 function userStateAddDismissedPrompt(inviterId) {
