@@ -223,6 +223,40 @@ async function _ensureCapOAuthListener() {
   });
 }
 
+// Native (Capacitor) Universal Link / App Link handler. When the OS opens the
+// app from a https://findshades.app/steder/<slug> link (mapped via the
+// .well-known/apple-app-site-association + assetlinks.json files), it delivers
+// that URL here. Resolve <slug> -> venue id via the generated slug-map.json,
+// then open the venue's detail panel. No-op on web (web links use the
+// #<slug>-<id> hash path the SPA parses at boot). Untested until a native build
+// ships with the Associated Domains / App Links capability — see CLAUDE.md.
+let _capVenueLinkInit = false;
+async function _ensureCapVenueLinkListener() {
+  if (_capVenueLinkInit || !_isCapNative()) return;
+  const App = _capPlugin('App');
+  if (!App) return;
+  _capVenueLinkInit = true;
+  await App.addListener('appUrlOpen', async ({ url }) => {
+    if (!url) return;
+    let u;
+    try { u = new URL(url); } catch { return; }
+    const m = u.pathname.match(/^\/steder\/([^/]+)\/?$/);
+    if (!m) return;                       // not a venue link (OAuth callback etc.)
+    const slug = decodeURIComponent(m[1]);
+    if (slug.includes('.')) return;       // asset (slug-map.json), not a venue
+    try {
+      const resp = await fetch('/steder/slug-map.json', { cache: 'no-store' });
+      const map = await resp.json();
+      const id = map[slug];
+      if (id != null && typeof window._openVenueById === 'function') {
+        window._openVenueById(id);
+      }
+    } catch (e) {
+      console.warn('[deeplink] venue link resolve failed:', e.message);
+    }
+  });
+}
+
 async function _capacitorOAuthFlow(provider) {
   const Browser = _capPlugin('Browser');
   if (!Browser) {
@@ -4137,4 +4171,5 @@ _supabase.auth.onAuthStateChange((event, session) => {
 if (typeof window !== 'undefined') {
   // Fire-and-forget — failures are logged inside the helper.
   _ensureCapOAuthListener();
+  _ensureCapVenueLinkListener();
 }
