@@ -9556,12 +9556,9 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
       if (s === 'peek' || s === 'expanded') _savedSnap = s;
     } catch {}
 
-    panel.style.transition = 'none';
-    panel.style.opacity    = '1';
-    panel.style.bottom     = `-${Math.round(window.innerHeight)}px`;
+    // Apply the saved state's classes FIRST so the panel sits at its CSS
+    // resting bottom (mobile-expanded → bottom:0) from frame one.
     panel.classList.remove('intro-hidden');
-    // Apply the saved state's classes BEFORE clearing inline bottom so
-    // the CSS rule's bottom is the slide target.
     panel.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
     if (_savedSnap === 'fullscreen') {
       panel.classList.add('mobile-expanded', 'mobile-fullscreen');
@@ -9571,9 +9568,21 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     // (peek leaves all state classes off — that's the base #panel rule.)
     _prevPanelMobileState = _savedSnap;
     _updatePeekHeight();
+    // Reveal via OPACITY FADE at the resting position — NOT a bottom/height
+    // slide. Animating `bottom` was the dominant CLS culprit (~0.4 per
+    // PageSpeed; #panel itself is the shifting element). Opacity is composited
+    // (no layout shift) and, unlike `transform`, does NOT make iOS WKWebView
+    // drop the panel's backdrop-filter (the glass/lens look) — so the brand
+    // glass survives while the shift is gone. The panel never moves; it fades
+    // in at rest. CSS (#panel mobile rule) keeps the bottom/height transitions
+    // for subsequent peek/expand snaps once we drop the inline override below.
+    panel.style.transition = 'none';
+    panel.style.bottom     = '';   // resting at the CSS saved-state bottom
+    panel.style.opacity    = '0';
     panel.getBoundingClientRect();
-    panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), height 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
-    panel.style.bottom     = '';  // clear inline → CSS saved-state bottom takes over
+    panel.style.transition = 'opacity 0.4s ease';
+    panel.style.opacity    = '1';
+    setTimeout(() => { if (panel) panel.style.transition = ''; }, 440);
 
     // Canvas reveal moved to _revealCanvasAndChrome (fires at phase 3 /
     // panel-expand). User wanted pins + locate-me + zoom-jog all to fade
