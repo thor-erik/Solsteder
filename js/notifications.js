@@ -87,6 +87,30 @@ function _notifSvgWave() {
 
 // ── localStorage Helpers ─────────��───────────────────────────────────────────
 
+// One-time boot cleanup for keys that were owned by client evaluators we've
+// since migrated server-side (sql/029, 047, 049, 050). The keys carry no
+// behavior anymore; deleting drops a couple KB from localStorage and stops
+// the clutter from showing up in DevTools forever.
+(function _purgeOrphanedNotifKeys() {
+  try {
+    for (const k of ['solsteder_sun_alert_fired', 'solsteder_plan_reminders_fired']) {
+      localStorage.removeItem(k);
+    }
+    // The _notifLoadState bag itself stays — other survivors still write to
+    // it. Just prune the orphan subkeys (noSunShownDate, bestSunShownDate)
+    // from the deleted _evalNoSunToday / _evalBestSunWindow.
+    const raw = localStorage.getItem(_NOTIF_STORAGE_STATE);
+    if (raw) {
+      const state = JSON.parse(raw);
+      let dirty = false;
+      for (const k of ['noSunShownDate', 'bestSunShownDate']) {
+        if (k in state) { delete state[k]; dirty = true; }
+      }
+      if (dirty) localStorage.setItem(_NOTIF_STORAGE_STATE, JSON.stringify(state));
+    }
+  } catch { /* ignore — best-effort cleanup */ }
+})();
+
 function _notifLoadState() {
   try { return JSON.parse(localStorage.getItem(_NOTIF_STORAGE_STATE) || '{}'); } catch { return {}; }
 }

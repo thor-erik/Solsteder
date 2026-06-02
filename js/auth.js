@@ -3538,6 +3538,29 @@ function _subscribeToFriendships() {
     .subscribe();
 }
 
+let _profileRoleSubscription = null;
+// §3d: pick up a role flip (admin → user) without forcing a re-auth. RLS
+// already gates writes, so this is UX-only — without it, a freshly de-
+// admined user keeps seeing the admin chrome until next login.
+function _subscribeToProfileRole() {
+  if (_profileRoleSubscription) _profileRoleSubscription.unsubscribe();
+  if (!_currentUser) return;
+  _profileRoleSubscription = _supabase
+    .channel('profile-role:' + _currentUser.id)
+    .on('postgres_changes', {
+      event:  'UPDATE',
+      schema: 'public',
+      table:  'profiles',
+      filter: 'id=eq.' + _currentUser.id,
+    }, (payload) => {
+      const newRole = payload?.new?.role ?? null;
+      if (!newRole || newRole === _currentRole) return;
+      _currentRole = newRole;
+      if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
+    })
+    .subscribe();
+}
+
 // ── Periodic social poll ─────────────────────────────────────────────────────
 //
 // Without realtime subscriptions, the inviter has no way to learn that a
@@ -3982,6 +4005,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
     _subscribeToCheckins();
     _subscribeToPlanInvites();
     _subscribeToFriendships();
+    _subscribeToProfileRole();
     _startSocialPoll();
   } else {
     _currentRole = null;
@@ -4011,6 +4035,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
     if (_checkinSubscription)     { _checkinSubscription.unsubscribe();     _checkinSubscription = null; }
     if (_planInvitesSubscription) { _planInvitesSubscription.unsubscribe(); _planInvitesSubscription = null; }
     if (_friendshipsSubscription) { _friendshipsSubscription.unsubscribe(); _friendshipsSubscription = null; }
+    if (_profileRoleSubscription) { _profileRoleSubscription.unsubscribe(); _profileRoleSubscription = null; }
     if (_suggestionsChannel)      { try { _suggestionsChannel.unsubscribe(); } catch { /* idempotent */ } _suggestionsChannel = null; }
     _stopSocialPoll();
   }
