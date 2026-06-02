@@ -538,110 +538,14 @@ function _notifResumeAfterSearch() {
 // ending after now-hour today. Bell-only (no push, matches the prior client
 // behavior). Realtime delivers the row via _bellSubscribeRealtime.
 
-function _evalSunSettingSoon() {
-  if (typeof datePicker === 'undefined' || !datePicker) return null;
-  if (datePicker.value !== todayStr()) return null;
-  if (typeof SUNSET_H_ARC === 'undefined' || SUNSET_H_ARC == null) return null;
-  const now = currentHour();
-  const timeLeft = SUNSET_H_ARC - now;
-  // Fire 20–60 min before sunset — wide enough that an app open in the
-  // final hour doesn't miss it; tight enough to feel time-sensitive.
-  if (timeLeft <= 0 || timeLeft > 1 || timeLeft < 20/60) return null;
-  // Suppress if it's already overcast right now — "sun setting soon" reads
-  // as misleading when the user can see the sky is grey.
-  if (typeof getWeatherAt === 'function') {
-    const wxNow = getWeatherAt(datePicker.value, Math.floor(now));
-    if (wxNow && (wxNow.sunBlock ?? wxNow.cloud) > 0.5) return null;
-  }
-  const sunsetTime = formatHour(SUNSET_H_ARC);
-  return {
-    id: 'weather_sun_setting', priority: 0, category: 'weather',
-    icon: '🌅', bodyKey: 'notif_sun_setting_body',
-    bodyVars: { time: sunsetTime },
-    actionKey: 'notif_show_sun_now',
-    // Snap the slider to "now" so the panel shows the venues that still
-    // have sun in this last window. The list is already sun-now ranked,
-    // so activating now-mode is the most direct path to actionable info.
-    action: () => {
-      if (typeof _activateNowMode === 'function') _activateNowMode();
-    },
-    ttl: 600000, dedupe: true,
-  };
-}
-
-function _evalCloudIncoming() {
-  if (typeof getWeatherAt !== 'function') return null;
-  if (typeof datePicker === 'undefined' || !datePicker) return null;
-  const dateStr = datePicker.value;
-  if (dateStr !== todayStr()) return null;
-  const now = currentHour();
-  const baseHour = Math.floor(now);
-  const wxNow = getWeatherAt(dateStr, baseHour);
-  // Layer-aware: don't suppress just because of thin high cirrus — the user
-  // still has functional sun.
-  if (!wxNow || (wxNow.sunBlock ?? wxNow.cloud) > 0.5) return null;
-  // Don't bother if sun is setting before the cloud could arrive. Avoids
-  // firing "clouds in 2hr" at 20:00 when sunset is 21:00.
-  if (typeof SUNSET_H_ARC !== 'undefined' && SUNSET_H_ARC != null && SUNSET_H_ARC - now < 1.5) {
-    return null;
-  }
-  // Require TWO consecutive cloudy hours to call it incoming. A single
-  // cloud-prediction flicker in the forecast was triggering false alerts.
-  for (let h = 1; h <= 3; h++) {
-    const wx1 = getWeatherAt(dateStr, baseHour + h);
-    const wx2 = getWeatherAt(dateStr, baseHour + h + 1);
-    if (!wx1 || !wx2) continue;
-    const c1 = wx1.sunBlock ?? wx1.cloud;
-    const c2 = wx2.sunBlock ?? wx2.cloud;
-    if (c1 > 0.7 && c2 > 0.7) {
-      const cloudArrivesHour = baseHour + h;
-      return {
-        id: 'weather_cloud_incoming', priority: 0, category: 'weather',
-        icon: '🌥️', bodyKey: 'notif_cloud_incoming_body',
-        bodyVars: { hour: formatHour(cloudArrivesHour) },
-        actionKey: 'notif_show_sun_now',
-        // Snap to now-mode so the user immediately sees what still has sun.
-        action: () => {
-          if (typeof _activateNowMode === 'function') _activateNowMode();
-        },
-        ttl: 600000, dedupe: true,
-      };
-    }
-  }
-  return null;
-}
-
-
-function _evalRainWindow() {
-  if (typeof getWeatherAt !== 'function') return null;
-  if (typeof datePicker === 'undefined' || !datePicker) return null;
-  const dateStr = datePicker.value;
-  if (dateStr !== todayStr()) return null;
-  const now = Math.floor(currentHour());
-  // Find rain start
-  let rainStart = null, rainEnd = null;
-  for (let h = now; h <= 23; h++) {
-    const wx = getWeatherAt(dateStr, h);
-    if (!wx) continue;
-    if (wx.precip > 0.3 && rainStart === null) rainStart = h;
-    if (wx.precip <= 0.3 && rainStart !== null && rainEnd === null) { rainEnd = h; break; }
-  }
-  if (rainStart === null || rainStart <= now) return null; // already raining or no rain
-  if (rainEnd === null) return null; // rain doesn't stop today
-  return {
-    id: 'weather_rain', priority: 0, category: 'weather',
-    icon: '🌧️', bodyKey: 'notif_rain_body',
-    bodyVars: { from: formatHour(rainStart), to: formatHour(rainEnd) },
-    actionKey: 'notif_skip_rain',
-    action: () => {
-      if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-        timeFromEl.value = rainEnd;
-        timeFromEl.dispatchEvent(new Event('input'));
-      }
-    },
-    ttl: 300000, dedupe: true,
-  };
-}
+// _evalSunSettingSoon, _evalCloudIncoming, _evalRainWindow removed.
+// Ambient weather toasts (sunset proximity, incoming clouds, rain window)
+// were observational rather than actionable — every signal they carried is
+// already visible on the arc, date strip, and FTS row. The user found them
+// noisier than useful, so deleting outright rather than migrating to a
+// server cron. The remaining bell-only weather alerts (sql/049 noSunToday
+// and sql/050 bestSunWindow) cover the once-per-day "what's the weather
+// shape today" surface.
 
 // _evalBestSunWindow removed — server cron (sql/050) writes a bell row for
 // every active user with weather notifs enabled whenever the peak sun hour
@@ -1053,12 +957,12 @@ const _notifEvaluators = [
   // _evalPlanReminder removed — server cron (sql/029) drives push + bell, and
   // auth.js _bellRowToToast surfaces the in-app toast from the Realtime INSERT.
   // P0 Weather (bell-only)
-  // _evalNoSunToday  removed — server cron (sql/049) drives the bell row.
+  // _evalNoSunToday    removed — server cron (sql/049) drives the bell row.
   // _evalBestSunWindow removed — server cron (sql/050) drives the bell row.
   // P0 Weather (toast)
-  _evalSunSettingSoon,
-  _evalCloudIncoming,
-  _evalRainWindow,
+  // _evalSunSettingSoon / _evalCloudIncoming / _evalRainWindow removed —
+  // ambient observational toasts; signal already lives on the arc, date
+  // strip, and FTS row.
   // P0 Social — event-driven, take precedence over ambient observations
   _evalIncomingPlanInvite,
   _evalInviteAccepted,
