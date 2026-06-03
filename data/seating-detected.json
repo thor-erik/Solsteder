@@ -4623,43 +4623,72 @@
     "92": {
       "polygon": [
         [
-          59.916581,
-          10.719683
-        ],
-        [
-          59.916581,
-          10.719964
-        ],
-        [
-          59.91652,
-          10.720018
-        ],
-        [
-          59.916466,
-          10.719964
-        ],
-        [
-          59.91648,
-          10.719643
-        ],
-        [
-          59.916534,
-          10.719602
+          [
+            59.91665371032201,
+            10.720172041077745
+          ],
+          [
+            59.91673999999986,
+            10.720370000000088
+          ],
+          [
+            59.91670610721451,
+            10.720428798696872
+          ],
+          [
+            59.91662148184869,
+            10.720237282163623
+          ]
         ]
       ],
-      "confidence": 0.5,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:26:33.146Z",
+      "detectedAt": "2026-06-03T15:49:45.192676+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A paved courtyard area with scattered small objects consistent with outdoor tables/chairs is visible adjacent to the lower entrance side of the building, matching the 'Terrasse' address name."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.916581,
+            10.719683
+          ],
+          [
+            59.916581,
+            10.719964
+          ],
+          [
+            59.91652,
+            10.720018
+          ],
+          [
+            59.916466,
+            10.719964
+          ],
+          [
+            59.91648,
+            10.719643
+          ],
+          [
+            59.916534,
+            10.719602
+          ]
+        ],
+        "confidence": 0.5,
+        "notVisible": false,
+        "reasoning": "A paved courtyard area with scattered small objects consistent with outdoor tables/chairs is visible adjacent to the lower entrance side of the building, matching the 'Terrasse' address name.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:26:33.146Z"
+      }
     },
     "93": {
       "polygon": [
