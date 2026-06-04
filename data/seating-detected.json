@@ -6169,39 +6169,90 @@
     "124": {
       "polygon": [
         [
-          59.918748,
-          10.757475
+          [
+            59.91871000000012,
+            10.758135077109387
+          ],
+          [
+            59.91871000000012,
+            10.758366355723496
+          ],
+          [
+            59.9187001049753,
+            10.758366355728782
+          ],
+          [
+            59.91870090045737,
+            10.758138251242286
+          ]
         ],
         [
-          59.918748,
-          10.75812
-        ],
-        [
-          59.918707,
-          10.75812
-        ],
-        [
-          59.918687,
-          10.757918
-        ],
-        [
-          59.918687,
-          10.757475
+          [
+            59.91870020332423,
+            10.758140062302225
+          ],
+          [
+            59.91870020332423,
+            10.758272504765792
+          ],
+          [
+            59.91867359342043,
+            10.758244731138241
+          ],
+          [
+            59.91867279866892,
+            10.758195567064389
+          ],
+          [
+            59.918673991162585,
+            10.758141649367637
+          ]
         ]
       ],
-      "confidence": 0.55,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:34:32.127Z",
+      "detectedAt": "2026-06-04T19:11:29.739034+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the front facade of the building (below the excluded footprint) there is a sidewalk strip with red awning/canopy elements and what appear to be chairs and tables on the pavement adjacent to the building entrance area."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.918748,
+            10.757475
+          ],
+          [
+            59.918748,
+            10.75812
+          ],
+          [
+            59.918707,
+            10.75812
+          ],
+          [
+            59.918687,
+            10.757918
+          ],
+          [
+            59.918687,
+            10.757475
+          ]
+        ],
+        "confidence": 0.55,
+        "notVisible": false,
+        "reasoning": "Along the front facade of the building (below the excluded footprint) there is a sidewalk strip with red awning/canopy elements and what appear to be chairs and tables on the pavement adjacent to the building entrance area.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:34:32.127Z"
+      }
     },
     "125": {
       "polygon": [
