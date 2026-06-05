@@ -2758,63 +2758,92 @@
     "58": {
       "polygon": [
         [
-          59.91513,
-          10.723281
-        ],
-        [
-          59.915037,
-          10.723281
-        ],
-        [
-          59.91497,
-          10.723177
-        ],
-        [
-          59.914903,
-          10.72311
-        ],
-        [
-          59.914835,
-          10.723177
-        ],
-        [
-          59.914835,
-          10.723446
-        ],
-        [
-          59.91484,
-          10.72358
-        ],
-        [
-          59.91484,
-          10.72386
-        ],
-        [
-          59.91497,
-          10.72358
-        ],
-        [
-          59.915071,
-          10.723446
-        ],
-        [
-          59.91513,
-          10.723281
+          [
+            59.91496248446802,
+            10.723615031682698
+          ],
+          [
+            59.91483999999977,
+            10.723859999998155
+          ],
+          [
+            59.91478727713377,
+            10.723759833228797
+          ],
+          [
+            59.91490897659182,
+            10.723511151706475
+          ]
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-05T19:55:27.211Z",
+      "detectedAt": "2026-06-05T11:35:50.019954+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Along the lower-left side of the building footprint there appears to be a ground-level area with construction equipment and materials that may include outdoor seating infrastructure adjacent to the building exterior."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91513,
+            10.723281
+          ],
+          [
+            59.915037,
+            10.723281
+          ],
+          [
+            59.91497,
+            10.723177
+          ],
+          [
+            59.914903,
+            10.72311
+          ],
+          [
+            59.914835,
+            10.723177
+          ],
+          [
+            59.914835,
+            10.723446
+          ],
+          [
+            59.91484,
+            10.72358
+          ],
+          [
+            59.91484,
+            10.72386
+          ],
+          [
+            59.91497,
+            10.72358
+          ],
+          [
+            59.915071,
+            10.723446
+          ],
+          [
+            59.91513,
+            10.723281
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "Along the lower-left side of the building footprint there appears to be a ground-level area with construction equipment and materials that may include outdoor seating infrastructure adjacent to the building exterior.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-05T19:55:27.211Z"
+      }
     },
     "59": {
       "polygon": [
@@ -26881,6 +26910,34 @@
         "style": "mapbox/satellite-v9"
       },
       "reasoning": "A canopy/awning structure is visible adjacent to the building's western facade near the marker, with what appears to be an outdoor seating area on the sidewalk/plaza in front of the building entrance."
+    },
+    "895": {
+      "polygon": [
+        [
+          [
+            59.91512999999972,
+            10.723280000001097
+          ],
+          [
+            59.91508461536682,
+            10.723372039016795
+          ],
+          [
+            59.91507976967847,
+            10.723280895471987
+          ],
+          [
+            59.915127435115835,
+            10.723192098664867
+          ]
+        ]
+      ],
+      "confidence": 1,
+      "notVisible": false,
+      "detectedAt": "2026-06-05T11:35:11.340299+00:00",
+      "source": "manual",
+      "origin": "from-scratch",
+      "reasoning": "supabase-sync"
     }
   }
 }
