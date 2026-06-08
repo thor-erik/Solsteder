@@ -7770,7 +7770,7 @@ async function _sdSearchGoogle() {
     const bounds = map.getBounds();
     const sw = `${bounds.getSouth().toFixed(3)},${bounds.getWest().toFixed(3)}`;
     const ne = `${bounds.getNorth().toFixed(3)},${bounds.getEast().toFixed(3)}`;
-    const resp = await fetch(`/api/places-autocomplete?q=${encodeURIComponent(q)}&sw=${sw}&ne=${ne}`, {
+    const resp = await fetch(window.apiUrl(`/api/places-autocomplete?q=${encodeURIComponent(q)}&sw=${sw}&ne=${ne}`), {
       signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -7803,7 +7803,7 @@ function _sdPickGoogle(idx) {
 async function _loadGooglePlace(place) {
   // Fetch full details (lat/lng, photos) via Place Details API using the placeId
   try {
-    const resp = await fetch(`/api/place-details?id=${encodeURIComponent(place.placeId)}`, {
+    const resp = await fetch(window.apiUrl(`/api/place-details?id=${encodeURIComponent(place.placeId)}`), {
       signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) return;
@@ -8365,7 +8365,7 @@ async function suggestVenueFlow(query) {
   let results = [];
   try {
     const searchQuery = query;
-    const proxyUrl = `/api/places-search?q=${encodeURIComponent(searchQuery)}`;
+    const proxyUrl = window.apiUrl(`/api/places-search?q=${encodeURIComponent(searchQuery)}`);
     const resp = await fetch(proxyUrl);
     if (resp.ok) {
       const data = await resp.json();
@@ -9391,6 +9391,17 @@ const _nativeSplashGone = new Promise(res => { _nativeSplashGoneResolve = res; }
 const _isNativePlatform = !!(typeof window !== 'undefined' && window.Capacitor
   && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 if (!_isNativePlatform) _nativeSplashGoneResolve();
+
+// Resolve an /api/* Cloudflare Pages Function path to a fetchable URL. On web
+// these are same-origin (relative path). Inside Capacitor the app is served
+// from Shades://localhost / https://localhost, where /api/* doesn't exist in
+// the static bundle (Pages Functions don't ship natively) — so point native
+// at the production proxy. The functions set Access-Control-Allow-Origin:* so
+// the cross-origin fetch from the WebView origin is allowed. (weather.js keeps
+// its own copy: it evaluates its base at module-load, before this assigns.)
+window.apiUrl = function (path) {
+  return (_isNativePlatform ? 'https://findshades.app' : '') + path;
+};
 // Hand off from the native Capacitor SplashScreen — which covers the WKWebView
 // through launch AND any stale prior-session snapshot (the "login flash") until
 // the web splash is painted — to the web splash. No-op on web (no Capacitor).

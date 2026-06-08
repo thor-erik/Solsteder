@@ -370,10 +370,15 @@ function _sunOpportunity(qual) {
 }
 
 // Walk minutes from the card's distance (mirrors _dprcvWalkInfo: ~80 m/min,
-// 1-min floor). Returns null when the venue has no distance (no user location).
+// 1-min floor). Returns null when the venue has no distance (no user location)
+// OR when the distance isn't plausibly walkable — beyond ~180 min (≈14 km) it
+// isn't a walk-to venue, and a non-Oslo location (e.g. the iOS sim's Cupertino
+// default) otherwise yields nonsense like "103188 min". Mirrors calcWalkTime's
+// cap in ui-shared.js.
 function _cardWalkMin(s) {
   if (!s || s.distKm == null) return null;
-  return Math.max(1, Math.round((s.distKm * 1000) / 80));
+  const min = Math.max(1, Math.round((s.distKm * 1000) / 80));
+  return min > 180 ? null : min;
 }
 
 /**
@@ -437,7 +442,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   }
 
   const s = v.score;
-  const distStr = s?.distKm != null
+  // Suppress the distance readout when the user clearly isn't in the Oslo
+  // metro (> 100 km from the venue) — otherwise a non-Oslo location like the
+  // iOS sim's Cupertino default renders a meaningless "8255.3 km".
+  const distStr = (s?.distKm != null && s.distKm <= 100)
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 

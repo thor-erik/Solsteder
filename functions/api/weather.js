@@ -25,6 +25,8 @@
 const DEFAULT_LAT = 59.9125;
 const DEFAULT_LON = 10.728;
 
+// CORS for the Capacitor WebView origin is added uniformly to every /api/*
+// response by functions/api/_middleware.js — no per-response header here.
 export async function onRequest(context) {
   const { request } = context;
   try {

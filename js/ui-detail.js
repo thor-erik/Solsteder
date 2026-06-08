@@ -34,7 +34,9 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   const { windows } = computeSunWindows(v, dateStr);
   const distMeters = s?.distKm != null ? s.distKm * 1000 : null;
-  const distStr = s?.distKm != null
+  // Suppress beyond the Oslo metro (> 100 km) so a non-Oslo location (e.g. the
+  // iOS sim's Cupertino default) doesn't render a meaningless "8255.3 km".
+  const distStr = (s?.distKm != null && s.distKm <= 100)
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 
@@ -161,7 +163,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Meta line on the photo overlay. Star + rating prepended when present so
   // the trust signal reads alongside identity. Falls back gracefully when any
   // single field is missing.
-  const _distStr = s?.distKm != null
+  const _distStr = (s?.distKm != null && s.distKm <= 100)
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : '';
   const _catLabel = (typeof catLabel === 'function') ? catLabel(v) : '';
@@ -2460,7 +2462,7 @@ function _openInviteSheet(venueId) {
       if (key === sheet._shortUrlKey || key === inFlightShortenKey) return;
       inFlightShortenKey = key;
       try {
-        const res = await fetch('/api/shorten', {
+        const res = await fetch(window.apiUrl('/api/shorten'), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ token }),

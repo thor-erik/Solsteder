@@ -21,7 +21,7 @@ async function initPlaces() {
       if (e?.placeId) v.placeId = e.placeId;
       // Prefer photo references (proxy URLs) over legacy CDN URLs
       if (e?.photoRefs?.length) {
-        v.photoUrls = e.photoRefs.map(ref => `/api/place-photo?ref=${encodeURIComponent(ref)}`);
+        v.photoUrls = e.photoRefs.map(ref => window.apiUrl(`/api/place-photo?ref=${encodeURIComponent(ref)}`));
       } else if (e?.photoUrls?.length) {
         v.photoUrls = e.photoUrls;
       }

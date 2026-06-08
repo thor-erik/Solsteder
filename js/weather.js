@@ -33,6 +33,19 @@ let _wxData     = new Map();
 let _wxExpiry   = 0;
 let _wxFetching = false;
 
+// Origin for the /api/* Cloudflare Pages Functions. On the web these are
+// same-origin (relative path works). Inside Capacitor the app is served from
+// `Shades://localhost` / `https://localhost`, where `/api/weather` doesn't
+// exist in the static bundle (no Pages Functions ship natively) — so weather
+// silently never loaded. Point native at the production proxy instead. The
+// function sets `Access-Control-Allow-Origin: *` so the cross-origin fetch
+// from the WebView origin is allowed. Cross-platform contract: runtime guard
+// in a shared file, not a forked build.
+const _WX_API_BASE = (typeof window !== 'undefined' && window.Capacitor
+  && typeof window.Capacitor.isNativePlatform === 'function'
+  && window.Capacitor.isNativePlatform())
+  ? 'https://findshades.app' : '';
+
 async function initWeather(lat = 59.9125, lng = 10.728) {
   if (_wxFetching || Date.now() < _wxExpiry) return;
   _wxFetching = true;
@@ -47,7 +60,7 @@ async function initWeather(lat = 59.9125, lng = 10.728) {
     // Same-origin also dodges the iOS Chrome WebView CORS-preflight issue we
     // saw with direct api.met.no calls.
     const res = await fetch(
-      `/api/weather?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`
+      `${_WX_API_BASE}/api/weather?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
