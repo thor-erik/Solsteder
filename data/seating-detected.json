@@ -36117,34 +36117,6 @@
       },
       "reasoning": "The large grey pier/deck area immediately to the left (water side) of the building shows scattered small shapes consistent with outdoor seating (chairs, parasols) typical of a waterfront restaurant like Solsiden."
     },
-    "895": {
-      "polygon": [
-        [
-          [
-            59.91512999999972,
-            10.723280000001097
-          ],
-          [
-            59.91508461536682,
-            10.723372039016795
-          ],
-          [
-            59.91507976967847,
-            10.723280895471987
-          ],
-          [
-            59.915127435115835,
-            10.723192098664867
-          ]
-        ]
-      ],
-      "confidence": 1,
-      "notVisible": false,
-      "detectedAt": "2026-06-05T11:35:11.340299+00:00",
-      "source": "manual",
-      "origin": "from-scratch",
-      "reasoning": "supabase-sync"
-    },
     "896": {
       "polygon": [
         [
