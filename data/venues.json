@@ -1584,15 +1584,15 @@
         "close": 21
       },
       "2": {
-        "open": 16,
+        "open": 11.5,
         "close": 22
       },
       "3": {
-        "open": 16,
+        "open": 11.5,
         "close": 22
       },
       "4": {
-        "open": 16,
+        "open": 11.5,
         "close": 22
       },
       "5": {
@@ -4834,7 +4834,7 @@
     "rating": 3.4,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 13,
       "close": 22
     },
     "buildingOsmId": null,
@@ -4844,24 +4844,24 @@
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
       "2": {
-        "open": 15,
+        "open": 16,
         "close": 22
       },
       "3": {
-        "open": 15,
+        "open": 16,
         "close": 22
       },
       "4": {
-        "open": 15,
+        "open": 16,
         "close": 22
       },
       "5": {
-        "open": 15,
+        "open": 16,
         "close": 22
       },
       "6": {
-        "open": 12,
-        "close": 22
+        "open": 13,
+        "close": 21
       }
     },
     "hoursSource": "google",
@@ -6602,36 +6602,36 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 23
+      "close": 22
     },
     "openingHoursWeekly": {
       "0": {
         "open": 16,
-        "close": 22
+        "close": 21
       },
       "1": {
         "open": 11,
-        "close": 23
+        "close": 22
       },
       "2": {
         "open": 11,
-        "close": 23
+        "close": 22
       },
       "3": {
         "open": 11,
-        "close": 23
+        "close": 22
       },
       "4": {
         "open": 11,
-        "close": 23
+        "close": 22
       },
       "5": {
         "open": 11,
-        "close": 23
+        "close": 22
       },
       "6": {
         "open": 13,
-        "close": 23
+        "close": 22
       }
     },
     "buildingOsmId": null,
@@ -6655,36 +6655,36 @@
     "facing": null,
     "openingHours": {
       "open": 11.5,
-      "close": 22
+      "close": 23
     },
     "openingHoursWeekly": {
       "0": {
         "open": 11.5,
-        "close": 22
+        "close": 23
       },
       "1": {
         "open": 11.5,
-        "close": 22
+        "close": 23
       },
       "2": {
         "open": 11.5,
-        "close": 22
+        "close": 23
       },
       "3": {
         "open": 11.5,
-        "close": 22
+        "close": 23
       },
       "4": {
         "open": 11.5,
-        "close": 22
+        "close": 23
       },
       "5": {
         "open": 11.5,
-        "close": 22
+        "close": 23
       },
       "6": {
         "open": 11.5,
-        "close": 22
+        "close": 23
       }
     },
     "buildingOsmId": null,
@@ -7873,7 +7873,7 @@
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 10,
+        "open": 12,
         "close": 1
       },
       "1": {
@@ -8773,18 +8773,6 @@
       "close": 18.5
     },
     "openingHoursWeekly": {
-      "1": {
-        "open": 11,
-        "close": 17
-      },
-      "2": {
-        "open": 11,
-        "close": 17
-      },
-      "3": {
-        "open": 11,
-        "close": 17
-      },
       "4": {
         "open": 11,
         "close": 17
@@ -9038,7 +9026,7 @@
     "facing": null,
     "openingHours": {
       "open": 14,
-      "close": 22
+      "close": 23
     },
     "openingHoursWeekly": {
       "0": {
@@ -9059,11 +9047,11 @@
       },
       "5": {
         "open": 14,
-        "close": 22
+        "close": 23
       },
       "6": {
         "open": 14,
-        "close": 22
+        "close": 23
       }
     },
     "buildingOsmId": null,
@@ -9516,7 +9504,7 @@
         "close": 23
       },
       "5": {
-        "open": 12,
+        "open": 14,
         "close": 1
       },
       "6": {
@@ -10012,23 +10000,23 @@
     "facing": null,
     "openingHours": {
       "open": 14,
-      "close": 23
+      "close": 22.5
     },
     "openingHoursWeekly": {
       "2": {
         "open": 16,
-        "close": 23
+        "close": 22.5
       },
       "3": {
         "open": 16,
-        "close": 23
+        "close": 22.5
       },
       "4": {
         "open": 16,
-        "close": 23
+        "close": 22.5
       },
       "5": {
-        "open": 14,
+        "open": 16,
         "close": 1
       },
       "6": {
@@ -10398,36 +10386,36 @@
     "rating": 4,
     "facing": null,
     "openingHours": {
-      "open": 13,
+      "open": 12.5,
       "close": 23
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 13,
+        "open": 12.5,
         "close": 22
       },
       "1": {
-        "open": 16,
+        "open": 12.5,
         "close": 22
       },
       "2": {
-        "open": 16,
+        "open": 12.5,
         "close": 22
       },
       "3": {
-        "open": 13,
+        "open": 12.5,
         "close": 22
       },
       "4": {
-        "open": 13,
+        "open": 12.5,
         "close": 22
       },
       "5": {
-        "open": 13,
+        "open": 12.5,
         "close": 23
       },
       "6": {
-        "open": 13,
+        "open": 12.5,
         "close": 23
       }
     },
@@ -12303,7 +12291,7 @@
     "openingHoursWeekly": {
       "0": {
         "open": 13,
-        "close": 23
+        "close": 22
       },
       "2": {
         "open": 12,
@@ -12319,7 +12307,7 @@
       },
       "5": {
         "open": 12,
-        "close": 1
+        "close": 24
       },
       "6": {
         "open": 12,
@@ -13464,19 +13452,19 @@
         "close": 22
       },
       "2": {
-        "open": 16,
+        "open": 14,
         "close": 22.5
       },
       "3": {
-        "open": 16,
+        "open": 14,
         "close": 22.5
       },
       "4": {
-        "open": 16,
+        "open": 14,
         "close": 22.5
       },
       "5": {
-        "open": 16,
+        "open": 14,
         "close": 23
       },
       "6": {
@@ -14904,36 +14892,36 @@
     "facing": null,
     "openingHours": {
       "open": 13,
-      "close": 23
+      "close": 22
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 15,
+        "open": 13,
         "close": 21
       },
       "1": {
-        "open": 16,
-        "close": 21
+        "open": 13,
+        "close": 22
       },
       "2": {
-        "open": 16,
-        "close": 21
+        "open": 13,
+        "close": 22
       },
       "3": {
-        "open": 16,
-        "close": 21
+        "open": 13,
+        "close": 22
       },
       "4": {
-        "open": 16,
-        "close": 23
+        "open": 13,
+        "close": 22
       },
       "5": {
-        "open": 16,
-        "close": 23
+        "open": 13,
+        "close": 22
       },
       "6": {
         "open": 13,
-        "close": 23
+        "close": 22
       }
     },
     "buildingOsmId": null,
@@ -15648,28 +15636,28 @@
     "rating": 4.4,
     "facing": null,
     "openingHours": {
-      "open": 17,
+      "open": 12,
       "close": 22
     },
     "openingHoursWeekly": {
       "2": {
-        "open": 17,
+        "open": 12,
         "close": 22
       },
       "3": {
-        "open": 17,
+        "open": 12,
         "close": 22
       },
       "4": {
-        "open": 17,
+        "open": 12,
         "close": 22
       },
       "5": {
-        "open": 17,
+        "open": 12,
         "close": 22
       },
       "6": {
-        "open": 17,
+        "open": 12,
         "close": 22
       }
     },
@@ -15677,7 +15665,7 @@
     "googlePlaceId": "ChIJUa4h7mRuQUYRyWc7k-YEywM",
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
-    "businessStatus": "CLOSED_TEMPORARILY",
+    "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
     "areaFine": "Gamle Aker"
   },
@@ -21259,10 +21247,6 @@
         "open": 11,
         "close": 16
       },
-      "3": {
-        "open": 11,
-        "close": 19
-      },
       "4": {
         "open": 11,
         "close": 19
@@ -21952,6 +21936,18 @@
         "open": 11.5,
         "close": 16.5
       },
+      "3": {
+        "open": 11.5,
+        "close": 16.5
+      },
+      "4": {
+        "open": 11.5,
+        "close": 16.5
+      },
+      "5": {
+        "open": 11.5,
+        "close": 16.5
+      },
       "6": {
         "open": 11.5,
         "close": 16.5
@@ -22606,6 +22602,10 @@
       "close": 16
     },
     "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 16
+      },
       "3": {
         "open": 11,
         "close": 15
@@ -23575,24 +23575,32 @@
     "rating": 3.5,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 11,
       "close": 24
     },
     "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
       "2": {
-        "open": 16,
+        "open": 11,
         "close": 23
       },
       "3": {
-        "open": 16,
+        "open": 11,
         "close": 24
       },
       "4": {
-        "open": 16,
+        "open": 11,
         "close": 24
       },
       "5": {
-        "open": 16,
+        "open": 12,
         "close": 0.5
       },
       "6": {
@@ -26704,8 +26712,8 @@
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
       "0": {
-        "open": 7,
-        "close": 20
+        "open": 8,
+        "close": 19
       },
       "1": {
         "open": 7,
@@ -27312,7 +27320,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJmeRi4ABvQUYRw5_W6gLx6Os",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 667,
@@ -27363,7 +27373,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJz5xR52NuQUYRH5SIUBtpwf4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 668,
@@ -27414,7 +27426,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ79kMV2FuQUYRLIrnpM6VtEI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 669,
@@ -27465,7 +27479,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJdXQspeFvQUYRRLsUeVJxreA",
     "facingSource": null,
-    "discoverySignal": "bakgård,outdoorSeating,uteplass"
+    "discoverySignal": "bakgård,outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 670,
@@ -27508,7 +27524,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJJ8DLHoBvQUYRmutmByikVxk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 671,
@@ -27555,7 +27573,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJJwhg5EN9QUYRXTea2gCDJq8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 672,
@@ -27598,7 +27618,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJe6mHFYhuQUYRsWh0wTADgyE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 673,
@@ -27645,7 +27667,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJS3cIl2VuQUYRGag6FmqJGUY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 674,
@@ -27696,7 +27720,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJKUfL-n1uQUYRBQem1qv03-8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 675,
@@ -27739,7 +27765,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJJYn1NC9vQUYR0aS1DN_qsAI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 676,
@@ -27790,7 +27818,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJKUfL-n1uQUYRx7oaD1gD_oU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 677,
@@ -27841,7 +27871,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJf1nGtkRvQUYRr7e-BdtaU0o",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 678,
@@ -27892,7 +27924,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJB6LaWIduQUYReEvdTneWDQM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 679,
@@ -27913,7 +27947,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJqRijmNRtQUYRr_Fedw01Wn8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "CLOSED_TEMPORARILY"
   },
   {
     "id": 680,
@@ -27964,7 +27999,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-8aUvNRtQUYRN5i99KvpYiE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 681,
@@ -28011,7 +28048,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ9Wtw1fxtQUYRAmwZp0uxgpM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 682,
@@ -28062,7 +28101,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJdVq0NedvQUYR1FdwAcG2O3g",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 683,
@@ -28113,7 +28154,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJg7wTMgBvQUYR19KqTmj0Qas",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 684,
@@ -28164,7 +28207,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJadOXdmJuQUYRU2Wb8EeFojQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 685,
@@ -28207,7 +28252,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJabeol4FuQUYRft1Bl3ixbig",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 686,
@@ -28258,7 +28305,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ66HXpYFuQUYR7dT-JK9_Dls",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 687,
@@ -28287,7 +28336,7 @@
       },
       "2": {
         "open": 14,
-        "close": 21
+        "close": 22
       },
       "3": {
         "open": 14,
@@ -28309,7 +28358,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJo1Wam4FuQUYRWD-BWaU1xdw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 688,
@@ -28360,7 +28411,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ6dkT6J9vQUYRj4jXeWl48Jg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 689,
@@ -28411,7 +28464,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJyTvW615vQUYREbvfKgiFNP4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 690,
@@ -28458,7 +28513,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJp1fMLxFuQUYR2unxx_mdGUU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 691,
@@ -28509,7 +28566,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJifMviGFuQUYRrO6j6LTYtoc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 692,
@@ -28544,7 +28603,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ9b5UMfJvQUYRUhXngeZ_qaU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 693,
@@ -28595,7 +28656,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJUyV7KGJuQUYRohEJQ-fnslw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 694,
@@ -28646,7 +28709,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJd7WduIRvQUYRnCo5bQUu-fA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 695,
@@ -28693,7 +28758,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJMZTBm7RvQUYRBYmt81MNXQo",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 696,
@@ -28744,7 +28811,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJkc4o9GZuQUYRUhyPUbCyGrM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 697,
@@ -28787,7 +28856,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJAcj-82ZuQUYR4fjowR4zpVQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 698,
@@ -28830,7 +28901,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJZyak9mZuQUYRm1qAf6Txmi8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 699,
@@ -28877,7 +28950,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJl6CwO45vQUYR_a0xJITeh7o",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 700,
@@ -28928,7 +29003,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ_-ealJ9vQUYRKp6JZI4z6WQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 701,
@@ -28979,7 +29056,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJvxZ-GmZuQUYRIWcskzdKwzM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 702,
@@ -29026,7 +29105,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJH_0F049vQUYRPoNEulHhon4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 703,
@@ -29077,7 +29158,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ9SVQVG9uQUYRh2k5AHiREC8",
     "facingSource": null,
-    "discoverySignal": "gårdsrom,outdoorSeating"
+    "discoverySignal": "gårdsrom,outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 704,
@@ -29128,7 +29211,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJVwAwVfZuQUYRc7_b8fNuK80",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 705,
@@ -29143,10 +29228,14 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 14,
+      "open": 13,
       "close": 24
     },
     "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 19
+      },
       "2": {
         "open": 16,
         "close": 23
@@ -29171,7 +29260,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJF4eL1G9vQUYRGTPg4QFtWeQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 706,
@@ -29222,7 +29313,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJZ9lqYExvQUYRLCI-DR_gfxY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 707,
@@ -29269,7 +29362,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJcbwTrcZvQUYR64DfKiHkiko",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 708,
@@ -29290,7 +29385,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJb6uwxSJvQUYR98SB9upwgkQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "CLOSED_TEMPORARILY"
   },
   {
     "id": 709,
@@ -29341,7 +29437,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ0diGEztvQUYR7KP5PWXg064",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 710,
@@ -29392,7 +29490,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJter1C6RvQUYRXDl36Jt-zwQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 711,
@@ -29439,7 +29539,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJRXSbLY5vQUYRSFH3Gn-cMSY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 712,
@@ -29490,7 +29592,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ2fym8O5vQUYRZf6OtjUXn5U",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 713,
@@ -29537,7 +29641,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxUfB9aFvQUYRY7NZJNNgFgA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 714,
@@ -29552,35 +29658,37 @@
     "rating": 4.4,
     "facing": null,
     "openingHours": {
-      "open": 17,
-      "close": 22
+      "open": 13,
+      "close": 24
     },
     "openingHoursWeekly": {
       "2": {
         "open": 17,
-        "close": 22
+        "close": 24
       },
       "3": {
         "open": 17,
-        "close": 22
+        "close": 24
       },
       "4": {
         "open": 17,
-        "close": 22
+        "close": 24
       },
       "5": {
         "open": 17,
-        "close": 22
+        "close": 24
       },
       "6": {
-        "open": 17,
-        "close": 22
+        "open": 13,
+        "close": 24
       }
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ14-S6T1vQUYRea2IV0MFpdU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 715,
@@ -29623,7 +29731,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJnVsINj9vQUYRi_iZt9hgU1g",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 716,
@@ -29670,7 +29780,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJAfSeOQBvQUYRvGS1MVD-CnM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 717,
@@ -29717,7 +29829,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ8fW4RJFvQUYR3FOyXdlSIso",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 718,
@@ -29768,7 +29882,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJPyKNqn1uQUYRn7RL3iWjDcs",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 719,
@@ -29819,7 +29935,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJWaC21H9uQUYR2cmfNkETwbE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 720,
@@ -29858,7 +29976,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJX_PHrJFvQUYRdoSUCUtGGE4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 721,
@@ -29901,7 +30021,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJwf3sCthtQUYR2zK1-gQK_J8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 722,
@@ -29952,7 +30074,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxeDDBn5uQUYRCoASMohxmIE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 723,
@@ -29987,7 +30111,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJKYaUm1NvQUYRof_VGsE0bC4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 724,
@@ -30008,23 +30134,23 @@
     "openingHoursWeekly": {
       "0": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "1": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "2": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "3": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "4": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "5": {
         "open": 11,
@@ -30038,7 +30164,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJMcBMRhJvQUYRollBA6S463E",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 725,
@@ -30089,7 +30217,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-UU-y39uQUYRIDeMk68uvgQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 726,
@@ -30132,7 +30262,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJZ5i49i9vQUYRMtc8bJIwogM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 727,
@@ -30167,7 +30299,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJfxS1aIduQUYRLXBZwgoA3Fk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 728,
@@ -30191,23 +30325,23 @@
         "close": 18
       },
       "1": {
-        "open": 11,
+        "open": 10,
         "close": 18
       },
       "2": {
-        "open": 11,
+        "open": 10,
         "close": 22
       },
       "3": {
-        "open": 11,
+        "open": 10,
         "close": 22
       },
       "4": {
-        "open": 11,
+        "open": 10,
         "close": 22
       },
       "5": {
-        "open": 11,
+        "open": 10,
         "close": 24
       },
       "6": {
@@ -30218,7 +30352,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJvVPxOKFvQUYRmnGzNxbQ7Ok",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 729,
@@ -30269,7 +30405,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJibNf6GtuQUYRkCWUHyYfKZw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 730,
@@ -30316,7 +30454,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJEx9OZoduQUYR7U3JtZ-nPOc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 731,
@@ -30363,7 +30503,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJayiSra1vQUYRP5dds4iZPdQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 732,
@@ -30410,7 +30552,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ70tWISRvQUYRVUHE5e3V2sc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 733,
@@ -30461,7 +30605,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJD_-Fb2pvQUYRjcMxOgNFm2c",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 734,
@@ -30512,7 +30658,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJeVd0jl9uQUYRs4PIEasPY4I",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 735,
@@ -30563,7 +30711,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJT-e3xF9uQUYRgR2TIKglk50",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 736,
@@ -30614,7 +30764,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ8xKac-xvQUYRSrGTVvJ5gME",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 737,
@@ -30665,7 +30817,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJgy-TMd1vQUYRTP8_Xw2HZLw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 738,
@@ -30680,43 +30834,45 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 14,
+      "open": 12,
       "close": 3
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 14,
+        "open": 12,
         "close": 1
       },
       "1": {
-        "open": 16,
+        "open": 12,
         "close": 1
       },
       "2": {
-        "open": 16,
+        "open": 12,
         "close": 1
       },
       "3": {
-        "open": 16,
+        "open": 12,
         "close": 2
       },
       "4": {
-        "open": 16,
+        "open": 12,
         "close": 2
       },
       "5": {
-        "open": 16,
+        "open": 12,
         "close": 3
       },
       "6": {
-        "open": 14,
+        "open": 12,
         "close": 3
       }
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJqUdI5mhuQUYRPOB95OBV3G4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 739,
@@ -30767,7 +30923,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJqUdI5mhuQUYR1D4a-2P9sHA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 740,
@@ -30788,7 +30946,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJwzZRUABvQUYR07EZdevcZyM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 741,
@@ -30839,7 +30998,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJkZ-cXblvQUYR3G0emQKiN9s",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 742,
@@ -30854,13 +31015,45 @@
     "rating": 4.6,
     "facing": null,
     "openingHours": {
-      "open": 11,
-      "close": 23
+      "open": 12,
+      "close": 0.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ2xki5mZuQUYRx7h4Nt9hxBE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 0.5
+      },
+      "1": {
+        "open": 16,
+        "close": 0.5
+      },
+      "2": {
+        "open": 16,
+        "close": 0.5
+      },
+      "3": {
+        "open": 16,
+        "close": 0.5
+      },
+      "4": {
+        "open": 16,
+        "close": 0.5
+      },
+      "5": {
+        "open": 15,
+        "close": 0.5
+      },
+      "6": {
+        "open": 12,
+        "close": 0.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 743,
@@ -30907,7 +31100,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJFwDK4GZuQUYRh78N3NETWWQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 744,
@@ -30958,7 +31153,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ_-32r9BvQUYRg3tInzR-ESk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 745,
@@ -31009,7 +31206,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJAadhwfRvQUYRwTDOKbbme_U",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 746,
@@ -31025,9 +31224,13 @@
     "facing": null,
     "openingHours": {
       "open": 14,
-      "close": 21.5
+      "close": 23
     },
     "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 23
+      },
       "2": {
         "open": 16,
         "close": 21
@@ -31052,7 +31255,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJmUBylGhuQUYRe42DKUnkpEs",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 747,
@@ -31099,7 +31304,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJYd0n9SJvQUYRh3vTEDm2040",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 748,
@@ -31150,7 +31357,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJua6fUmFuQUYRtd2t7jAHwKg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 749,
@@ -31197,7 +31406,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJvXGMXIhuQUYRkHdBzksACnw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 750,
@@ -31248,7 +31459,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJc5C-LWJuQUYROIJa4Pv8nrg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 751,
@@ -31269,7 +31482,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ0WccD4BvQUYRtLvLG67ZQrM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "CLOSED_TEMPORARILY"
   },
   {
     "id": 752,
@@ -31320,7 +31534,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJd2CIt2JuQUYRfFfpDPWGxbc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 753,
@@ -31371,7 +31587,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-xSQsGJuQUYRNy1lFju7boo",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 754,
@@ -31422,7 +31640,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJbX4ZQABvQUYRAxOvJunOYPM",
     "facingSource": null,
-    "discoverySignal": "bakgård,outdoorSeating"
+    "discoverySignal": "bakgård,outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 755,
@@ -31473,7 +31693,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-xSQsGJuQUYRvC-srwnpn-w",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 756,
@@ -31524,7 +31746,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-xSQsGJuQUYRfK_u36RvklE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 757,
@@ -31559,7 +31783,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJOej1lmJuQUYRrqIBAjXVi1w",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 758,
@@ -31610,7 +31836,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxc2Vc4tvQUYRLHiq2wUEV_Y",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 759,
@@ -31661,7 +31889,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJf3IXTIlvQUYRxUSh678dcNA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,terrasse,uteservering"
+    "discoverySignal": "outdoorSeating,terrasse,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 760,
@@ -31712,7 +31942,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJc_-pymNuQUYRGuUNbC6N-A4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 761,
@@ -31763,7 +31995,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJVS-zcXpuQUYRskn1VIzlKfk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 762,
@@ -31814,7 +32048,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJj55-OGluQUYR3wq6bnSvxjU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 763,
@@ -31865,7 +32101,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJD4oABWduQUYRcIa3ObqzF2w",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 764,
@@ -31916,7 +32154,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJmajkImtuQUYRBQWIGVLwrj8",
     "facingSource": null,
-    "discoverySignal": "gårdsrom,outdoorSeating,solterrasse"
+    "discoverySignal": "gårdsrom,outdoorSeating,solterrasse",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 765,
@@ -31967,7 +32207,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJu9zTWmluQUYRQdCZYVcuz5c",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 766,
@@ -32018,7 +32260,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ4Q8f04duQUYRxaU-rQnSVSI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 767,
@@ -32069,7 +32313,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ1aHff4huQUYRjHvlfY5947I",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 768,
@@ -32112,7 +32358,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJGfLVf4huQUYRNG2wIsRyrSM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 769,
@@ -32155,7 +32403,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ85NEU65vQUYRVp09U72nkwk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,takterrasse"
+    "discoverySignal": "outdoorSeating,takterrasse",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 770,
@@ -32206,7 +32456,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJTxTgZNptQUYROFEoQcljyZ0",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 771,
@@ -32257,7 +32509,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ9_yLYdptQUYRD0v9FDY4EcU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,takterrasse,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,takterrasse,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 772,
@@ -32300,7 +32554,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJITJZ5nhuQUYRxrQ2hjMP8Ec",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 773,
@@ -32351,7 +32607,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJkz0dyHhuQUYRAV4F5qIxBUI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 774,
@@ -32398,7 +32656,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJj8S1NexvQUYRcHtYCSqsVhg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 775,
@@ -32441,7 +32701,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJNWOAuXhuQUYRpGDhimBEKVw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 776,
@@ -32492,7 +32754,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJe90FDhlvQUYRZg5int9_5kM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 777,
@@ -32539,7 +32803,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJabRCwKxvQUYRHazA2DnplZ4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 778,
@@ -32586,7 +32852,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJzVy4iZJvQUYRa9nsDUaGNac",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 779,
@@ -32637,7 +32905,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJlfISdfZuQUYRLpfyztOuk9k",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 780,
@@ -32656,10 +32926,6 @@
       "close": 24
     },
     "openingHoursWeekly": {
-      "0": {
-        "open": 13,
-        "close": 17
-      },
       "1": {
         "open": 16,
         "close": 22
@@ -32688,7 +32954,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ_9TxCDltQUYRzBBILoGD4xw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 781,
@@ -32739,7 +33007,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ1dn35BRuQUYRCAHLzHNGZ9c",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 782,
@@ -32790,7 +33060,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJT27UUpZvQUYR6Jcdng_mpt4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 783,
@@ -32841,7 +33113,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJFS-EMuBvQUYRLiN9xejw3m4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 784,
@@ -32892,7 +33166,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJqfaSsEBtQUYR6UT7ZJdPg7o",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 785,
@@ -32935,7 +33211,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJU16FhHxuQUYR-LgPUeasWio",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 786,
@@ -32986,7 +33264,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJlyA6mBBvQUYRcBKuPHPhHHo",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 787,
@@ -33002,42 +33282,44 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 21
+      "close": 22
     },
     "openingHoursWeekly": {
       "0": {
         "open": 13,
-        "close": 21
+        "close": 22
       },
       "1": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "2": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "3": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "4": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "5": {
         "open": 11,
-        "close": 21
+        "close": 22
       },
       "6": {
         "open": 13,
-        "close": 21
+        "close": 22
       }
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ09-xc1luQUYRvZVT_OSPadY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 788,
@@ -33088,7 +33370,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJSf-61bBvQUYRmSHG_s24U9w",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 789,
@@ -33135,7 +33419,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJL2HdMy9vQUYRQLWOwQFhLTU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 790,
@@ -33186,7 +33472,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJcWMi41huQUYR0AkBhi3FipI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 791,
@@ -33233,7 +33521,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJIetdfABvQUYRDozr8NTL8cw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 792,
@@ -33276,7 +33566,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJp6we5mVuQUYRO80eCfw3xEM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 793,
@@ -33327,7 +33619,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJvdBLkGNuQUYR187YvTbPpR4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 794,
@@ -33378,7 +33672,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJpT6uUmJuQUYRGNq7gQl_K5E",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 795,
@@ -33429,7 +33725,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQcfPAXFtQUYRS1tcOBA04bs",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 796,
@@ -33480,7 +33778,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ00xwkdptQUYRsvsa84WhUpY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 797,
@@ -33527,7 +33827,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJoTbojmNtQUYRuwbZykcV1Ss",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 798,
@@ -33578,7 +33880,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJeXm8rtptQUYRVO7m_5HV8vc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 799,
@@ -33629,7 +33933,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJW2g92nhvQUYRXyEK3M6xqr4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 800,
@@ -33680,7 +33986,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJNeRRfn1uQUYRy6Ufl2V_XJg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 801,
@@ -33731,7 +34039,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJe6VVGYpuQUYR3mj2EU_4VDs",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 802,
@@ -33778,7 +34088,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJsZi9wNltQUYREl806QDQu34",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 803,
@@ -33829,7 +34141,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJAdDVHYpuQUYRjPJYOm5w8c0",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 804,
@@ -33876,7 +34190,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJBdUDUtZvQUYR11NXdznstyc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 805,
@@ -33927,7 +34243,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-9dxafFvQUYRKhF83DAKyBM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 806,
@@ -33948,7 +34266,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ2ZinRABvQUYR0WnAnt1VSJU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "CLOSED_TEMPORARILY"
   },
   {
     "id": 807,
@@ -33999,7 +34318,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ1SpyaGBuQUYRlR_SMOieNBg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,solterrasse,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,solterrasse,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 808,
@@ -34019,23 +34340,23 @@
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 15,
+        "open": 14,
         "close": 2
       },
       "1": {
-        "open": 15,
+        "open": 14,
         "close": 2
       },
       "2": {
-        "open": 15,
+        "open": 14,
         "close": 2
       },
       "3": {
-        "open": 15,
+        "open": 14,
         "close": 2
       },
       "4": {
-        "open": 15,
+        "open": 14,
         "close": 2
       },
       "5": {
@@ -34050,7 +34371,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJD_xITpRvQUYR1-lqE2OjIYk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 809,
@@ -34101,7 +34424,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJq5Kkr2FuQUYR2rYYoTOv_bk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 810,
@@ -34152,7 +34477,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxTBQgOhvQUYR6cIChgKcgIg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 811,
@@ -34195,7 +34522,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ1drA4KRvQUYRVxhDNaKxfKU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 812,
@@ -34246,7 +34575,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJhTafcBhuQUYRw9sEojZFR1c",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 813,
@@ -34297,7 +34628,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJq0l0BkduQUYRbk5V3KLzIyY",
     "facingSource": null,
-    "discoverySignal": "bakgård,outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "bakgård,outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 814,
@@ -34348,7 +34681,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJhxtaQHluQUYRfjwNxoALld0",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 815,
@@ -34369,7 +34704,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJX3Z9roFvQUYR1JOGimSkkMk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "CLOSED_TEMPORARILY"
   },
   {
     "id": 816,
@@ -34420,7 +34756,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJfQi21kZuQUYRONR879InOtk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,terrasse,uteplass"
+    "discoverySignal": "outdoorSeating,terrasse,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 817,
@@ -34435,13 +34773,45 @@
     "rating": 4.1,
     "facing": null,
     "openingHours": {
-      "open": 11,
-      "close": 23
+      "open": 12,
+      "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJc__djxBvQUYRhlYWXtPs8zE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 15
+      },
+      "1": {
+        "open": 17,
+        "close": 22
+      },
+      "2": {
+        "open": 17.5,
+        "close": 22
+      },
+      "3": {
+        "open": 17,
+        "close": 22
+      },
+      "4": {
+        "open": 17,
+        "close": 22
+      },
+      "5": {
+        "open": 17,
+        "close": 22
+      },
+      "6": {
+        "open": 17,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 818,
@@ -34492,7 +34862,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJuaoaE8pvQUYRa8-z5DFL6kQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 819,
@@ -34543,7 +34915,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJSa-cGG5uQUYR2j49d8zwtOM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 820,
@@ -34594,7 +34968,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJM3W5a9NtQUYRTKMD78WC8MI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 821,
@@ -34633,7 +35009,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ6Z_biTFtQUYRzGCI_WY-1iM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 822,
@@ -34680,7 +35058,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJGZ7r2S9vQUYR2ZiwKmPvz9A",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 823,
@@ -34723,7 +35103,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQZvNUrJtQUYRzr9R4nAi6hw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 824,
@@ -34770,7 +35152,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ6zS5HnxuQUYRw7-XBn-e59o",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 825,
@@ -34821,7 +35205,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ4Ux46oJvQUYR8SjMRlbHmfY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 826,
@@ -34872,7 +35258,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJLe_rgN5vQUYRn6cAeyibtxw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 827,
@@ -34923,7 +35311,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJnUF-ztRtQUYRoRoH70EMrrQ",
     "facingSource": null,
-    "discoverySignal": "bakgård,outdoorSeating"
+    "discoverySignal": "bakgård,outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 828,
@@ -34974,7 +35364,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ2zVFIUxtQUYRtXzYwI47wrQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 829,
@@ -35021,7 +35413,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJwTF5kCNvQUYRgHuW2XeVGE8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 830,
@@ -35072,7 +35466,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJk4HTgF1uQUYR1pMFD_HbjYs",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 831,
@@ -35123,7 +35519,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJyeBfgl1uQUYRyPh4811jXdQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 832,
@@ -35170,7 +35568,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJrxOTnAhvQUYRD-xVzBHRTVE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 833,
@@ -35221,7 +35621,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJAY4VDWluQUYRFX2p3XtmwLY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 834,
@@ -35272,7 +35674,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJmXbevHVuQUYRdqhC7MyD5VY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 835,
@@ -35323,7 +35727,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJO7cYK3RuQUYRWRbLaqgANnE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 836,
@@ -35366,7 +35772,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJU0McUT5vQUYRC_36WzXfQfk",
     "facingSource": null,
-    "discoverySignal": "bakgård,outdoorSeating"
+    "discoverySignal": "bakgård,outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 837,
@@ -35413,7 +35821,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ051ogZZvQUYRDWLrtpTRK_s",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 838,
@@ -35460,7 +35870,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJXVikAQBvQUYRDAUBGdtdTQs",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 839,
@@ -35511,7 +35923,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJz1bR6N5tQUYRMFOvZDZU5a8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 840,
@@ -35562,7 +35976,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ2wQmt3duQUYR6oUhvtQb_Hc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 841,
@@ -35613,7 +36029,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJwUCCyx5vQUYRviPAVMJZER4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 842,
@@ -35664,7 +36082,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJX7AYPENuQUYRZDu9flbGRZE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 843,
@@ -35711,7 +36131,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJOUfjctlvQUYRipuRlYEVJII",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 844,
@@ -35762,7 +36184,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJtX1pQQBvQUYRp1dhzB_raLQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 845,
@@ -35813,7 +36237,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJaW3VaWBuQUYRPC3X9Pl2zlU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 846,
@@ -35856,7 +36282,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJnW0teM1tQUYRvc-4VYO1J1U",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 847,
@@ -35903,7 +36331,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJtZnZ1OhtQUYRApFWpTXIm_I",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 848,
@@ -35954,7 +36384,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJG9cLAGluQUYRXZWKeiCBNoA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 849,
@@ -35997,7 +36429,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJEzmZSWhuQUYRsT8rcIbtrHs",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 850,
@@ -36044,7 +36478,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJH5Z2RmhuQUYR7fE81T0cBWU",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 851,
@@ -36095,7 +36531,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJOYJ-X2huQUYRkfSLiaJop1o",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 852,
@@ -36146,7 +36584,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJk95ZwaVvQUYR1FtMmEoUb0I",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 853,
@@ -36197,7 +36637,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ4UMY1kJuQUYRrm7RZzGhq3s",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 854,
@@ -36248,7 +36690,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-Tw_7mluQUYR7Uooz2S3FC8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 855,
@@ -36295,7 +36739,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJYYPlq3xvQUYRJCPm-vRdhLI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 856,
@@ -36346,7 +36792,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJnfQBYQBvQUYRbT2etbGzXSE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 857,
@@ -36397,7 +36845,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJt9SwHoFuQUYRNBsvVN5MEPk",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 858,
@@ -36448,7 +36898,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJZbIN01RvQUYRQ9UrN7_jY78",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 859,
@@ -36495,7 +36947,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJR36or9n2Q0YRhazlft1vS7U",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 860,
@@ -36546,7 +37000,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxSs9DpVvQUYRRk8joZJj-qg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 861,
@@ -36593,7 +37049,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJPc-xDwBvQUYRvP1WcZAOt3A",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 862,
@@ -36644,7 +37102,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJRZiIFvhuQUYRgss8_ydJ0DE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 863,
@@ -36695,7 +37155,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJS30OxvlvQUYRwHb4EwQRq7o",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 864,
@@ -36746,7 +37208,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJc80CYT9vQUYR43VJOX086R8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 865,
@@ -36767,7 +37231,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ_7Pz6WZuQUYRrTBmaA9lvv4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "CLOSED_TEMPORARILY"
   },
   {
     "id": 866,
@@ -36818,7 +37283,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ24_Fq2duQUYR4bCZnxbKUaE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 867,
@@ -36869,7 +37336,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ_ZTxqmduQUYRAWNjvAfUjnc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 868,
@@ -36916,7 +37385,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJuTLmB2duQUYRD-OFwfgr8aA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 869,
@@ -36963,7 +37434,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJAzJIzd1vQUYRD_xJ6M3kh-U",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 870,
@@ -36984,7 +37457,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJtVhtyHxuQUYRzoUwKFAg5pc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "CLOSED_TEMPORARILY"
   },
   {
     "id": 871,
@@ -37035,7 +37509,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJD-21PzdvQUYRrAsrAvRaVrY",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 872,
@@ -37086,7 +37562,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJs4lhasVtQUYR6EyoNN2XDrM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 873,
@@ -37107,7 +37585,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJBRFYevVuQUYRZnHo-DwOGPg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 874,
@@ -37158,7 +37637,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJKXwg23xuQUYRkEvbj2W2TD4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 875,
@@ -37205,7 +37686,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxSm-1mJuQUYRuwu-eJUA4jQ",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 876,
@@ -37252,7 +37735,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJbXaY3nxuQUYRdhQF2545Ly8",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 877,
@@ -37303,7 +37788,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJY0isJn1uQUYRGFgwCsFhuRc",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 878,
@@ -37354,7 +37841,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJY0isJn1uQUYR0UuWLvUXBWw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 879,
@@ -37401,7 +37890,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJL3NkFRpvQUYRfiw7BKw7Td4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 880,
@@ -37452,7 +37943,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJUZa8WvZuQUYRvmDPeL0MrBE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 881,
@@ -37499,7 +37992,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ5Z7uillvQUYRF9ymabvVhUw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 882,
@@ -37550,7 +38045,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJo2jS1GBvQUYR_tAupYma7N4",
     "facingSource": null,
-    "discoverySignal": "osm,outdoorSeating"
+    "discoverySignal": "osm,outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 883,
@@ -37601,7 +38098,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJseudaBhuQUYRAnlYcz23b1s",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 884,
@@ -37648,7 +38147,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJvb0h34puQUYRWV0Emq6t8MI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 885,
@@ -37699,7 +38200,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJk2tkq-ZvQUYRq4W13bWYsXA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,solterrasse,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,solterrasse,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 886,
@@ -37750,7 +38253,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJB2MEY9NtQUYRT_v7n1Tn2lA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 887,
@@ -37801,7 +38306,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJXYRKixRvQUYRZA68xwb_flo",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 888,
@@ -37852,7 +38359,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJvUxVC3puQUYR3yFAyI4fdCM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 889,
@@ -37899,7 +38408,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ4SSxzHBuQUYRJqVgPQT7zEA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 890,
@@ -37950,7 +38461,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJjZ4Ek2huQUYR0IwVksBCst4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 891,
@@ -37971,7 +38484,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJpQa5NlluQUYRuHg_EojlVXw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "CLOSED_TEMPORARILY"
   },
   {
     "id": 892,
@@ -38022,7 +38536,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJSct4xJ5vQUYRz0_44nEPCsg",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 893,
@@ -38073,7 +38589,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJixmYLa1vQUYR-6DSsnXngxA",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,terrasse"
+    "discoverySignal": "outdoorSeating,terrasse",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 894,
@@ -38120,7 +38638,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ9_CH04VuQUYRCv1xFFALHj4",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 895,
@@ -38141,7 +38661,7 @@
     "openingHoursWeekly": {
       "1": {
         "open": 7.5,
-        "close": 16
+        "close": 15
       },
       "2": {
         "open": 7.5,
@@ -38167,7 +38687,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJbztDhN9tQUYRLR-XMgaSe1s",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 896,
@@ -38210,7 +38732,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJPQfE2BduQUYRSsxIJp4-xtE",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 897,
@@ -38237,7 +38761,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJl4buyaNvQUYRIJMt0LLoB0s",
     "facingSource": null,
-    "discoverySignal": "bakgård,outdoorSeating"
+    "discoverySignal": "bakgård,outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 898,
@@ -38268,7 +38794,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJj5bAg-1uQUYRGwwTKuNX63w",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,takterrasse,uteplass,uteservering"
+    "discoverySignal": "outdoorSeating,takterrasse,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 899,
@@ -38315,7 +38843,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJcf_oSylvQUYRMVu_AxDWyYM",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteservering"
+    "discoverySignal": "outdoorSeating,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 900,
@@ -38346,7 +38876,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJiwGFAcB6QUYRiOaLpjdMkNw",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating"
+    "discoverySignal": "outdoorSeating",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 901,
@@ -38389,7 +38921,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJKevOCYduQUYRkXkmt_U2R5Y",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,solterrasse,takterrasse,uteplass"
+    "discoverySignal": "outdoorSeating,solterrasse,takterrasse,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 902,
@@ -38440,7 +38974,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJKevOCYduQUYR5PbOQBS7gdI",
     "facingSource": null,
-    "discoverySignal": "outdoorSeating,uteplass"
+    "discoverySignal": "outdoorSeating,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 904,
@@ -38491,7 +39027,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ_XKiKOtlQUYRQxFpnNCqsKI",
     "facingSource": null,
-    "discoverySignal": "solterrasse,uteplass,uteservering"
+    "discoverySignal": "solterrasse,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 906,
@@ -38542,7 +39080,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ6zTCXV9uQUYRs9h55NyT8oc",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 907,
@@ -38593,7 +39133,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJa6FpfntvQUYR-VS7yZg5lrk",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 910,
@@ -38644,7 +39186,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ5X1ahS1vQUYRcSIOxhap7Fo",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteservering"
+    "discoverySignal": "bakgård,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 913,
@@ -38695,7 +39239,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJg9GPYnpuQUYRaVhrauOle-I",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 915,
@@ -38746,7 +39292,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJnXAAtnduQUYROpCjUR6YTfU",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteservering"
+    "discoverySignal": "bakgård,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 917,
@@ -38793,7 +39341,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJcZvtqJxvQUYRI0M0z3qdvVk",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 921,
@@ -38840,7 +39390,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJy4FA5PNvQUYRpp3bzYUzRAQ",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteservering"
+    "discoverySignal": "bakgård,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 923,
@@ -38879,7 +39431,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJNTiaPZdtQUYR-rw7T6LBjuo",
     "facingSource": null,
-    "discoverySignal": "gårdsrom,uteplass,uteservering"
+    "discoverySignal": "gårdsrom,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 926,
@@ -38930,7 +39484,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ2wRgrNttQUYRmRYrJjB2mYU",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteplass,uteservering"
+    "discoverySignal": "bakgård,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 928,
@@ -38969,7 +39525,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJPRbmLsVtQUYRmtW-ik-mAgY",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteservering"
+    "discoverySignal": "bakgård,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 931,
@@ -39008,7 +39566,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJafqXmHhuQUYRRjFO-olyO_Y",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 932,
@@ -39059,7 +39619,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJf0kt9WRvQUYRMwpB9i1cGRw",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteservering"
+    "discoverySignal": "bakgård,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 940,
@@ -39110,7 +39672,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJO_7bC9JtQUYRwbhJofezGR8",
     "facingSource": null,
-    "discoverySignal": "takterrasse,uteplass,uteservering"
+    "discoverySignal": "takterrasse,uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 953,
@@ -39161,7 +39725,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJycdt8NdvQUYRqMjCQd-Alps",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 957,
@@ -39212,7 +39778,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ9fLGLrdvQUYRWThojDmHzcg",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 958,
@@ -39255,7 +39823,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ28Eca2duQUYR-1DU8ZHGYJ8",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 961,
@@ -39302,7 +39872,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJuYVAYVNuQUYRmrHKwheR_sA",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteservering"
+    "discoverySignal": "bakgård,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 965,
@@ -39337,7 +39909,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJB-ktKitsQUYRCpBbAyLEP7Y",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 969,
@@ -39358,7 +39932,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJpYmu-bRtQUYRWaJZt17BMF8",
     "facingSource": null,
-    "discoverySignal": "solterrasse,uteservering"
+    "discoverySignal": "solterrasse,uteservering",
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 970,
@@ -39409,7 +39984,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJBbyNdw9tQUYRRkHHSZuzo6g",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 985,
@@ -39424,23 +40001,41 @@
     "rating": 4.8,
     "facing": null,
     "openingHours": {
-      "open": 14,
+      "open": 11,
       "close": 22
     },
     "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22
+      },
+      "4": {
+        "open": 12,
+        "close": 22
+      },
       "5": {
-        "open": 14,
+        "open": 12,
         "close": 22
       },
       "6": {
-        "open": 14,
+        "open": 11,
         "close": 22
       }
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ_-TZPWlpQUYRe-d0T_llALI",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 986,
@@ -39491,7 +40086,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ5xSBY99uQUYRs7sJqdQbM9k",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 987,
@@ -39542,7 +40139,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJjWGIawBvQUYRXWEEyGBNlwM",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 988,
@@ -39593,7 +40192,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJDyTSjeZuQUYRYXPxX8osUfY",
     "facingSource": null,
-    "discoverySignal": "uteplass,uteservering"
+    "discoverySignal": "uteplass,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 997,
@@ -39644,7 +40245,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJO6pQjhluQUYR5jLNeQu1tm8",
     "facingSource": null,
-    "discoverySignal": "terrasse,uteservering"
+    "discoverySignal": "terrasse,uteservering",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1008,
@@ -39695,7 +40298,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJndY_uDhuQUYRFcLQ4JHiB8I",
     "facingSource": null,
-    "discoverySignal": "terrasse,uteplass"
+    "discoverySignal": "terrasse,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1009,
@@ -39746,7 +40351,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-XAFPmduQUYRxIZJGLteyWo",
     "facingSource": null,
-    "discoverySignal": "terrasse,uteplass"
+    "discoverySignal": "terrasse,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1012,
@@ -39793,7 +40400,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJVTnET7l6QUYRSiZl8YpfiQ8",
     "facingSource": null,
-    "discoverySignal": "solterrasse,terrasse"
+    "discoverySignal": "solterrasse,terrasse",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1017,
@@ -39840,7 +40449,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJMSUxzWNuQUYR4fsArN5CamI",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteplass"
+    "discoverySignal": "bakgård,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1018,
@@ -39891,7 +40502,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJc1YrmNZvQUYRWyWKEjA1mVk",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteplass"
+    "discoverySignal": "bakgård,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1020,
@@ -39942,7 +40555,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJmSbFQQltQUYR21AjmsRHp-o",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteplass"
+    "discoverySignal": "bakgård,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1031,
@@ -39993,7 +40608,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJiZHF1dJvQUYRv0BL1XO09BU",
     "facingSource": null,
-    "discoverySignal": "bakgård,uteplass"
+    "discoverySignal": "bakgård,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1033,
@@ -40008,27 +40625,25 @@
     "rating": 4.4,
     "facing": null,
     "openingHours": {
-      "open": 15,
-      "close": 20.5
+      "open": 13,
+      "close": 3
     },
     "openingHoursWeekly": {
-      "2": {
-        "open": 16.5,
-        "close": 20.5
-      },
       "5": {
         "open": 15,
         "close": 2
       },
       "6": {
-        "open": 15,
-        "close": 2
+        "open": 13,
+        "close": 3
       }
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJvVS-VMRvQUYRzRXjsNWfpXI",
     "facingSource": null,
-    "discoverySignal": "solterrasse,takterrasse,uteplass"
+    "discoverySignal": "solterrasse,takterrasse,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1035,
@@ -40079,7 +40694,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ4xzYZN1vQUYRxtwcAM6vCW4",
     "facingSource": null,
-    "discoverySignal": "takterrasse,uteplass"
+    "discoverySignal": "takterrasse,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1036,
@@ -40094,31 +40711,25 @@
     "rating": 3,
     "facing": null,
     "openingHours": {
-      "open": 16,
+      "open": 22,
       "close": 3
     },
     "openingHoursWeekly": {
-      "3": {
-        "open": 16,
-        "close": 1
-      },
-      "4": {
-        "open": 16,
-        "close": 1
-      },
       "5": {
-        "open": 16,
+        "open": 22,
         "close": 3
       },
       "6": {
-        "open": 16,
+        "open": 22,
         "close": 3
       }
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJTewpiIduQUYRZaar1k5tNeI",
     "facingSource": null,
-    "discoverySignal": "solterrasse,takterrasse,uteplass"
+    "discoverySignal": "solterrasse,takterrasse,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1040,
@@ -40169,7 +40780,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJO3UPOjpvQUYR9teJfUPJnsk",
     "facingSource": null,
-    "discoverySignal": "takterrasse,uteplass"
+    "discoverySignal": "takterrasse,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1041,
@@ -40190,7 +40803,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJu4ANBWJuQUYRNZ6I9WI4DUc",
     "facingSource": null,
-    "discoverySignal": "solterrasse,takterrasse"
+    "discoverySignal": "solterrasse,takterrasse",
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 1069,
@@ -40241,7 +40855,9 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-Re25WVvQUYRaNQP-AwIbuM",
     "facingSource": null,
-    "discoverySignal": "gårdsrom,uteplass"
+    "discoverySignal": "gårdsrom,uteplass",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   },
   {
     "id": 1168,
@@ -40288,6 +40904,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJmxwUE2BuQUYR10XFOHlXGac",
     "facingSource": null,
-    "discoverySignal": "gårdsrom,solterrasse"
+    "discoverySignal": "gårdsrom,solterrasse",
+    "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
   }
 ]
