@@ -356,8 +356,11 @@
   /* PR C — center weather sentence floats over the map. Anchored to the
      viewport center (position:absolute + left:50% + translateX(-50%))
      rather than the grid's auto-distributed center column, so it stays
-     screen-centered regardless of how wide the side buttons are. Dark
-     ink reads cleanly against light building roofs. */
+     screen-centered regardless of how wide the side buttons are.
+     Frosted pill (the flanking .ts-btn glass blur, no border, no shadow)
+     so the sentence reads over ANY map content — bare dark ink collided
+     with street/place labels like "Bortenfor" behind it; the blur softens
+     whatever sits under the chip. */
   #top-strip .ts-center {
     position: absolute;
     left: 50%;
@@ -365,6 +368,11 @@
     transform: translate(-50%, -50%);
     color: var(--panel-text);
     pointer-events: none;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+    border-radius: var(--radius-pill);
+    padding: var(--space-xs) var(--space-md);
   }
   #top-strip .ts-center .ts-dot { color: rgba(17,30,56,0.30); font-weight: 400; }
   /* Date and weather icon read as a pair. Margin compensates for the
