@@ -34501,43 +34501,72 @@
     "856": {
       "polygon": [
         [
-          59.910857,
-          10.730648
-        ],
-        [
-          59.910884,
-          10.730849
-        ],
-        [
-          59.91079,
-          10.730916
-        ],
-        [
-          59.910763,
-          10.731024
-        ],
-        [
-          59.910723,
-          10.730943
-        ],
-        [
-          59.910763,
-          10.730621
+          [
+            59.910849999999925,
+            10.730850000001453
+          ],
+          [
+            59.91080999999997,
+            10.731070000001552
+          ],
+          [
+            59.91076830174919,
+            10.731039394877143
+          ],
+          [
+            59.91080796922941,
+            10.730820191619785
+          ]
         ]
       ],
-      "confidence": 0.5,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-06-07T22:59:42.941Z",
+      "detectedAt": "2026-06-10T07:10:34.99926+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "Outdoor seating area appears to be on the harbor quay adjacent to the southwest side of the building, where clusters of tables and chairs are visible on the open pier surface near the waterfront."
+      "reasoning": "supabase-sync",
+      "origin": "approved",
+      "originalAi": {
+        "polygon": [
+          [
+            59.910857,
+            10.730648
+          ],
+          [
+            59.910884,
+            10.730849
+          ],
+          [
+            59.91079,
+            10.730916
+          ],
+          [
+            59.910763,
+            10.731024
+          ],
+          [
+            59.910723,
+            10.730943
+          ],
+          [
+            59.910763,
+            10.730621
+          ]
+        ],
+        "confidence": 0.5,
+        "notVisible": false,
+        "reasoning": "Outdoor seating area appears to be on the harbor quay adjacent to the southwest side of the building, where clusters of tables and chairs are visible on the open pier surface near the waterfront.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-06-07T22:59:42.941Z"
+      }
     },
     "857": {
       "polygon": [
