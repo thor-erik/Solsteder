@@ -36146,22 +36146,6 @@
       },
       "reasoning": "The large grey pier/deck area immediately to the left (water side) of the building shows scattered small shapes consistent with outdoor seating (chairs, parasols) typical of a waterfront restaurant like Solsiden."
     },
-    "895": {
-      "polygon": [],
-      "confidence": 0,
-      "notVisible": true,
-      "detectedAt": "2026-06-21T22:26:16.939Z",
-      "model": "claude-sonnet-4-6",
-      "promptHash": "78b11ecb",
-      "source": "ai",
-      "snapshot": {
-        "zoom": 19,
-        "w": 640,
-        "h": 640,
-        "style": "mapbox/satellite-v9"
-      },
-      "reasoning": "The satellite image shows what appears to be a large construction or industrial site with no visible outdoor seating furniture, parasols, or demarcated seating areas that could be attributed to this bar venue."
-    },
     "896": {
       "polygon": [
         [
