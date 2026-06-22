@@ -1261,7 +1261,7 @@
     "facing": null,
     "openingHours": {
       "open": 10,
-      "close": 24
+      "close": 3
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ16RtVmJuQUYRcu76N76Rh2k",
@@ -1270,23 +1270,23 @@
     "openingHoursWeekly": {
       "0": {
         "open": 12,
-        "close": 24
+        "close": 1
       },
       "1": {
         "open": 10,
-        "close": 1
+        "close": 3
       },
       "2": {
         "open": 10,
-        "close": 1
+        "close": 3
       },
       "3": {
         "open": 10,
-        "close": 1
+        "close": 3
       },
       "4": {
         "open": 10,
-        "close": 1
+        "close": 3
       },
       "5": {
         "open": 10,
@@ -6174,12 +6174,12 @@
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 23
+      "close": 22.5
     },
     "openingHoursWeekly": {
       "0": {
         "open": 12,
-        "close": 22
+        "close": 21.5
       },
       "1": {
         "open": 12,
@@ -6199,11 +6199,11 @@
       },
       "5": {
         "open": 12,
-        "close": 23
+        "close": 22.5
       },
       "6": {
         "open": 12,
-        "close": 23
+        "close": 22.5
       }
     },
     "buildingOsmId": null,
@@ -6390,6 +6390,10 @@
       "close": 23
     },
     "openingHoursWeekly": {
+      "1": {
+        "open": 17,
+        "close": 23
+      },
       "2": {
         "open": 17,
         "close": 23
@@ -6438,11 +6442,11 @@
     "openingHoursWeekly": {
       "0": {
         "open": 15,
-        "close": 21
+        "close": 20
       },
       "1": {
         "open": 15,
-        "close": 21
+        "close": 23
       },
       "2": {
         "open": 15,
@@ -7472,7 +7476,7 @@
       },
       "4": {
         "open": 16,
-        "close": 23
+        "close": 22.5
       },
       "5": {
         "open": 16,
@@ -7480,7 +7484,7 @@
       },
       "6": {
         "open": 16,
-        "close": 23
+        "close": 22.5
       }
     },
     "buildingOsmId": null,
@@ -7832,23 +7836,23 @@
     "openingHoursWeekly": {
       "0": {
         "open": 12,
-        "close": 4
+        "close": 1
       },
       "1": {
         "open": 12,
-        "close": 4
+        "close": 1
       },
       "2": {
         "open": 12,
-        "close": 4
+        "close": 1
       },
       "3": {
         "open": 12,
-        "close": 4
+        "close": 1
       },
       "4": {
         "open": 12,
-        "close": 4
+        "close": 3
       },
       "5": {
         "open": 12,
@@ -8362,10 +8366,6 @@
         "open": 10,
         "close": 17
       },
-      "1": {
-        "open": 9,
-        "close": 16
-      },
       "3": {
         "open": 9,
         "close": 16
@@ -8467,11 +8467,11 @@
         "close": 22.5
       },
       "1": {
-        "open": 15,
+        "open": 12,
         "close": 22.5
       },
       "2": {
-        "open": 11,
+        "open": 12,
         "close": 22.5
       },
       "3": {
@@ -9353,7 +9353,7 @@
       },
       "1": {
         "open": 10,
-        "close": 2
+        "close": 4
       },
       "2": {
         "open": 10,
@@ -10449,36 +10449,36 @@
     "facing": null,
     "openingHours": {
       "open": 12.5,
-      "close": 23
+      "close": 23.5
     },
     "openingHoursWeekly": {
       "0": {
         "open": 12.5,
-        "close": 22
+        "close": 23
       },
       "1": {
         "open": 12.5,
-        "close": 22
+        "close": 23
       },
       "2": {
         "open": 12.5,
-        "close": 22
+        "close": 23
       },
       "3": {
         "open": 12.5,
-        "close": 22
+        "close": 23
       },
       "4": {
         "open": 12.5,
-        "close": 22
+        "close": 23
       },
       "5": {
         "open": 12.5,
-        "close": 23
+        "close": 23.5
       },
       "6": {
         "open": 12.5,
-        "close": 23
+        "close": 23.5
       }
     },
     "buildingOsmId": null,
@@ -15694,20 +15694,24 @@
     "rating": 4.4,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 13,
       "close": 22
     },
     "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 21
+      },
       "2": {
-        "open": 12,
+        "open": 15,
         "close": 22
       },
       "3": {
-        "open": 12,
+        "open": 15,
         "close": 22
       },
       "4": {
-        "open": 12,
+        "open": 15,
         "close": 22
       },
       "5": {
@@ -20539,7 +20543,7 @@
     "rating": 4.5,
     "facing": null,
     "openingHours": {
-      "open": 16,
+      "open": 15,
       "close": 23
     },
     "openingHoursWeekly": {
@@ -20557,6 +20561,10 @@
       },
       "5": {
         "open": 16,
+        "close": 1
+      },
+      "6": {
+        "open": 15,
         "close": 1
       }
     },
@@ -21297,17 +21305,25 @@
       "close": 19
     },
     "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 19
+      },
       "2": {
         "open": 11,
         "close": 16
       },
-      "4": {
+      "3": {
         "open": 11,
         "close": 19
       },
+      "4": {
+        "open": 11,
+        "close": 16
+      },
       "5": {
         "open": 11,
-        "close": 19
+        "close": 16
       }
     },
     "buildingOsmId": null,
@@ -22513,20 +22529,24 @@
         "open": 12,
         "close": 21
       },
+      "1": {
+        "open": 14,
+        "close": 21
+      },
       "2": {
-        "open": 16,
+        "open": 14,
         "close": 23
       },
       "3": {
-        "open": 16,
+        "open": 14,
         "close": 23
       },
       "4": {
-        "open": 16,
+        "open": 14,
         "close": 23
       },
       "5": {
-        "open": 16,
+        "open": 14,
         "close": 23
       },
       "6": {
@@ -22653,28 +22673,12 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 16
+      "close": 15
     },
     "openingHoursWeekly": {
-      "0": {
-        "open": 11,
-        "close": 16
-      },
-      "3": {
-        "open": 11,
-        "close": 15
-      },
       "4": {
         "open": 11,
         "close": 15
-      },
-      "5": {
-        "open": 11,
-        "close": 15
-      },
-      "6": {
-        "open": 11,
-        "close": 16
       }
     },
     "buildingOsmId": null,
@@ -24707,8 +24711,8 @@
         "close": 22
       },
       "4": {
-        "open": 16,
-        "close": 22
+        "open": 12,
+        "close": 22.5
       },
       "5": {
         "open": 12,
@@ -28275,7 +28279,7 @@
     "facing": null,
     "openingHours": {
       "open": 16,
-      "close": 23
+      "close": 22
     },
     "openingHoursWeekly": {
       "2": {
@@ -28292,11 +28296,11 @@
       },
       "5": {
         "open": 16,
-        "close": 23
+        "close": 22
       },
       "6": {
         "open": 16,
-        "close": 23
+        "close": 22
       }
     },
     "buildingOsmId": null,
@@ -28907,7 +28911,7 @@
     "googlePlaceId": "ChIJAcj-82ZuQUYR4fjowR4zpVQ",
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteplass",
-    "businessStatus": "OPERATIONAL",
+    "businessStatus": "CLOSED_TEMPORARILY",
     "hoursSource": "google"
   },
   {
@@ -29278,13 +29282,13 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 13,
+      "open": 14,
       "close": 24
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 13,
-        "close": 19
+        "open": 16,
+        "close": 23
       },
       "2": {
         "open": 16,
@@ -29401,7 +29405,7 @@
         "close": 23
       },
       "5": {
-        "open": 12,
+        "open": 16,
         "close": 23
       },
       "6": {
@@ -31274,13 +31278,9 @@
     "facing": null,
     "openingHours": {
       "open": 14,
-      "close": 23
+      "close": 21.5
     },
     "openingHoursWeekly": {
-      "1": {
-        "open": 16,
-        "close": 23
-      },
       "2": {
         "open": 16,
         "close": 21
@@ -32976,7 +32976,7 @@
     "rating": 4.6,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 13,
       "close": 24
     },
     "openingHoursWeekly": {
@@ -33001,7 +33001,7 @@
         "close": 1
       },
       "6": {
-        "open": 12,
+        "open": 13,
         "close": 1
       }
     },
@@ -34841,19 +34841,19 @@
         "close": 15
       },
       "1": {
-        "open": 17,
+        "open": 18,
         "close": 22
       },
       "2": {
-        "open": 17.5,
+        "open": 18,
         "close": 22
       },
       "3": {
-        "open": 17,
+        "open": 18,
         "close": 22
       },
       "4": {
-        "open": 17,
+        "open": 18,
         "close": 22
       },
       "5": {
@@ -35537,7 +35537,7 @@
     "rating": 4.1,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 0,
       "close": 22.5
     },
     "openingHoursWeekly": {
@@ -35558,7 +35558,7 @@
         "close": 22.5
       },
       "4": {
-        "open": 14,
+        "open": 0,
         "close": 22
       },
       "5": {
@@ -36047,37 +36047,37 @@
     "rating": 4.2,
     "facing": null,
     "openingHours": {
-      "open": 11.5,
-      "close": 22
+      "open": 15,
+      "close": 21.5
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 14,
-        "close": 21
+        "open": 15,
+        "close": 21.5
       },
       "1": {
-        "open": 11.5,
-        "close": 21
+        "open": 15,
+        "close": 21.5
       },
       "2": {
-        "open": 11.5,
-        "close": 21
+        "open": 15,
+        "close": 21.5
       },
       "3": {
-        "open": 11.5,
-        "close": 21
+        "open": 15,
+        "close": 21.5
       },
       "4": {
-        "open": 11.5,
-        "close": 21
+        "open": 15,
+        "close": 21.5
       },
       "5": {
-        "open": 11.5,
-        "close": 22
+        "open": 15,
+        "close": 21.5
       },
       "6": {
-        "open": 12,
-        "close": 22
+        "open": 15,
+        "close": 21.5
       }
     },
     "buildingOsmId": null,
@@ -38117,36 +38117,36 @@
     "facing": null,
     "openingHours": {
       "open": 9.5,
-      "close": 23
+      "close": 23.5
     },
     "openingHoursWeekly": {
       "0": {
         "open": 10,
-        "close": 23
+        "close": 23.5
       },
       "1": {
         "open": 9.5,
-        "close": 23
+        "close": 23.5
       },
       "2": {
         "open": 9.5,
-        "close": 23
+        "close": 23.5
       },
       "3": {
         "open": 9.5,
-        "close": 23
+        "close": 23.5
       },
       "4": {
         "open": 9.5,
-        "close": 23
+        "close": 23.5
       },
       "5": {
         "open": 9.5,
-        "close": 23
+        "close": 23.5
       },
       "6": {
         "open": 9.5,
-        "close": 23
+        "close": 23.5
       }
     },
     "buildingOsmId": null,
@@ -39045,36 +39045,36 @@
     "rating": 4.5,
     "facing": null,
     "openingHours": {
-      "open": 14,
+      "open": 12,
       "close": 2
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 14,
+        "open": 12,
         "close": 1
       },
       "1": {
-        "open": 15,
+        "open": 12,
         "close": 1
       },
       "2": {
-        "open": 15,
+        "open": 12,
         "close": 1
       },
       "3": {
-        "open": 15,
+        "open": 12,
         "close": 1
       },
       "4": {
-        "open": 15,
+        "open": 12,
         "close": 1
       },
       "5": {
-        "open": 14,
+        "open": 12,
         "close": 2
       },
       "6": {
-        "open": 14,
+        "open": 12,
         "close": 2
       }
     },
@@ -39161,7 +39161,7 @@
       },
       "1": {
         "open": 15,
-        "close": 23
+        "close": 21
       },
       "2": {
         "open": 15,
@@ -40684,9 +40684,21 @@
     "facing": null,
     "openingHours": {
       "open": 15,
-      "close": 2
+      "close": 20
     },
     "openingHoursWeekly": {
+      "1": {
+        "open": 20,
+        "close": 4.5
+      },
+      "2": {
+        "open": 16.5,
+        "close": 20
+      },
+      "3": {
+        "open": 15,
+        "close": 3
+      },
       "5": {
         "open": 15,
         "close": 2
