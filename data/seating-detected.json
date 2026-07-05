@@ -36146,6 +36146,47 @@
       },
       "reasoning": "The large grey pier/deck area immediately to the left (water side) of the building shows scattered small shapes consistent with outdoor seating (chairs, parasols) typical of a waterfront restaurant like Solsiden."
     },
+    "895": {
+      "polygon": [
+        [
+          59.915161,
+          10.723175
+        ],
+        [
+          59.915161,
+          10.723282
+        ],
+        [
+          59.915121,
+          10.723309
+        ],
+        [
+          59.91508,
+          10.723282
+        ],
+        [
+          59.91508,
+          10.723175
+        ],
+        [
+          59.915121,
+          10.723148
+        ]
+      ],
+      "confidence": 0.35,
+      "notVisible": false,
+      "detectedAt": "2026-07-05T22:20:04.053Z",
+      "model": "claude-sonnet-4-6",
+      "promptHash": "78b11ecb",
+      "source": "ai",
+      "snapshot": {
+        "zoom": 19,
+        "w": 640,
+        "h": 640,
+        "style": "mapbox/satellite-v9"
+      },
+      "reasoning": "Near the venue marker at center, a small sidewalk area adjacent to the building on Henrik Ibsens gate appears to have potential outdoor seating furniture, though visibility is limited in this image which appears to show a construction/indus"
+    },
     "896": {
       "polygon": [
         [
