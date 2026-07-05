@@ -36175,17 +36175,11 @@
       ],
       "confidence": 0.35,
       "notVisible": false,
-      "detectedAt": "2026-07-05T22:20:04.053Z",
+      "reasoning": "Near the venue marker at center, a small sidewalk area adjacent to the building on Henrik Ibsens gate appears to have potential outdoor seating furniture, though visibility is limited in this image which appears to show a construction/indus",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
-      "snapshot": {
-        "zoom": 19,
-        "w": 640,
-        "h": 640,
-        "style": "mapbox/satellite-v9"
-      },
-      "reasoning": "Near the venue marker at center, a small sidewalk area adjacent to the building on Henrik Ibsens gate appears to have potential outdoor seating furniture, though visibility is limited in this image which appears to show a construction/indus"
+      "detectedAt": "2026-07-05T22:20:04.053Z",
+      "source": "ai"
     },
     "896": {
       "polygon": [
