@@ -13514,19 +13514,19 @@
         "close": 22
       },
       "2": {
-        "open": 13,
+        "open": 16,
         "close": 22.5
       },
       "3": {
-        "open": 13,
+        "open": 16,
         "close": 22.5
       },
       "4": {
-        "open": 13,
+        "open": 16,
         "close": 22.5
       },
       "5": {
-        "open": 13,
+        "open": 16,
         "close": 23
       },
       "6": {
@@ -34443,36 +34443,36 @@
     "rating": 4.6,
     "facing": null,
     "openingHours": {
-      "open": 14.5,
+      "open": 13,
       "close": 3.5
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 14.5,
+        "open": 13,
         "close": 1.5
       },
       "1": {
-        "open": 14.5,
+        "open": 15,
         "close": 1.5
       },
       "2": {
-        "open": 14.5,
+        "open": 15,
         "close": 1.5
       },
       "3": {
-        "open": 14.5,
+        "open": 15,
         "close": 1.5
       },
       "4": {
-        "open": 14.5,
+        "open": 15,
         "close": 1.5
       },
       "5": {
-        "open": 14.5,
+        "open": 15,
         "close": 3.5
       },
       "6": {
-        "open": 14.5,
+        "open": 15,
         "close": 3.5
       }
     },
@@ -36011,36 +36011,36 @@
     "rating": 4.2,
     "facing": null,
     "openingHours": {
-      "open": 15,
+      "open": 14,
       "close": 21.5
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 15,
-        "close": 21.5
+        "open": 14,
+        "close": 21
       },
       "1": {
-        "open": 15,
-        "close": 21.5
+        "open": 14,
+        "close": 21
       },
       "2": {
-        "open": 15,
-        "close": 21.5
+        "open": 14,
+        "close": 21
       },
       "3": {
-        "open": 15,
-        "close": 21.5
+        "open": 14,
+        "close": 21
       },
       "4": {
-        "open": 15,
-        "close": 21.5
+        "open": 14,
+        "close": 21
       },
       "5": {
-        "open": 15,
+        "open": 14,
         "close": 21.5
       },
       "6": {
-        "open": 15,
+        "open": 14,
         "close": 21.5
       }
     },
