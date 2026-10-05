@@ -2558,11 +2558,7 @@
     "openingHoursWeekly": {
       "0": {
         "open": 11,
-        "close": 19
-      },
-      "1": {
-        "open": 11,
-        "close": 22
+        "close": 20
       },
       "2": {
         "open": 11,
@@ -2931,36 +2927,28 @@
     "rating": 4.2,
     "facing": null,
     "openingHours": {
-      "open": 14,
-      "close": 23.5
+      "open": 18,
+      "close": 3
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJHTAMKqZvQUYRjytErnosKK4",
     "facingSource": null,
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
-      "1": {
-        "open": 15,
-        "close": 22.5
-      },
-      "2": {
-        "open": 15,
-        "close": 22.5
-      },
       "3": {
-        "open": 15,
-        "close": 23.5
+        "open": 18,
+        "close": 1
       },
       "4": {
-        "open": 15,
-        "close": 23.5
+        "open": 18,
+        "close": 1
       },
       "5": {
-        "open": 14,
+        "open": 18,
         "close": 3
       },
       "6": {
-        "open": 14,
+        "open": 18,
         "close": 3
       }
     },
@@ -4686,7 +4674,7 @@
     "facing": null,
     "openingHours": {
       "open": 10,
-      "close": 24
+      "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJowC-3C1sQUYRkBX3jm6gIZI",
@@ -4695,31 +4683,31 @@
     "openingHoursWeekly": {
       "0": {
         "open": 10,
-        "close": 23
+        "close": 22
       },
       "1": {
         "open": 10,
-        "close": 23
+        "close": 22
       },
       "2": {
         "open": 10,
-        "close": 23
+        "close": 22
       },
       "3": {
         "open": 10,
-        "close": 23
+        "close": 22
       },
       "4": {
         "open": 10,
-        "close": 24
+        "close": 22
       },
       "5": {
         "open": 10,
-        "close": 24
+        "close": 23
       },
       "6": {
         "open": 10,
-        "close": 24
+        "close": 23
       }
     },
     "hoursSource": "google",
@@ -5000,7 +4988,7 @@
     "facing": null,
     "openingHours": {
       "open": 8,
-      "close": 18
+      "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJbVuybQBvQUYReFJL-NXoQ7A",
@@ -5013,23 +5001,23 @@
       },
       "2": {
         "open": 8,
-        "close": 18
+        "close": 22
       },
       "3": {
         "open": 8,
-        "close": 18
+        "close": 22
       },
       "4": {
         "open": 8,
-        "close": 18
+        "close": 22
       },
       "5": {
         "open": 8,
-        "close": 18
+        "close": 22
       },
       "6": {
         "open": 8,
-        "close": 18
+        "close": 22
       }
     },
     "hoursSource": "google",
