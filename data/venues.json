@@ -2925,7 +2925,7 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJHTAMKqZvQUYRjytErnosKK4",
     "facingSource": null,
-    "businessStatus": "OPERATIONAL",
+    "businessStatus": "CLOSED_PERMANENTLY",
     "openingHoursWeekly": {
       "3": {
         "open": 18,
@@ -4408,23 +4408,23 @@
       },
       "1": {
         "open": 10,
-        "close": 17
+        "close": 16
       },
       "2": {
         "open": 10,
-        "close": 17
+        "close": 16
       },
       "3": {
         "open": 10,
-        "close": 17
+        "close": 16
       },
       "4": {
         "open": 10,
-        "close": 17
+        "close": 16
       },
       "5": {
         "open": 10,
-        "close": 17
+        "close": 16
       },
       "6": {
         "open": 10,
@@ -4719,10 +4719,6 @@
     "facingSource": null,
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
-      "0": {
-        "open": 16,
-        "close": 21
-      },
       "1": {
         "open": 11,
         "close": 22
@@ -5185,7 +5181,7 @@
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
       "0": {
-        "open": 15,
+        "open": 14,
         "close": 22
       },
       "1": {
@@ -5336,7 +5332,7 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 9,
+      "open": 8,
       "close": 19
     },
     "buildingOsmId": null,
@@ -5346,31 +5342,31 @@
     "openingHoursWeekly": {
       "0": {
         "open": 10,
-        "close": 19
+        "close": 18
       },
       "1": {
-        "open": 9,
+        "open": 8,
         "close": 19
       },
       "2": {
-        "open": 9,
+        "open": 8,
         "close": 19
       },
       "3": {
-        "open": 9,
+        "open": 8,
         "close": 19
       },
       "4": {
-        "open": 9,
+        "open": 8,
         "close": 19
       },
       "5": {
-        "open": 9,
+        "open": 8,
         "close": 19
       },
       "6": {
-        "open": 9,
-        "close": 19
+        "open": 10,
+        "close": 18
       }
     },
     "hoursSource": "google"
