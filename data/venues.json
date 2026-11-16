@@ -323,6 +323,10 @@
     "facingSource": null,
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
+      "1": {
+        "open": 11.5,
+        "close": 22
+      },
       "2": {
         "open": 11.5,
         "close": 22
@@ -1604,41 +1608,37 @@
     "rating": 4,
     "facing": null,
     "openingHours": {
-      "open": 10,
-      "close": 21
+      "open": 12,
+      "close": 24
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQRXtti5vQUYRYw7CMt8oIS0",
     "facingSource": null,
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
-      "0": {
-        "open": 10,
-        "close": 18
-      },
       "1": {
-        "open": 10,
-        "close": 18
+        "open": 16,
+        "close": 23
       },
       "2": {
-        "open": 10,
-        "close": 18
+        "open": 12,
+        "close": 23
       },
       "3": {
-        "open": 10,
-        "close": 21
+        "open": 12,
+        "close": 23
       },
       "4": {
-        "open": 10,
-        "close": 21
+        "open": 12,
+        "close": 24
       },
       "5": {
-        "open": 10,
-        "close": 21
+        "open": 12,
+        "close": 24
       },
       "6": {
-        "open": 10,
-        "close": 21
+        "open": 12,
+        "close": 24
       }
     },
     "hoursSource": "google",
@@ -1935,7 +1935,7 @@
     "facing": null,
     "openingHours": {
       "open": 14,
-      "close": 23
+      "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJcWAvE8tvQUYRmQOOXSKP1_k",
@@ -1943,7 +1943,7 @@
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
       "1": {
-        "open": 15,
+        "open": 14,
         "close": 20
       },
       "2": {
@@ -1952,15 +1952,15 @@
       },
       "3": {
         "open": 14,
-        "close": 23
+        "close": 22
       },
       "4": {
         "open": 14,
-        "close": 23
+        "close": 22
       },
       "5": {
         "open": 14,
-        "close": 23
+        "close": 22
       }
     },
     "hoursSource": "google",
